@@ -1,0 +1,1 @@
+@NgModule({imports:[import {AppRoutingModule} from './app-routing.module';import {AngularAppBootModule} from './com/jwebmp/core/base/angular/modules/AngularAppBootModule';import {NgModule} from '@angular/core';import {BrowserModule} from '@angular/platform-browser';],declarations:[],providers: [],exports:[],bootstrap:,schemas:[],})
