@@ -1,1 +1,0 @@
-@NgModule({imports:[],declarations:[],providers: [],exports:[],bootstrap:,schemas:[],})
