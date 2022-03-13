@@ -1,4 +1,4 @@
-package com.jwebmp.core.base.angular;
+package com.jwebmp.core.base.angular.rnd;
 
 import com.google.inject.*;
 import com.jwebmp.core.base.angular.services.annotations.*;

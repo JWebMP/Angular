@@ -1,11 +1,11 @@
 package com.jwebmp.core.base.angular.modules.services.base;
 
 import com.guicedee.guicedinjection.*;
-import com.jwebmp.core.base.angular.modules.*;
 import com.jwebmp.core.base.angular.modules.services.*;
 import com.jwebmp.core.base.angular.modules.services.angular.*;
 import com.jwebmp.core.base.angular.services.annotations.NgModule;
 import com.jwebmp.core.base.angular.services.annotations.*;
+import com.jwebmp.core.base.angular.services.annotations.angularconfig.NgPolyfill;
 import com.jwebmp.core.base.angular.services.interfaces.*;
 import com.jwebmp.core.base.html.*;
 import com.jwebmp.core.databind.*;
@@ -27,7 +27,7 @@ import static com.jwebmp.core.base.angular.services.annotations.NgSourceDirector
 @NgModuleReference(RoutingModule.class)
 @NgProviderReference(SocketClientService.class)
 @NgModuleReference(HttpClientModule.class)
-@TsDependency(value = "ngx-webstorage", version = "^9.0.0")
+@NgPolyfill("zone.js")
 public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implements INgModule<AngularAppBootModule>
 {
 	private Class<? extends INgComponent<?>> bootModule;
@@ -64,21 +64,21 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 	}
 	
 	@Override
-	public Set<String> moduleImports()
+	public List<String> moduleImports()
 	{
-		return Set.of("BrowserModule", "RoutingModule", "NgxWebstorageModule.forRoot()");
+		return List.of("BrowserModule", "RoutingModule");
 	}
 	
 	@Override
-	public Set<String> fields()
+	public List<String> fields()
 	{
-		return Set.of("");
+		return List.of("");
 	}
 	
 	@Override
-	public Set<String> constructorParameters()
+	public List<String> constructorParameters()
 	{
-		return Set.of("");
+		return List.of("");
 	}
 	
 	
@@ -89,7 +89,6 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 		                                                                                                      .replaceAll("\\.", "\\/")
 		                                                                                     + "/" + getClass().getSimpleName()));
 		
-		out.put("NgxWebstorageModule", "!ngx-webstorage");
 		for (IConfiguration configuration : getConfigurations(INgModule.class))
 		{
 			INgModule<?> module = (INgModule<?>) configuration;
@@ -186,9 +185,9 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 	}
 	
 	@Override
-	public Set<String> providers()
+	public List<String> providers()
 	{
-		Set<String> out = new HashSet<>();
+		List<String> out = new ArrayList<>();
 		for (ClassInfo classInfo : GuiceContext.instance()
 		                                       .getScanResult()
 		                                       .getClassesWithAnnotation(NgProvider.class))

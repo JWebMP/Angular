@@ -7,7 +7,7 @@ import com.jwebmp.core.base.html.*;
 
 @NgComponent("data-component")
 //@NgDataTypeReference(DataComponentData.class)
-@NgServiceReference(AngularDataService.class)
+@NgServiceReference(value = AngularDataService.class,provide = true)
 public class AngularDataComponent extends DivSimple<AngularDataComponent>
 		implements INgComponent<AngularDataComponent>
 {

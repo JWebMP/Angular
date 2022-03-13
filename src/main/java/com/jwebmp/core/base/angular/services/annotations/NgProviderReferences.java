@@ -5,7 +5,7 @@ import java.lang.annotation.*;
 import static java.lang.annotation.ElementType.*;
 import static java.lang.annotation.RetentionPolicy.*;
 
-@Target({TYPE, METHOD})
+@Target({TYPE})
 @Retention(RUNTIME)
 @Inherited
 public @interface NgProviderReferences

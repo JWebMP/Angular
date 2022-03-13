@@ -22,21 +22,21 @@ public class OnClickListenerDirective implements INgDirective<OnClickListenerDir
 	}
 	
 	@Override
-	public Set<String> constructorParameters()
+	public List<String> constructorParameters()
 	{
-		return Set.of("private elementRef: ElementRef");
+		return List.of("private elementRef: ElementRef");
 	}
 	
 	@Override
-	public Set<String> fields()
+	public List<String> fields()
 	{
-		return Set.of("@Input() className: string ='';");
+		return List.of("@Input() className: string ='';");
 	}
 	
 	@Override
-	public Set<String> interfaces()
+	public List<String> interfaces()
 	{
-		return Set.of("OnInit");
+		return List.of("OnInit");
 	}
 	
 	@Override
@@ -50,7 +50,7 @@ public class OnClickListenerDirective implements INgDirective<OnClickListenerDir
 				"  let elementId: string = (event.target as Element).id;\n" +
 				//   " let attributes = document.getElementById(elementId)?.attributes;" +
 				// " let clickevent = attributes?.getNamedItem('clickevent')?.value;" +
-				"    console.log('clickered - ! - ' + elementId + ' - ' + this.className + ' - ' + event);\n" +
+				//"    console.log('clickered - ! - ' + elementId + ' - ' + this.className + ' - ' + event);\n" +
 				"" +
 				"this.socketClientService.send('ajax',{eventClass : this.className},'onClick',event,this.elementRef);\n" +
 				"" +

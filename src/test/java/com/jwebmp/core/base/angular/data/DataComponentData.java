@@ -1,4 +1,4 @@
-package com.jwebmp.core.base.angular;
+package com.jwebmp.core.base.angular.data;
 
 import com.guicedee.guicedinjection.representations.*;
 import com.jwebmp.core.base.angular.services.annotations.*;

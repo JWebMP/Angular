@@ -1,39 +1,38 @@
 package com.jwebmp.core.base.angular.implementations;
 
-import com.fasterxml.jackson.databind.*;
-import com.google.inject.*;
-import com.google.inject.name.*;
-import com.guicedee.guicedinjection.*;
-import com.guicedee.guicedservlets.services.scopes.*;
-import com.guicedee.guicedservlets.websockets.*;
-import com.guicedee.guicedservlets.websockets.options.*;
-import com.guicedee.guicedservlets.websockets.services.*;
-import com.guicedee.logger.*;
-import com.jwebmp.core.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
+import com.guicedee.guicedinjection.GuiceContext;
+import com.guicedee.guicedservlets.services.scopes.CallScoper;
+import com.guicedee.guicedservlets.websockets.GuicedWebSocket;
+import com.guicedee.guicedservlets.websockets.options.WebSocketMessageReceiver;
+import com.guicedee.guicedservlets.websockets.services.IWebSocketMessageReceiver;
+import com.guicedee.logger.LogFactory;
 import com.jwebmp.core.base.ajax.*;
-import com.jwebmp.core.base.angular.services.interfaces.*;
-import com.jwebmp.core.exceptions.*;
-import com.jwebmp.core.utilities.*;
-import com.jwebmp.interception.services.*;
+import com.jwebmp.core.base.angular.services.interfaces.INgDataService;
+import com.jwebmp.core.utilities.TextUtilities;
+import com.jwebmp.interception.services.AjaxCallIntercepter;
 
-import java.util.*;
-import java.util.logging.*;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-import static com.guicedee.guicedinjection.GuiceContext.*;
-import static com.guicedee.guicedinjection.interfaces.ObjectBinderKeys.*;
-import static com.guicedee.guicedinjection.json.StaticStrings.*;
-import static com.jwebmp.interception.JWebMPInterceptionBinder.*;
+import static com.guicedee.guicedinjection.GuiceContext.get;
+import static com.guicedee.guicedinjection.interfaces.ObjectBinderKeys.DefaultObjectMapper;
+import static com.jwebmp.interception.JWebMPInterceptionBinder.AjaxCallInterceptorKey;
 
 public class WebSocketDataRequestCallReceiver
 		implements IWebSocketMessageReceiver
 {
 	private static final Logger log = LogFactory.getInstance()
 	                                            .getLogger("WebSocketDataFetch");
-	
+
 	@Inject
 	@Named("callScope")
-	CallScoper scope;
-	
+	private CallScoper scope;
+
 	@Override
 	public Set<String> messageNames()
 	{
@@ -41,7 +40,7 @@ public class WebSocketDataRequestCallReceiver
 		messageNames.add("data");
 		return messageNames;
 	}
-	
+
 	@Override
 	public void receiveMessage(WebSocketMessageReceiver message) throws SecurityException
 	{
@@ -62,19 +61,21 @@ public class WebSocketDataRequestCallReceiver
 			String originalValues = om.writeValueAsString(message.getData());
 			AjaxCall<?> call = om.readValue(originalValues, AjaxCall.class);
 			ajaxCall.fromCall(call);
-			
+
 			ajaxCall.setWebSocketCall(true);
 			ajaxCall.setWebsocketSession(message.getSession());
-			
+
 			Class<? extends INgDataService<?>> clazzy = (Class<? extends INgDataService<?>>) Class.forName(ajaxCall.getClassName());
 			INgDataService<?> dataService = GuiceContext.get(clazzy);
 			for (AjaxCallIntercepter<?> ajaxCallIntercepter : get(AjaxCallInterceptorKey))
 			{
 				ajaxCallIntercepter.intercept(ajaxCall, ajaxResponse);
 			}
-			
+
 			var returned = dataService.getData(ajaxCall);
-			GuicedWebSocket.broadcastMessage(message.getBroadcastGroup(), returned);
+			AjaxResponse<?> response = GuiceContext.get(AjaxResponse.class);
+			response.addDataResponse(dataService.signalFetchName(),returned);
+			GuicedWebSocket.broadcastMessage(message.getBroadcastGroup(), response.toString());
 		}
 		catch (Exception T)
 		{
@@ -102,22 +103,5 @@ public class WebSocketDataRequestCallReceiver
 		{
 			scope.exit();
 		}
-	}
-	
-	protected Event<?, ?> processEvent(AjaxCall<?> call) throws InvalidRequestException
-	{
-		Event<?, ?> triggerEvent = null;
-		try
-		{
-			Class<?> eventClass = Class.forName(call.getClassName()
-			                                        .replace(CHAR_UNDERSCORE, CHAR_DOT));
-			triggerEvent = (Event<?, ?>) get(eventClass);
-		}
-		catch (ClassNotFoundException cnfe)
-		{
-			WebSocketDataRequestCallReceiver.log.log(Level.FINEST, "Unable to find the event class specified", cnfe);
-			throw new InvalidRequestException("The Event To Be Triggered Could Not Be Found");
-		}
-		return triggerEvent;
 	}
 }

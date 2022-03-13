@@ -12,8 +12,8 @@ public class OnDestroyModule implements INgModule<OnDestroyModule>
 		return Map.of("OnDestroy", "@angular/core");
 	}
 	
-	public Set<String> interfaces()
+	public List<String> interfaces()
 	{
-		return Set.of("OnDestroy");
+		return List.of("OnDestroy");
 	}
 }

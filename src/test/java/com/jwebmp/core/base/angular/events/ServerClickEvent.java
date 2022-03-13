@@ -1,6 +1,7 @@
-package com.jwebmp.core.base.angular;
+package com.jwebmp.core.base.angular.events;
 
 import com.jwebmp.core.base.ajax.*;
+import com.jwebmp.core.base.angular.data.DataComponentData;
 import com.jwebmp.core.base.interfaces.*;
 import com.jwebmp.core.events.click.*;
 
@@ -18,8 +19,8 @@ public class ServerClickEvent extends ClickAdapter<ServerClickEvent>
 	@Override
 	public void onClick(AjaxCall<?> call, AjaxResponse<?> response)
 	{
-		System.out.println("Clicked!");
 		response.addReaction(new AjaxResponseReaction<>("/products", ReactionType.RedirectUrl));
-		
+		response.addDataResponse("updateDataComponent", new DataComponentData().setName("This was updated from an event!"));
 	}
+
 }

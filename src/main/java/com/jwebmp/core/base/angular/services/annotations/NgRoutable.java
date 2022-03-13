@@ -1,14 +1,24 @@
 package com.jwebmp.core.base.angular.services.annotations;
 
-import java.lang.annotation.*;
+import com.jwebmp.core.base.angular.services.interfaces.INgComponent;
+import com.jwebmp.core.base.angular.services.interfaces.INgRoutable;
 
-import static java.lang.annotation.ElementType.*;
-import static java.lang.annotation.RetentionPolicy.*;
+import java.lang.annotation.Inherited;
+import java.lang.annotation.Retention;
+import java.lang.annotation.Target;
 
-@Target({TYPE, METHOD})
+import static java.lang.annotation.ElementType.TYPE;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
+
+@Target({TYPE})
 @Retention(RUNTIME)
 @Inherited
-public @interface NgRoutable
-{
-	String path();
+public @interface NgRoutable {
+    String path();
+
+    /**
+     * Only one parent allowed, set as an array to not enforce being set
+     * @return
+     */
+    Class<? extends INgComponent<?>>[] parent() default {};
 }

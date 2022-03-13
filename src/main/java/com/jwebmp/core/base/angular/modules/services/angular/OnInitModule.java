@@ -12,8 +12,8 @@ public class OnInitModule implements INgModule<OnInitModule>
 		return Map.of("OnInit", "@angular/core");
 	}
 	
-	public Set<String> interfaces()
+	public List<String> interfaces()
 	{
-		return Set.of("OnInit");
+		return List.of("OnInit");
 	}
 }

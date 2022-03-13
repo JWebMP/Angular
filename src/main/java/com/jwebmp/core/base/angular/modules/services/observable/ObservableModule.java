@@ -9,7 +9,7 @@ public class ObservableModule implements INgModule<ObservableModule>
 	@Override
 	public Map<String, String> imports()
 	{
-		return Map.of("Observable", "!rxjs");
+		return Map.of("Observable,Observer,Subscription", "!rxjs");
 	}
 	
 }

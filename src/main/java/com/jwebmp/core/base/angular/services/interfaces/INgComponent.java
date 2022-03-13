@@ -11,14 +11,38 @@ import java.util.*;
 public interface INgComponent<J extends INgComponent<J>>
 		extends ITSComponent<J>, IConfiguration
 {
-	default Set<String> styleUrls()
+	default List<String> styleUrls()
 	{
-		return new HashSet<>();
+		return List.of();
+	}
+
+	default List<String> styles()
+	{
+		return List.of();
+	}
+
+	default List<String> animations()
+	{
+		return List.of();
 	}
 	
-	default Set<String> providers()
+	default List<String> providers()
 	{
-		return Set.of();
+		return List.of();
 	}
-	
+
+	default List<String> inputs()
+	{
+		return List.of();
+	}
+
+	default List<String> outputs()
+	{
+		return List.of();
+	}
+
+	default List<String> host()
+	{
+		return List.of();
+	}
 }

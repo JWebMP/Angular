@@ -10,14 +10,14 @@ import static com.jwebmp.core.base.angular.services.annotations.NgSourceDirector
 @NgSourceDirectoryReference(App)
 interface IComponent<J extends IComponent<J>> extends IDefaultService<J>
 {
-	default Set<String> constructorParameters()
+	default List<String> constructorParameters()
 	{
-		return Set.of();
+		return List.of();
 	}
 	
-	default Set<Class<? extends NgDataType>> types()
+	default List<Class<? extends NgDataType>> types()
 	{
-		return Set.of();
+		return List.of();
 	}
 	
 	default List<String> constructorBody()
@@ -30,14 +30,14 @@ interface IComponent<J extends IComponent<J>> extends IDefaultService<J>
 		return List.of();
 	}
 	
-	default Set<String> globalFields()
+	default List<String> globalFields()
 	{
-		return Set.of();
+		return List.of();
 	}
 	
-	default Set<String> fields()
+	default List<String> fields()
 	{
-		return Set.of();
+		return List.of();
 	}
 	
 	default String ofType()
@@ -45,14 +45,13 @@ interface IComponent<J extends IComponent<J>> extends IDefaultService<J>
 		return "";
 	}
 	
-	default Set<String> interfaces()
+	default List<String> interfaces()
 	{
-		return Set.of();
+		return List.of();
 	}
-	
-	
-	default Set<String> decorators()
+
+	default List<String> decorators()
 	{
-		return Set.of();
+		return List.of();
 	}
 }
