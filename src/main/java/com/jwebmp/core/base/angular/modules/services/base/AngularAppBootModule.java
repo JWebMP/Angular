@@ -5,7 +5,7 @@ import com.jwebmp.core.base.angular.modules.services.*;
 import com.jwebmp.core.base.angular.modules.services.angular.*;
 import com.jwebmp.core.base.angular.services.annotations.NgModule;
 import com.jwebmp.core.base.angular.services.annotations.*;
-import com.jwebmp.core.base.angular.services.annotations.angularconfig.NgPolyfill;
+import com.jwebmp.core.base.angular.services.annotations.angularconfig.*;
 import com.jwebmp.core.base.angular.services.interfaces.*;
 import com.jwebmp.core.base.html.*;
 import com.jwebmp.core.databind.*;
@@ -66,7 +66,16 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 	@Override
 	public List<String> moduleImports()
 	{
-		return List.of("BrowserModule", "RoutingModule");
+		List<String> out = new ArrayList<>();
+		for (ClassInfo classInfo : GuiceContext.instance()
+		                                       .getScanResult()
+		                                       .getClassesWithAnnotation(NgBootModuleImportReference.class))
+		{
+			NgBootModuleImportReference reference = classInfo.loadClass()
+			                                                 .getAnnotation(NgBootModuleImportReference.class);
+			out.add(reference.name());
+		}
+		return out;
 	}
 	
 	@Override
@@ -181,6 +190,43 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 				         });
 			}
 		}
+		
+		for (ClassInfo classInfo : GuiceContext.instance()
+		                                       .getScanResult()
+		                                       .getClassesWithAnnotation(NgBootModuleImportReference.class))
+		{
+			/*if (classInfo.isInterface() || classInfo.isAbstract())
+			{
+				continue;
+			}*/
+			Class<?> aClass = classInfo.loadClass();
+			if (ITSComponent.isAnnotationPresent(aClass, NgBootModuleImportReference.class))
+			{
+				NgBootModuleImportReference ref = ITSComponent.getAnnotation(aClass, NgBootModuleImportReference.class);
+				out.putIfAbsent(ref.name(), ref.reference());
+			}
+		}
+		
+		for (ClassInfo classInfo : GuiceContext.instance()
+		                                       .getScanResult()
+		                                       .getClassesWithAnnotation(NgBootModuleImportReferences.class))
+		{
+			/*if (classInfo.isInterface() || classInfo.isAbstract())
+			{
+				continue;
+			}*/
+			Class<?> aClass = classInfo.loadClass();
+			if (ITSComponent.isAnnotationPresent(aClass, NgBootModuleImportReferences.class))
+			{
+				NgBootModuleImportReferences refs = ITSComponent.getAnnotation(aClass, NgBootModuleImportReferences.class);
+				for (NgBootModuleImportReference ref : refs.value())
+				{
+					out.putIfAbsent(ref.name(), ref.reference());
+				}
+			}
+		}
+		
+		
 		return out;
 	}
 	

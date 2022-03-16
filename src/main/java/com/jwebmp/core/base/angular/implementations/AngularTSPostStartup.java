@@ -21,7 +21,7 @@ public class AngularTSPostStartup implements IGuicePostStartup<AngularTSPostStar
 		for (INgApp<?> app : JWebMPTypeScriptCompiler.getAllApps())
 		{
 			JWebMPTypeScriptCompiler compiler = new JWebMPTypeScriptCompiler(app);
-			log.info("Generating @NgApp (" + getTsFilename(app.getClass()) + ") " +
+			log.info("Post Startup - Generating @NgApp (" + getTsFilename(app.getClass()) + ") " +
 			         "in folder " + getClassDirectory(app.getClass()));
 			try
 			{

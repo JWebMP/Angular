@@ -19,4 +19,6 @@ public @interface NgDataTypeReference
 	 * @return
 	 */
 	Class<? extends INgDataType<?>> value();
+	
+	boolean primary() default true;
 }

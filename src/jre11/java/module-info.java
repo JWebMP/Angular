@@ -9,11 +9,10 @@ import com.jwebmp.core.events.click.*;
 module com.jwebmp.core.angular {
 	uses com.jwebmp.core.base.angular.services.AngularScanPackages;
 	
-	
+	exports com.jwebmp.core.base.angular.modules.services.angular.forms;
 	exports com.jwebmp.core.base.angular;
 	exports com.jwebmp.core.base.angular.forms;
 	exports com.jwebmp.core.base.angular.forms.enumerations;
-	exports com.jwebmp.core.base.angular.modules;
 	exports com.jwebmp.core.base.angular.services;
 	exports com.jwebmp.core.base.angular.services.annotations;
 	
@@ -54,6 +53,7 @@ module com.jwebmp.core.angular {
 	provides com.guicedee.guicedservlets.services.IGuiceSiteBinder with AngularTSSiteBinder;
 	provides com.guicedee.guicedinjection.interfaces.IGuicePostStartup with AngularTSPostStartup;
 	provides com.guicedee.guicedservlets.undertow.services.UndertowPathHandler with AngularTSPathHandler;
+	provides com.jwebmp.core.databind.IOnDataBind with AngularTSOnBind;
 	
 	
 	provides IOnClickService with OnClickListener;
@@ -63,7 +63,7 @@ module com.jwebmp.core.angular {
 	uses IWebSocketAuthDataProvider;
 	
 	
-	opens com.jwebmp.core.base.angular.modules to com.google.guice, com.fasterxml.jackson.databind, com.jwebmp.core;
+	//opens com.jwebmp.core.base.angular.modules to com.google.guice, com.fasterxml.jackson.databind, com.jwebmp.core;
 	opens com.jwebmp.core.base.angular.typescript.JWebMP to com.google.guice, com.fasterxml.jackson.databind, com.jwebmp.core;
 	opens com.jwebmp.core.base.angular.services to com.google.guice, com.fasterxml.jackson.databind, com.jwebmp.core;
 	

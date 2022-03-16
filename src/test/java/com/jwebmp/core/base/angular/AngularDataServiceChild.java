@@ -3,11 +3,10 @@ package com.jwebmp.core.base.angular;
 import com.jwebmp.core.base.ajax.*;
 import com.jwebmp.core.base.angular.data.*;
 import com.jwebmp.core.base.angular.services.annotations.*;
-import com.jwebmp.core.base.angular.services.interfaces.*;
 
 @NgDataTypeReference(value = DataComponentData.class)
-@NgDataService("angularDataServiceTest")
-public class AngularDataService implements INgDataService<AngularDataService>
+@NgDataService("angularDataServiceTestChild")
+public class AngularDataServiceChild extends AngularDataService
 {
 	@Override
 	public DataComponentData getData(AjaxCall<?> call)

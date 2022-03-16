@@ -1,38 +1,38 @@
 package com.jwebmp.core.base.angular.implementations;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.inject.Inject;
-import com.google.inject.name.Named;
-import com.guicedee.guicedinjection.GuiceContext;
-import com.guicedee.guicedservlets.services.scopes.CallScoper;
-import com.guicedee.guicedservlets.websockets.GuicedWebSocket;
-import com.guicedee.guicedservlets.websockets.options.WebSocketMessageReceiver;
-import com.guicedee.guicedservlets.websockets.services.IWebSocketMessageReceiver;
-import com.guicedee.logger.LogFactory;
+import com.fasterxml.jackson.databind.*;
+import com.google.inject.*;
+import com.google.inject.name.*;
+import com.guicedee.guicedinjection.*;
+import com.guicedee.guicedservlets.services.scopes.*;
+import com.guicedee.guicedservlets.websockets.*;
+import com.guicedee.guicedservlets.websockets.options.*;
+import com.guicedee.guicedservlets.websockets.services.*;
+import com.guicedee.logger.*;
 import com.jwebmp.core.base.ajax.*;
-import com.jwebmp.core.base.angular.services.interfaces.INgDataService;
-import com.jwebmp.core.utilities.TextUtilities;
-import com.jwebmp.interception.services.AjaxCallIntercepter;
+import com.jwebmp.core.base.angular.services.annotations.*;
+import com.jwebmp.core.base.angular.services.interfaces.*;
+import com.jwebmp.core.utilities.*;
+import com.jwebmp.interception.services.*;
 
-import java.util.HashSet;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.*;
+import java.util.logging.*;
 
-import static com.guicedee.guicedinjection.GuiceContext.get;
-import static com.guicedee.guicedinjection.interfaces.ObjectBinderKeys.DefaultObjectMapper;
-import static com.jwebmp.interception.JWebMPInterceptionBinder.AjaxCallInterceptorKey;
+import static com.guicedee.guicedinjection.GuiceContext.*;
+import static com.guicedee.guicedinjection.interfaces.ObjectBinderKeys.*;
+import static com.jwebmp.core.base.angular.services.interfaces.ITSComponent.*;
+import static com.jwebmp.interception.JWebMPInterceptionBinder.*;
 
 public class WebSocketDataRequestCallReceiver
 		implements IWebSocketMessageReceiver
 {
 	private static final Logger log = LogFactory.getInstance()
 	                                            .getLogger("WebSocketDataFetch");
-
+	
 	@Inject
 	@Named("callScope")
 	private CallScoper scope;
-
+	
 	@Override
 	public Set<String> messageNames()
 	{
@@ -40,7 +40,7 @@ public class WebSocketDataRequestCallReceiver
 		messageNames.add("data");
 		return messageNames;
 	}
-
+	
 	@Override
 	public void receiveMessage(WebSocketMessageReceiver message) throws SecurityException
 	{
@@ -61,20 +61,21 @@ public class WebSocketDataRequestCallReceiver
 			String originalValues = om.writeValueAsString(message.getData());
 			AjaxCall<?> call = om.readValue(originalValues, AjaxCall.class);
 			ajaxCall.fromCall(call);
-
+			
 			ajaxCall.setWebSocketCall(true);
 			ajaxCall.setWebsocketSession(message.getSession());
-
+			
 			Class<? extends INgDataService<?>> clazzy = (Class<? extends INgDataService<?>>) Class.forName(ajaxCall.getClassName());
 			INgDataService<?> dataService = GuiceContext.get(clazzy);
 			for (AjaxCallIntercepter<?> ajaxCallIntercepter : get(AjaxCallInterceptorKey))
 			{
 				ajaxCallIntercepter.intercept(ajaxCall, ajaxResponse);
 			}
-
+			
 			var returned = dataService.getData(ajaxCall);
 			AjaxResponse<?> response = GuiceContext.get(AjaxResponse.class);
-			response.addDataResponse(dataService.signalFetchName(),returned);
+			NgDataService dService = getAnnotation(clazzy, NgDataService.class);
+			response.addDataResponse(dService.value(), returned);
 			GuicedWebSocket.broadcastMessage(message.getBroadcastGroup(), response.toString());
 		}
 		catch (Exception T)

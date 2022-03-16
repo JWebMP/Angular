@@ -22,15 +22,16 @@ import com.guicedee.guicedservlets.services.*;
 import com.guicedee.logger.*;
 import com.jwebmp.core.annotations.*;
 import com.jwebmp.core.base.angular.modules.services.base.*;
-import com.jwebmp.core.base.angular.services.*;
 import com.jwebmp.core.base.angular.services.annotations.*;
+import com.jwebmp.core.base.angular.services.interfaces.*;
 import com.jwebmp.core.implementations.*;
 import io.github.classgraph.*;
 import org.apache.commons.io.*;
 
 import java.io.*;
-import java.util.*;
 import java.util.logging.*;
+
+import static com.jwebmp.core.base.angular.services.interfaces.ITSComponent.*;
 
 /**
  * @author GedMarc
@@ -56,45 +57,21 @@ public class AngularTSSiteBinder
 		module.bind(EnvironmentModule.class)
 		      .toInstance(new EnvironmentModule());
 		
-		
 		for (ClassInfo classInfo : GuiceContext.instance()
 		                                       .getScanResult()
 		                                       .getClassesWithAnnotation(NgApp.class))
 		{
 			Class<?> loadClass = classInfo.loadClass();
-			NgApp app = loadClass.getAnnotation(NgApp.class);
+			NgApp app = getAnnotation(loadClass, NgApp.class);
 			PageConfiguration pc = loadClass.getAnnotation(PageConfiguration.class);
-			File file = new File(FileUtils.getUserDirectory() + "/jwebmp/" + app.value() + "/dist/jwebmp/");
+			File file = new File(FileUtils.getUserDirectory() + "/jwebmp/" + app.name() + "/dist/jwebmp/");
 			StringBuilder url;
 			url = new StringBuilder(pc.url()
 			                          .substring(0, pc.url()
 			                                          .length() - 1) + "/*");
-			
 			module.serve$(url.toString())
 			      .with(new FileSystemResourceServlet().setFolder(file));
-			
-	/*		JWebMPTypeScriptCompiler.getNgPackageFilterScanResult(loadClass, app)
-			                        .getClassesWithAnnotation(NgRoutable.class)
-			                        .stream()
-			                        .forEach(a -> {
-						                        NgRoutable annotation = a.loadClass()
-						                                                 .getAnnotation(NgRoutable.class);
-						                        if (annotation != null)
-						                        {
-							                      //  module.serve$("/" + annotation.path() + "*")
-							                      //        .with(new FileSystemResourceServlet().setFolder(file));
-						                        }
-					                        }
-			                        );
-			*/
-			/*Set<String> uniqueMimes = new HashSet<>();
-			for (MimeTypes value : MimeTypes.values())
-			{
-				uniqueMimes.add(value.name()
-				                     .replace("$", ""));
-			}
-			*/
-			AngularTSSiteBinder.log.log(Level.FINE, "Serving Angular TS for defined @NgApp " + app.value() + " at  " + file.getPath());
+			AngularTSSiteBinder.log.log(Level.FINE, "Serving Angular TS for defined @NgApp " + app.name() + " at  " + file.getPath());
 		}
 		
 		JWebMPSiteBinder.bindSites = false;

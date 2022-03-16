@@ -63,7 +63,7 @@ public enum AngularAttributes
 	ngMessagesMultiple("ng-messages-multiple"),
 	ngMessageDefault("ng-message-default"),
 	ngMinlength("ng-minlength"),
-	ngModel("ng-model"),
+	ngModel("[(ngModel)]"),
 	ngModelOptions("ng-model-options"),
 	ngMousedown("ng-mousedown"),
 	ngMouseenter("ng-mouseenter"),

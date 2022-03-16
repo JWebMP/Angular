@@ -5,7 +5,7 @@ import com.jwebmp.core.base.angular.services.interfaces.*;
 
 import java.util.*;
 
-@TsDependency(value = "@angular/animations", version = "13.2.0")
+@TsDependency(value = "@angular/animations", version = "^13.2.0")
 public class BrowserAnimationsModule implements INgModule<BrowserAnimationsModule>
 {
 	@Override

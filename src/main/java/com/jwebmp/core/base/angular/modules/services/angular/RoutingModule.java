@@ -82,7 +82,8 @@ public class RoutingModule implements INgModule<RoutingModule>
 		}
 		
 		
-		ScanResult scan = getNgPackageFilterScanResult(app.getClass(), app.getAnnotation());
+		ScanResult scan = GuiceContext.instance()
+		                              .getScanResult();
 		
 		Map<String, String> componentReferencePair = new HashMap<>();
 		
@@ -213,7 +214,7 @@ public class RoutingModule implements INgModule<RoutingModule>
 	
 	
 	@Override
-	public List<String> renderBeforeNgModuleDecorator()
+	public String renderBeforeClass()
 	{
 		//render the const class
 		ObjectMapper om = GuiceContext.get(DefaultObjectMapper);
@@ -222,13 +223,13 @@ public class RoutingModule implements INgModule<RoutingModule>
 			String routesOutput = om.writerWithDefaultPrettyPrinter()
 			                        .writeValueAsString(definedRoutesList);
 			routesOutput = "const routes: Routes = " + routesOutput + ";\n";
-			return List.of(routesOutput);
+			return routesOutput;
 		}
 		catch (JsonProcessingException e)
 		{
 			e.printStackTrace();
 		}
-		return List.of();
+		return "";
 	}
 	
 	public static void applyRoute(IComponentHTMLAttributeBase<?, ?> component,

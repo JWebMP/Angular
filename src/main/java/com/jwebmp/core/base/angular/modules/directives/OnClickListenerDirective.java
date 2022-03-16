@@ -7,7 +7,7 @@ import com.jwebmp.core.base.angular.services.interfaces.*;
 
 import java.util.*;
 
-@NgDirective(selector = "[className]")
+@NgDirective(selector = "[clickClassName]")
 @NgModuleReference(NgDirectiveModule.class)
 @NgModuleReference(HostListenerModule.class)
 @NgModuleReference(NgInputModule.class)
@@ -30,7 +30,7 @@ public class OnClickListenerDirective implements INgDirective<OnClickListenerDir
 	@Override
 	public List<String> fields()
 	{
-		return List.of("@Input() className: string ='';");
+		return List.of("@Input() clickClassName: string ='';");
 	}
 	
 	@Override
@@ -42,21 +42,12 @@ public class OnClickListenerDirective implements INgDirective<OnClickListenerDir
 	@Override
 	public List<String> methods()
 	{
-		return List.of(" ngOnInit() {\n" +
-		               //"                          console.log('clickevent : ' + this.clickevent);\n" +
-		               "                        }",
+		return List.of("ngOnInit() {}\n",
 				"@HostListener('click', ['$event'])\n" +
 				"  onClick(event: PointerEvent) {\n" +
 				"  let elementId: string = (event.target as Element).id;\n" +
-				//   " let attributes = document.getElementById(elementId)?.attributes;" +
-				// " let clickevent = attributes?.getNamedItem('clickevent')?.value;" +
-				//"    console.log('clickered - ! - ' + elementId + ' - ' + this.className + ' - ' + event);\n" +
-				"" +
-				"this.socketClientService.send('ajax',{eventClass : this.className},'onClick',event,this.elementRef);\n" +
-				"" +
-				"" +
-				"  }");
+				"  this.socketClientService.send('ajax',{eventClass : this.clickClassName},'onClick',event,this.elementRef);\n" +
+				"}\n");
 	}
-	
 	
 }

@@ -43,6 +43,9 @@ public class AngularTestComponent extends DivSimple<AngularTestComponent>
 		//add(new ProductList());
 		
 		add(new AngularDataComponent());
+		
+		add("forms");
+		add(new TestForm());
 	}
 
 }

@@ -14,44 +14,11 @@ import static java.lang.annotation.RetentionPolicy.*;
 public @interface NgApp
 {
 	/**
-	 * The name of the .ts file for this app
-	 *
-	 * @return
-	 */
-	String value() default "";
-	
-	/**
-	 * The name of the .ts file for this app
-	 *
-	 * @return
-	 */
-	String[] assets() default {};
-	
-	/**
-	 * The name of the .ts file for this app
-	 *
-	 * @return
-	 */
-	String[] stylesheets() default {};
-	
-	/**
-	 * The name of the .ts file for this app
-	 *
-	 * @return
-	 */
-	String[] scripts() default {};
-	
-	/**
-	 * Include the packages to render
-	 *
-	 * @return
-	 */
-	String[] includePackages() default {};
-	
-	/**
 	 * The boot module to call from the angular app
 	 *
 	 * @return
 	 */
 	Class<? extends INgComponent<?>> bootComponent();
+	
+	String name();
 }

@@ -4,6 +4,7 @@ import com.guicedee.guicedinjection.*;
 import com.guicedee.guicedservlets.undertow.services.*;
 import com.jwebmp.core.annotations.*;
 import com.jwebmp.core.base.angular.services.annotations.*;
+import com.jwebmp.core.base.angular.services.interfaces.*;
 import io.github.classgraph.*;
 import io.undertow.*;
 import io.undertow.predicate.*;
@@ -23,12 +24,12 @@ public class AngularTSPathHandler implements UndertowPathHandler<AngularTSPathHa
 		{
 			for (ClassInfo classInfo : GuiceContext.instance()
 			                                       .getScanResult()
-			                                       .getClassesWithAnnotation(NgApp.class))
+			                                       .getClassesImplementing(INgApp.class))
 			{
 				Class<?> loadClass = classInfo.loadClass();
-				NgApp app = loadClass.getAnnotation(NgApp.class);
+				INgApp<?> app = (INgApp<?>) GuiceContext.get(loadClass);
 				PageConfiguration pc = loadClass.getAnnotation(PageConfiguration.class);
-				File file = new File(FileUtils.getUserDirectory() + "/jwebmp/" + app.value() + "/dist/jwebmp/");
+				File file = new File(FileUtils.getUserDirectory() + "/jwebmp/" + app.name() + "/dist/jwebmp/");
 				incoming = Handlers.predicate(
 						Predicates.suffixes(".png", ".css", ".jpg", ".svg", "*.js", "*.html"),
 						Handlers.resource(new PathResourceManager(file.toPath())), incoming);

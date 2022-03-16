@@ -6,7 +6,7 @@ import com.jwebmp.core.base.angular.services.interfaces.*;
 
 import java.util.*;
 
-@TsDependency(value = "@angular/platform-browser", version = "13.2.0")
+@TsDependency(value = "@angular/platform-browser", version = "^13.2.0")
 @NgBootModuleImportReference(name = "BrowserModule",reference = "@angular/platform-browser")
 public class PlatformBrowserModule implements INgModule<PlatformBrowserModule>
 {

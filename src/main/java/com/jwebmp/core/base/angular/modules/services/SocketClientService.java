@@ -131,7 +131,7 @@ public class SocketClientService implements INgProvider<SocketClientService> {
                         "    }\n" +
                         "}\n",
 
-                "send(action:string,data:object, eventType :string,event? : Event, component? : ElementRef<any>) : void {\n" +
+                "send(action:string,data:object, eventType :string,event? : any, component? : ElementRef<any>) : void {\n" +
                         "" +
                         //"alert('sending...');" +
                         "const news : any = {\n" +
@@ -159,28 +159,20 @@ public class SocketClientService implements INgProvider<SocketClientService> {
                         "}\n" +
                         "" +
                         "if(component)\n" +
-                        "{\n" +
-                        "   let elementId: string = (event?.target as Element).id; \n" +
-                        "   let attributeNames : string[] = (event?.target as Element).getAttributeNames();\n" +
-                        "   let ele = (event?.target as Element);\n" +
-                        //" alert(attributeNames);  " +
-                        " " +
-                        "  let attributes : any = {};\n" +
-                        //"  debugger; " +
-                        "   for(let attr of attributeNames)\n" +
-                        "\t\t\t\t  {\n" +
-                        "                      try {\n" +
-                        "\t\t\t\t     attributes[attr] = ele.getAttribute(attr);\n" +
-                        "                      }catch(error)\n" +
-                        "                      {\n" +
-                        "                          console.log(error);\n" +
-                        "                      }\n" +
-                        "\t\t\t\t   }  " +
-                        "news.data.attributes = attributes;\n" +
-                        "news.componentId = elementId;\n" +
-                        "" +
-                        "   " +
-                        "}\n" +
+                "{\n" +
+                "        let ele = component.nativeElement;\n" +
+                "        let attributeNames: string[] =  ele.getAttributeNames();\n" +
+                "        let attributes: any = {};\n" +
+                "        for (let attr of attributeNames) {\n" +
+                "            try {\n" +
+                "                attributes[attr] = ele.getAttribute(attr);\n" +
+                "            } catch (error) {\n" +
+                "                console.log(error);\n" +
+                "            }\n" +
+                "        }\n" +
+                "        news.data.attributes = attributes;\n" +
+                "        news.componentId = ele.getAttribute(\"id\");\n" +
+                "   }\n" +
                         "" +
                         //	"alert('news : ' + JSON.stringify(news));" +
                         "this.websocket.next(news);\n" +

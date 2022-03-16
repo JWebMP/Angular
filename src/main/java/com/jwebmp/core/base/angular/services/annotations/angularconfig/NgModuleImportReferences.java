@@ -1,4 +1,4 @@
-package com.jwebmp.core.base.angular.services.annotations;
+package com.jwebmp.core.base.angular.services.annotations.angularconfig;
 
 import java.lang.annotation.*;
 
@@ -8,12 +8,12 @@ import static java.lang.annotation.RetentionPolicy.*;
 @Target({TYPE})
 @Retention(RUNTIME)
 @Inherited
-public @interface NgDataService
+public @interface NgModuleImportReferences
 {
 	/**
-	 * The signal name
+	 * The string name of the dev dependency for the given ng app
 	 *
 	 * @return
 	 */
-	String value();
+	NgModuleImportReference[] value();
 }

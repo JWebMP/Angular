@@ -12,7 +12,7 @@ public class OnClickListener implements IOnClickService<OnClickListener>
 		{
 			e.getComponent()
 			 .asAttributeBase()
-			 .addAttribute("className", e.getClass()
+			 .addAttribute("clickClassName", e.getClass()
 			                             .getCanonicalName());
 		}
 	}

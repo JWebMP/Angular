@@ -5,7 +5,7 @@ import com.jwebmp.core.base.angular.services.interfaces.*;
 
 import java.util.*;
 
-@TsDependency(value = "@angular/platform-browser-dynamic", version = "13.2.0")
+@TsDependency(value = "@angular/platform-browser-dynamic", version = "^13.2.0")
 public class DynamicPlatformBrowserModule implements INgModule<DynamicPlatformBrowserModule>
 {
 	@Override
