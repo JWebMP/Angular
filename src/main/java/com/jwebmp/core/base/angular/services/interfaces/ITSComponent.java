@@ -4,7 +4,8 @@ import com.google.common.base.*;
 import com.guicedee.guicedinjection.*;
 import com.jwebmp.core.base.*;
 import com.jwebmp.core.base.angular.services.annotations.*;
-import com.jwebmp.core.base.angular.services.annotations.angularconfig.*;
+import com.jwebmp.core.base.angular.services.annotations.references.NgImportReference;
+import com.jwebmp.core.base.angular.services.annotations.references.NgImportReferences;
 
 import java.io.*;
 import java.lang.annotation.*;
@@ -159,7 +160,7 @@ public interface ITSComponent<J extends ITSComponent<J>> extends IComponent<J>
 			{
 				classyInterface = anInterface;
 				while (classyInterface != null && !classyInterface.getName()
-				                                      .equals(Object.class.getName()))
+				                                                  .equals(Object.class.getName()))
 				{
 					if (classyInterface.isAnnotationPresent(annotationClass))
 					{
@@ -179,7 +180,7 @@ public interface ITSComponent<J extends ITSComponent<J>> extends IComponent<J>
 			{
 				if (classyInterface.isAnnotationPresent(annotationClass))
 				{
-					return (A)classyInterface.getAnnotation(annotationClass);
+					return (A) classyInterface.getAnnotation(annotationClass);
 				}
 				classyInterface = anInterface.getSuperclass();
 			}
@@ -307,8 +308,8 @@ public interface ITSComponent<J extends ITSComponent<J>> extends IComponent<J>
 			      });
 		}
 		
-		List<NgModuleImportReference> moduleRefs = getListOfAnnotations(getClass(), NgModuleImportReference.class, NgModuleImportReferences.class);
-		for (NgModuleImportReference moduleRef : moduleRefs)
+		List<NgImportReference> moduleRefs = getListOfAnnotations(getClass(), NgImportReference.class, NgImportReferences.class);
+		for (NgImportReference moduleRef : moduleRefs)
 		{
 			out.putIfAbsent(moduleRef.name(), moduleRef.reference());
 		}
@@ -540,5 +541,4 @@ public interface ITSComponent<J extends ITSComponent<J>> extends IComponent<J>
 	{
 		return false;
 	}
-	
 }

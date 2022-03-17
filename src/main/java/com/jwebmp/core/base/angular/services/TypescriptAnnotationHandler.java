@@ -2,7 +2,8 @@ package com.jwebmp.core.base.angular.services;
 
 import com.guicedee.guicedinjection.*;
 import com.jwebmp.core.base.angular.services.annotations.*;
-import com.jwebmp.core.base.angular.services.annotations.angularconfig.*;
+import com.jwebmp.core.base.angular.services.annotations.references.NgImportReference;
+import com.jwebmp.core.base.angular.services.annotations.references.NgImportReferences;
 import io.github.classgraph.*;
 
 import java.io.*;
@@ -16,14 +17,14 @@ public class TypescriptAnnotationHandler
 {
 	private static final Class<? extends Annotation>[] groupImportableAnnotations = new Class[]{
 			//NgModuleReferences.class,
-			NgModuleImportReferences.class,
+			NgImportReferences.class,
 			NgProviderReferences.class,
 			NgDataTypeReferences.class,
 			NgServiceReferences.class
 	};
 	private static final Class<? extends Annotation>[] importableAnnotations = new Class[]{
 			//	NgModuleReference.class,
-			NgModuleImportReference.class,
+			NgImportReference.class,
 			NgProviderReference.class,
 			NgDataTypeReference.class,
 			NgServiceReference.class

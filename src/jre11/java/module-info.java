@@ -89,6 +89,8 @@ module com.jwebmp.core.angular {
 	opens com.jwebmp.core.base.angular.modules.services.storage to com.fasterxml.jackson.databind, com.google.guice, com.jwebmp.core;
 	exports com.jwebmp.core.base.angular.services.annotations.angularconfig;
 	opens com.jwebmp.core.base.angular.services.annotations.angularconfig to com.fasterxml.jackson.databind, com.google.guice, com.jwebmp.core;
+	exports com.jwebmp.core.base.angular.services.annotations.references;
+	opens com.jwebmp.core.base.angular.services.annotations.references to com.fasterxml.jackson.databind, com.google.guice, com.jwebmp.core;
 //	opens com.jwebmp.core.base.angular.typescript to com.google.guice, com.fasterxml.jackson.databind, com.jwebmp.core;
 	
 }

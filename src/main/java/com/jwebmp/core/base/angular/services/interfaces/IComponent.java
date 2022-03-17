@@ -1,8 +1,10 @@
 package com.jwebmp.core.base.angular.services.interfaces;
 
 import com.guicedee.guicedinjection.interfaces.*;
+import com.jwebmp.core.base.ComponentHierarchyBase;
 import com.jwebmp.core.base.angular.services.annotations.*;
 
+import java.lang.reflect.Array;
 import java.util.*;
 
 import static com.jwebmp.core.base.angular.services.annotations.NgSourceDirectoryReference.SourceDirectories.*;
@@ -14,7 +16,7 @@ interface IComponent<J extends IComponent<J>> extends IDefaultService<J>
 	{
 		return List.of();
 	}
-	
+
 	default List<Class<? extends NgDataType>> types()
 	{
 		return List.of();
@@ -49,7 +51,7 @@ interface IComponent<J extends IComponent<J>> extends IDefaultService<J>
 	{
 		return List.of();
 	}
-
+	
 	default List<String> decorators()
 	{
 		return List.of();

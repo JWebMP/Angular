@@ -1433,6 +1433,7 @@ public class JWebMPTypeScriptCompiler
 		{
 			constructorParameters.append(constructorParameter + ", ");
 		}
+
 		if (constructorParameters.length() > 1)
 		{
 			constructorParameters.deleteCharAt(constructorParameters.lastIndexOf(", "));

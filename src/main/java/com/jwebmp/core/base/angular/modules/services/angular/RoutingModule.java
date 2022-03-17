@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.*;
 import com.guicedee.guicedinjection.*;
 import com.jwebmp.core.base.angular.services.DefinedRoute;
 import com.jwebmp.core.base.angular.services.annotations.*;
-import com.jwebmp.core.base.angular.services.annotations.angularconfig.NgBootModuleImportReference;
+import com.jwebmp.core.base.angular.services.annotations.references.NgBootImportReference;
 import com.jwebmp.core.base.angular.services.interfaces.*;
 import com.jwebmp.core.base.interfaces.*;
 import io.github.classgraph.*;
@@ -25,7 +25,7 @@ import static com.jwebmp.core.base.angular.services.interfaces.ITSComponent.*;
 @NgModuleReference(com.jwebmp.core.base.angular.modules.services.angular.NgModule.class)
 @NgModuleReference(NgRouterModule.class)
 @NgModuleReference(NgRoutesModule.class)
-@NgBootModuleImportReference(name = "RoutingModule", reference = "")
+@NgBootImportReference(name = "RoutingModule", reference = "")
 @com.jwebmp.core.base.angular.services.annotations.NgModule
 public class RoutingModule implements INgModule<RoutingModule>
 {

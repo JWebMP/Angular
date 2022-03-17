@@ -1,4 +1,4 @@
-package com.jwebmp.core.base.angular.services.annotations;
+package com.jwebmp.core.base.angular.services.annotations.structures;
 
 import com.jwebmp.core.base.angular.services.annotations.references.NgImportReference;
 
@@ -10,15 +10,12 @@ import static java.lang.annotation.RetentionPolicy.*;
 @Target({TYPE})
 @Retention(RUNTIME)
 @Inherited
-@NgImportReference(name = "NgModule", reference = "@angular/core")
-public @interface NgModule
+public @interface NgConstructorParameters
 {
 	/**
-	 * The name of the .ts file to render
+	 * The string name of the dev dependency for the given ng app
 	 *
 	 * @return
 	 */
-	String name() default "";
-	
-	boolean renderInAngularBootModule() default true;
+	NgConstructorParameter[] value();
 }

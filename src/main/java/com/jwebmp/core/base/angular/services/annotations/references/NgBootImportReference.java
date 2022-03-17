@@ -1,4 +1,4 @@
-package com.jwebmp.core.base.angular.services.annotations.angularconfig;
+package com.jwebmp.core.base.angular.services.annotations.references;
 
 import java.lang.annotation.*;
 
@@ -7,9 +7,9 @@ import static java.lang.annotation.RetentionPolicy.*;
 
 @Target({TYPE})
 @Retention(RUNTIME)
-@Repeatable(NgModuleImportReferences.class)
+@Repeatable(NgBootImportReferences.class)
 @Inherited
-public @interface NgModuleImportReference
+public @interface NgBootImportReference
 {
 	String reference();
 	String name();
