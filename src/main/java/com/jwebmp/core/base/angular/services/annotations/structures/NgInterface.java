@@ -1,4 +1,4 @@
-package com.jwebmp.core.base.angular.services.annotations.references;
+package com.jwebmp.core.base.angular.services.annotations.structures;
 
 import java.lang.annotation.*;
 
@@ -7,13 +7,13 @@ import static java.lang.annotation.RetentionPolicy.*;
 
 @Target({TYPE})
 @Retention(RUNTIME)
-@Repeatable(NgBootImportReferences.class)
+@Repeatable(NgInterfaces.class)
 @Inherited
-public @interface NgBootImportReference
+public @interface NgInterface
 {
-	String reference();
-	String name();
+	String value();
 	
 	boolean onParent() default false;
+	
 	boolean onSelf() default true;
 }

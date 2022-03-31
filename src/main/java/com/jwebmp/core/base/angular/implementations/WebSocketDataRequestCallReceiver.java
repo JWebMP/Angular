@@ -20,6 +20,7 @@ import java.util.logging.*;
 
 import static com.guicedee.guicedinjection.GuiceContext.*;
 import static com.guicedee.guicedinjection.interfaces.ObjectBinderKeys.*;
+import static com.jwebmp.core.base.angular.services.compiler.AnnotationsMap.*;
 import static com.jwebmp.core.base.angular.services.interfaces.ITSComponent.*;
 import static com.jwebmp.interception.JWebMPInterceptionBinder.*;
 
@@ -74,7 +75,7 @@ public class WebSocketDataRequestCallReceiver
 			
 			var returned = dataService.getData(ajaxCall);
 			AjaxResponse<?> response = GuiceContext.get(AjaxResponse.class);
-			NgDataService dService = getAnnotation(clazzy, NgDataService.class);
+			NgDataService dService = getAnnotations(clazzy, NgDataService.class).get(0);
 			response.addDataResponse(dService.value(), returned);
 			GuicedWebSocket.broadcastMessage(message.getBroadcastGroup(), response.toString());
 		}

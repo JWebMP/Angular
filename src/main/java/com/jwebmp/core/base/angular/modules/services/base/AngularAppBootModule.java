@@ -1,13 +1,9 @@
 package com.jwebmp.core.base.angular.modules.services.base;
 
 import com.guicedee.guicedinjection.*;
-import com.jwebmp.core.base.angular.modules.services.*;
-import com.jwebmp.core.base.angular.modules.services.angular.*;
-import com.jwebmp.core.base.angular.services.annotations.NgModule;
 import com.jwebmp.core.base.angular.services.annotations.*;
 import com.jwebmp.core.base.angular.services.annotations.angularconfig.*;
-import com.jwebmp.core.base.angular.services.annotations.references.NgBootImportReference;
-import com.jwebmp.core.base.angular.services.annotations.references.NgBootImportReferences;
+import com.jwebmp.core.base.angular.services.annotations.references.*;
 import com.jwebmp.core.base.angular.services.interfaces.*;
 import com.jwebmp.core.base.html.*;
 import com.jwebmp.core.databind.*;
@@ -17,19 +13,29 @@ import java.util.List;
 import java.util.Map;
 import java.util.*;
 
-import static com.jwebmp.core.base.angular.services.annotations.NgSourceDirectoryReference.SourceDirectories.*;
+import static com.jwebmp.core.base.angular.services.compiler.AnnotationsMap.*;
 
-/**
- * Internal use only - for mapping the annotation boot class into an imports clause for the base application
- */
-@NgSourceDirectoryReference(value = App, inPackage = false)
-@NgModule
-@NgModuleReference(PlatformBrowserModule.class)
-@NgModuleReference(com.jwebmp.core.base.angular.modules.services.angular.NgModule.class)
-@NgModuleReference(RoutingModule.class)
-@NgProviderReference(SocketClientService.class)
-@NgModuleReference(HttpClientModule.class)
+//@NgComponentReference(SocketClientService.class)
+//@NgComponentReference(RoutingModule.class)
+
+
+@TsDependency(value = "@angular/platform-browser", version = "^13.3.1")
+@NgImportReference(name = "BrowserModule", reference = "@angular/platform-browser")
+@NgBootModuleImport("BrowserModule")
+
+@TsDependency(value = "@angular/forms", version = "^13.3.1")
+@NgImportReference(name = "FormsModule", reference = "@angular/forms")
+@NgBootModuleImport("FormsModule")
+
+@TsDependency(value = "@angular/common", version = "^13.3.1")
+@NgImportReference(name = "CommonModule", reference = "@angular/common")
+@NgBootModuleImport("CommonModule")
+
+@NgImportReference(name = "HttpClient, HttpResponse, HttpHeaders,HttpParams,HttpErrorResponse", reference = "@angular/common/http")
+
 @NgPolyfill("zone.js")
+
+@TsDependency(value = "@angular/platform-browser-dynamic", version = "^13.3.1")
 public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implements INgModule<AngularAppBootModule>
 {
 	private Class<? extends INgComponent<?>> bootModule;
@@ -71,13 +77,31 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 		List<String> out = new ArrayList<>();
 		for (ClassInfo classInfo : GuiceContext.instance()
 		                                       .getScanResult()
-		                                       .getClassesWithAnnotation(NgBootImportReference.class))
+		                                       .getClassesWithAnnotation(NgBootModuleImports.class))
 		{
-			NgBootImportReference reference = classInfo.loadClass()
-			                                           .getAnnotation(NgBootImportReference.class);
-			out.add(reference.name());
+			NgBootModuleImports reference = classInfo.loadClass()
+			                                         .getAnnotation(NgBootModuleImports.class);
+			for (NgBootModuleImport ngBootModuleImport : reference.value())
+			{
+				out.add(ngBootModuleImport.value());
+			}
 		}
-		return out;
+		for (ClassInfo classInfo : GuiceContext.instance()
+		                                       .getScanResult()
+		                                       .getClassesWithAnnotation(NgBootModuleImport.class))
+		{
+			NgBootModuleImport reference = classInfo.loadClass()
+			                                        .getAnnotation(NgBootModuleImport.class);
+			if (reference == null)
+			{
+				continue;
+			}
+			out.add(reference.value());
+		}
+		
+		return out.stream()
+		          .distinct()
+		          .toList();
 	}
 	
 	@Override
@@ -92,14 +116,32 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 		return List.of("");
 	}
 	
-	
 	@Override
-	public Map<String, String> renderImports()
+	public StringBuilder renderImports()
 	{
-		Map<String, String> out = new java.util.HashMap<>(Map.of(getClass().getSimpleName(), "./" + getClass().getPackageName()
-		                                                                                                      .replaceAll("\\.", "\\/")
-		                                                                                     + "/" + getClass().getSimpleName()));
+		StringBuilder sb = new StringBuilder();
+		Map<String, String> out = renderImportsMap();
+		processReferenceAnnotations(out);
+		for (Map.Entry<String, String> entry : out.entrySet())
+		{
+			String key = entry.getKey();
+			if (key.equals("AngularAppBootModule"))
+			{
+				continue;
+			}
+			String value = entry.getValue();
+			sb.append(String.format(importString, key, value));
+		}
+		return sb;
+	}
+	
+	public Map<String, String> renderImportsMap()
+	{
+		ScanResult scan = GuiceContext.instance()
+		                              .getScanResult();
 		
+		
+		Map<String, String> out = new java.util.HashMap<>();
 		for (IConfiguration configuration : getConfigurations(INgModule.class))
 		{
 			INgModule<?> module = (INgModule<?>) configuration;
@@ -112,25 +154,53 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 			}
 		}
 		
-		processReferenceAnnotations(out);
+		List<NgImportReference> importRefs = getAnnotations(getClass(), NgImportReference.class);
+		for (NgImportReference moduleRef : importRefs)
+		{
+			//these are fixed locations
+			if (moduleRef.onSelf())
+			{
+				out.putIfAbsent(moduleRef.name(), moduleRef.reference());
+			}
+		}
 		
 		for (ClassInfo classInfo : GuiceContext.instance()
 		                                       .getScanResult()
 		                                       .getClassesWithAnnotation(NgComponent.class))
 		{
-			if (classInfo.isInterface() || classInfo.isAbstract())
+			Set<Class<? extends ITSComponent<?>>> classes = new HashSet<>();
+			var a = classInfo;
+			if (a.isInterface() || a.isAbstract())
 			{
-				continue;
+				for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
+				{
+					if (!subclass.isAbstract() && !subclass.isInterface())
+					{
+						classes.add((Class<? extends ITSComponent<?>>) subclass.loadClass());
+					}
+				}
 			}
-			Class<? extends INgComponent<?>> aClass = (Class<? extends INgComponent<?>>) classInfo.loadClass();
-			INgComponent<?> component = GuiceContext.get(aClass);
-			NgComponent anno = aClass.getAnnotation(NgComponent.class);
-			for (Map.Entry<String, String> entry : component.imports()
-			                                                .entrySet())
+			else
 			{
-				String key = entry.getKey();
-				String value = entry.getValue();
-				out.putIfAbsent(key, value);
+				Class<?> aClass = a.loadClass();
+				classes.add((Class<? extends ITSComponent<?>>) aClass);
+			}
+			for (Class<? extends ITSComponent<?>> aClass : classes)
+			{
+				INgComponent<?> component = (INgComponent<?>) GuiceContext.get(aClass);
+				var annos = getAnnotations(aClass,NgComponent.class);
+				for (NgComponent anno : annos)
+				{
+					NgComponentReference componentReference = getNgComponentReference(aClass);
+					putRelativeLinkInMap(getClass(), out, componentReference);
+					for (Map.Entry<String, String> entry : component.imports()
+					                                                .entrySet())
+					{
+						String key = entry.getKey();
+						String value = entry.getValue();
+						out.putIfAbsent(key, value);
+					}
+				}
 			}
 		}
 		
@@ -138,97 +208,130 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 		                                       .getScanResult()
 		                                       .getClassesWithAnnotation(NgModule.class))
 		{
-			if (classInfo.isInterface() || classInfo.isAbstract())
+			Set<Class<? extends ITSComponent<?>>> classes = new HashSet<>();
+			var a = classInfo;
+			if (a.isInterface() || a.isAbstract())
 			{
-				continue;
+				for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
+				{
+					if (!subclass.isAbstract() && !subclass.isInterface())
+					{
+						classes.add((Class<? extends ITSComponent<?>>) subclass.loadClass());
+					}
+				}
 			}
-			Class<? extends INgModule<?>> aClass = (Class<? extends INgModule<?>>) classInfo.loadClass();
-			INgModule<?> component = GuiceContext.get(aClass);
-			NgModule anno = aClass.getAnnotation(NgModule.class);
-			if (anno != null)
+			else
 			{
-				component.imports()
-				         .forEach((key, value) -> {
-					         out.put(key, value);
-				         });
+				Class<?> aClass = a.loadClass();
+				classes.add((Class<? extends ITSComponent<?>>) aClass);
+			}
+			for (Class<? extends ITSComponent<?>> aClass : classes)
+			{
+				if (aClass.equals(getClass()))
+				{
+					continue;
+				}
+				INgModule<?> component = (INgModule<?>) GuiceContext.get(aClass);
+				var annos = getAnnotations(aClass,NgModule.class);
+				for (NgModule anno : annos)
+				{
+					if (anno != null)
+					{
+						NgComponentReference componentReference = getNgComponentReference(aClass);
+						putRelativeLinkInMap(getClass(), out, componentReference);
+						for (Map.Entry<String, String> entry : component.imports()
+						                                                .entrySet())
+						{
+							String key = entry.getKey();
+							String value = entry.getValue();
+							out.putIfAbsent(key, value);
+						}
+					}
+				}
 			}
 		}
-		
+
 		for (ClassInfo classInfo : GuiceContext.instance()
 		                                       .getScanResult()
 		                                       .getClassesWithAnnotation(NgDirective.class))
 		{
-			if (classInfo.isInterface() || classInfo.isAbstract())
+			Set<Class<? extends ITSComponent<?>>> classes = new HashSet<>();
+			var a = classInfo;
+			if (a.isInterface() || a.isAbstract())
 			{
-				continue;
+				for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
+				{
+					if (!subclass.isAbstract() && !subclass.isInterface())
+					{
+						classes.add((Class<? extends ITSComponent<?>>) subclass.loadClass());
+					}
+				}
 			}
-			Class<? extends INgDirective<?>> aClass = (Class<? extends INgDirective<?>>) classInfo.loadClass();
-			INgDirective<?> component = GuiceContext.get(aClass);
-			NgDirective anno = aClass.getAnnotation(NgDirective.class);
-			if (anno != null)
+			else
 			{
-				component.imports()
-				         .forEach((key, value) -> {
-					         out.put(key, value);
-				         });
+				Class<?> aClass = a.loadClass();
+				classes.add((Class<? extends ITSComponent<?>>) aClass);
+			}
+			for (Class<? extends ITSComponent<?>> aClass : classes)
+			{
+				INgDirective<?> component = (INgDirective<?>) GuiceContext.get(aClass);
+				var annos = getAnnotations(aClass,NgDirective.class);
+				for (NgDirective anno : annos)
+				{
+					if (anno != null)
+					{
+						NgComponentReference componentReference = getNgComponentReference(aClass);
+						putRelativeLinkInMap(getClass(), out, componentReference);
+						for (Map.Entry<String, String> entry : component.imports()
+						                                                .entrySet())
+						{
+							String key = entry.getKey();
+							String value = entry.getValue();
+							out.putIfAbsent(key, value);
+						}
+					}
+				}
 			}
 		}
 		for (ClassInfo classInfo : GuiceContext.instance()
 		                                       .getScanResult()
 		                                       .getClassesWithAnnotation(NgProvider.class))
 		{
-			if (classInfo.isInterface() || classInfo.isAbstract())
+			Set<Class<? extends ITSComponent<?>>> classes = new HashSet<>();
+			var a = classInfo;
+			if (a.isInterface() || a.isAbstract())
 			{
-				continue;
-			}
-			Class<? extends INgProvider<?>> aClass = (Class<? extends INgProvider<?>>) classInfo.loadClass();
-			INgProvider<?> component = GuiceContext.get(aClass);
-			NgProvider anno = aClass.getAnnotation(NgProvider.class);
-			if (anno != null)
-			{
-				component.imports()
-				         .forEach((key, value) -> {
-					         out.put(key, value);
-				         });
-			}
-		}
-		
-		for (ClassInfo classInfo : GuiceContext.instance()
-		                                       .getScanResult()
-		                                       .getClassesWithAnnotation(NgBootImportReference.class))
-		{
-			/*if (classInfo.isInterface() || classInfo.isAbstract())
-			{
-				continue;
-			}*/
-			Class<?> aClass = classInfo.loadClass();
-			if (ITSComponent.isAnnotationPresent(aClass, NgBootImportReference.class))
-			{
-				NgBootImportReference ref = ITSComponent.getAnnotation(aClass, NgBootImportReference.class);
-				out.putIfAbsent(ref.name(), ref.reference());
-			}
-		}
-		
-		for (ClassInfo classInfo : GuiceContext.instance()
-		                                       .getScanResult()
-		                                       .getClassesWithAnnotation(NgBootImportReferences.class))
-		{
-			/*if (classInfo.isInterface() || classInfo.isAbstract())
-			{
-				continue;
-			}*/
-			Class<?> aClass = classInfo.loadClass();
-			if (ITSComponent.isAnnotationPresent(aClass, NgBootImportReferences.class))
-			{
-				NgBootImportReferences refs = ITSComponent.getAnnotation(aClass, NgBootImportReferences.class);
-				for (NgBootImportReference ref : refs.value())
+				for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
 				{
-					out.putIfAbsent(ref.name(), ref.reference());
+					if (!subclass.isAbstract() && !subclass.isInterface())
+					{
+						classes.add((Class<? extends ITSComponent<?>>) subclass.loadClass());
+					}
+				}
+			}
+			else
+			{
+				Class<?> aClass = a.loadClass();
+				classes.add((Class<? extends ITSComponent<?>>) aClass);
+			}
+			for (Class<? extends ITSComponent<?>> aClass : classes)
+			{
+				INgProvider<?> component = (INgProvider<?>) GuiceContext.get(aClass);
+				var annos = getAnnotations(aClass,NgProvider.class);
+				for (NgProvider anno : annos)
+				{
+					NgComponentReference componentReference = getNgComponentReference(aClass);
+					putRelativeLinkInMap(getClass(), out, componentReference);
+					for (Map.Entry<String, String> entry : component.imports()
+					                                                .entrySet())
+					{
+						String key = entry.getKey();
+						String value = entry.getValue();
+						out.putIfAbsent(key, value);
+					}
 				}
 			}
 		}
-		
-		
 		return out;
 	}
 	
@@ -238,7 +341,7 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 		List<String> out = new ArrayList<>();
 		for (ClassInfo classInfo : GuiceContext.instance()
 		                                       .getScanResult()
-		                                       .getClassesWithAnnotation(NgProvider.class))
+		                                       .getClassesWithAnnotation(NgBootProvider.class))
 		{
 			if (classInfo.isInterface() || classInfo.isAbstract())
 			{
@@ -246,11 +349,15 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 			}
 			Class<? extends INgProvider<?>> aClass = (Class<? extends INgProvider<?>>) classInfo.loadClass();
 			INgProvider<?> component = GuiceContext.get(aClass);
-			NgProvider anno = aClass.getAnnotation(NgProvider.class);
-			if (anno != null)
+			var annos = getAnnotations(aClass, NgBootProvider.class);
+			for (NgBootProvider anno : annos)
 			{
-				if (anno.singleton())
+				if (anno != null)
 				{
+					if (anno.onSelf())
+					{
+						out.add(anno.value());
+					}
 					for (String key : component.providers())
 					{
 						out.add(key);

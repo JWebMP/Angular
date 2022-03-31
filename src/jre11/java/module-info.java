@@ -13,8 +13,13 @@ module com.jwebmp.core.angular {
 	exports com.jwebmp.core.base.angular;
 	exports com.jwebmp.core.base.angular.forms;
 	exports com.jwebmp.core.base.angular.forms.enumerations;
+	exports com.jwebmp.core.base.angular.services.compiler;
 	exports com.jwebmp.core.base.angular.services;
 	exports com.jwebmp.core.base.angular.services.annotations;
+	exports com.jwebmp.core.base.angular.services.annotations.functions;
+	exports com.jwebmp.core.base.angular.services.annotations.structures;
+	exports com.jwebmp.core.base.angular.services.annotations.references;
+	exports com.jwebmp.core.base.angular.services.annotations.angularconfig;
 	
 	requires transitive com.jwebmp.core;
 	
@@ -75,22 +80,16 @@ module com.jwebmp.core.angular {
 	opens com.jwebmp.core.base.angular.modules.services to com.fasterxml.jackson.databind, com.google.guice, com.jwebmp.core;
 	opens com.jwebmp.core.base.angular.modules.listeners to com.fasterxml.jackson.databind, com.google.guice, com.jwebmp.core;
 	opens com.jwebmp.core.base.angular.modules.directives to com.fasterxml.jackson.databind, com.google.guice, com.jwebmp.core;
-	exports com.jwebmp.core.base.angular.modules.services.rxtxjs;
-	opens com.jwebmp.core.base.angular.modules.services.rxtxjs to com.fasterxml.jackson.databind, com.google.guice, com.jwebmp.core;
 	exports com.jwebmp.core.base.angular.modules.services.angular;
 	opens com.jwebmp.core.base.angular.modules.services.angular to com.fasterxml.jackson.databind, com.google.guice, com.jwebmp.core;
-	exports com.jwebmp.core.base.angular.modules.services.observable;
-	opens com.jwebmp.core.base.angular.modules.services.observable to com.fasterxml.jackson.databind, com.google.guice, com.jwebmp.core;
 	exports com.jwebmp.core.base.angular.modules.services.rxtxjs.stompjs;
-	exports com.jwebmp.core.base.angular.modules.services.websocket;
-	opens com.jwebmp.core.base.angular.modules.services.websocket to com.fasterxml.jackson.databind, com.google.guice, com.jwebmp.core;
 	exports com.jwebmp.core.base.angular.modules.services.base;
 	opens com.jwebmp.core.base.angular.modules.services.base to com.fasterxml.jackson.databind, com.google.guice, com.jwebmp.core;
-	opens com.jwebmp.core.base.angular.modules.services.storage to com.fasterxml.jackson.databind, com.google.guice, com.jwebmp.core;
-	exports com.jwebmp.core.base.angular.services.annotations.angularconfig;
 	opens com.jwebmp.core.base.angular.services.annotations.angularconfig to com.fasterxml.jackson.databind, com.google.guice, com.jwebmp.core;
-	exports com.jwebmp.core.base.angular.services.annotations.references;
 	opens com.jwebmp.core.base.angular.services.annotations.references to com.fasterxml.jackson.databind, com.google.guice, com.jwebmp.core;
+	opens com.jwebmp.core.base.angular.services.annotations.structures to com.fasterxml.jackson.databind, com.google.guice, com.jwebmp.core;
+	opens com.jwebmp.core.base.angular.services.annotations.functions to com.fasterxml.jackson.databind, com.google.guice, com.jwebmp.core;
+	opens com.jwebmp.core.base.angular.services.compiler to com.fasterxml.jackson.databind, com.google.guice, com.jwebmp.core;
 //	opens com.jwebmp.core.base.angular.typescript to com.google.guice, com.fasterxml.jackson.databind, com.jwebmp.core;
 	
 }

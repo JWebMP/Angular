@@ -7,13 +7,9 @@ import static java.lang.annotation.RetentionPolicy.*;
 
 @Target({TYPE})
 @Retention(RUNTIME)
-@Repeatable(NgBootImportReferences.class)
+@Repeatable(NgBootModuleImports.class)
 @Inherited
-public @interface NgBootImportReference
+public @interface NgBootModuleImport
 {
-	String reference();
-	String name();
-	
-	boolean onParent() default false;
-	boolean onSelf() default true;
+	String value();
 }

@@ -15,6 +15,7 @@ import static com.fasterxml.jackson.annotation.JsonInclude.Include.*;
         setterVisibility = NONE)
 @JsonInclude(NON_EMPTY)
 @JsonIgnoreProperties(ignoreUnknown = true)
+@JsonPropertyOrder({"component","path","children"})
 public class DefinedRoute<J extends DefinedRoute<J>> implements IJsonRepresentation<J> {
     private String path;
     @JsonRawValue

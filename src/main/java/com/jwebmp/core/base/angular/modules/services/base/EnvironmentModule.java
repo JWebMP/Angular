@@ -1,13 +1,19 @@
 package com.jwebmp.core.base.angular.modules.services.base;
 
 import com.fasterxml.jackson.annotation.*;
+import com.fasterxml.jackson.core.*;
+import com.fasterxml.jackson.databind.*;
 import com.google.inject.*;
+import com.guicedee.guicedinjection.*;
 import com.jwebmp.core.base.angular.services.annotations.*;
 import com.jwebmp.core.base.angular.services.interfaces.*;
 
+import java.lang.reflect.*;
+import java.util.*;
+
+import static com.guicedee.guicedinjection.interfaces.ObjectBinderKeys.*;
 import static com.jwebmp.core.base.angular.services.annotations.NgSourceDirectoryReference.SourceDirectories.*;
 
-@NgSourceDirectoryReference(value = Environment)
 @Singleton
 @NgDataType(value = NgDataType.DataTypeClass.Const)
 public class EnvironmentModule implements INgDataType<EnvironmentModule>
@@ -38,11 +44,28 @@ public class EnvironmentModule implements INgDataType<EnvironmentModule>
 	}
 	
 	@Override
+	public StringBuilder renderClassBody()
+	{
+		StringBuilder sb = new StringBuilder();
+		ObjectMapper om = GuiceContext.get(DefaultObjectMapper);
+		try
+		{
+			sb.append(om.writerWithDefaultPrettyPrinter()
+			            .writeValueAsString(environmentOptions));
+		}
+		catch (JsonProcessingException e)
+		{
+			e.printStackTrace();
+		}
+		return sb;
+	}
+	
+	@Override
 	public String renderBeforeClass()
 	{
 		if (!environmentOptions.isProduction())
 		{
-			return "import 'zone.js/dist/zone-error';  ";
+			return "import 'zone.js/dist/zone-error';\n";
 		}
 		return "";
 	}

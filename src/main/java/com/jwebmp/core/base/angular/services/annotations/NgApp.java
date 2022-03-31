@@ -21,4 +21,5 @@ public @interface NgApp
 	Class<? extends INgComponent<?>> bootComponent();
 	
 	String name();
+	
 }

@@ -1,10 +1,18 @@
 package com.jwebmp.core.base.angular.services.interfaces;
 
+import com.jwebmp.core.base.*;
 import com.jwebmp.core.base.angular.services.annotations.*;
+import com.jwebmp.core.base.angular.services.annotations.references.*;
+import com.jwebmp.core.htmlbuilder.css.composer.*;
+import org.apache.commons.io.*;
 
+import java.io.*;
 import java.util.*;
 
 import static com.jwebmp.core.base.angular.services.annotations.NgSourceDirectoryReference.SourceDirectories.*;
+import static com.jwebmp.core.base.angular.services.compiler.AnnotationsMap.*;
+import static com.jwebmp.core.base.angular.services.interfaces.ITSComponent.*;
+import static java.nio.charset.StandardCharsets.*;
 
 @NgSourceDirectoryReference(Main)
 public interface INgApp<J extends INgApp<J>> extends ITSComponent<J>
@@ -59,7 +67,5 @@ public interface INgApp<J extends INgApp<J>> extends ITSComponent<J>
 	{
 		return List.of(getClass().getPackageName());
 	}
-	
-	;
 	
 }

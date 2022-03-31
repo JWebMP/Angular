@@ -1,10 +1,9 @@
 package com.jwebmp.core.base.angular.services;
 
-import com.jwebmp.core.base.angular.modules.services.angular.*;
-import com.jwebmp.core.base.angular.services.annotations.*;
+import com.jwebmp.core.base.angular.services.annotations.references.*;
 import com.jwebmp.core.base.html.*;
 
-@NgModuleReference(NgRouterModule.class)
+@NgImportReference(name = "RouterModule, ParamMap,Router", reference = "@angular/router")
 public class RouterOutlet extends DivSimple<RouterOutlet>
 {
 	public RouterOutlet()

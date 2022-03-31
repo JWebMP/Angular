@@ -30,12 +30,6 @@ public class OnComponentAdded implements IOnComponentAdded<OnComponentAdded>
 			parent.addConfiguration((IConfiguration) component);
 		}
 		
-		if (component.getClass()
-		             .isAnnotationPresent(NgRoutable.class))
-		{
-			component.addConfiguration(new NgRouterModule());
-		}
-		
 	}
 }
 

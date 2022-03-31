@@ -2,7 +2,7 @@ package com.jwebmp.core.base.angular.events;
 
 import com.jwebmp.core.base.ajax.*;
 import com.jwebmp.core.base.angular.AngularApp;
-import com.jwebmp.core.base.angular.services.JWebMPTypeScriptCompiler;
+import com.jwebmp.core.base.angular.services.compiler.JWebMPTypeScriptCompiler;
 import com.jwebmp.core.base.interfaces.IComponentHierarchyBase;
 import com.jwebmp.core.events.click.ClickAdapter;
 

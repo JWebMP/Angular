@@ -1,4 +1,4 @@
-package com.jwebmp.core.base.angular.services.annotations;
+package com.jwebmp.core.base.angular.services.annotations.references;
 
 import com.jwebmp.core.base.angular.services.interfaces.*;
 
@@ -10,13 +10,17 @@ import static java.lang.annotation.RetentionPolicy.*;
 @Target({TYPE})
 @Retention(RUNTIME)
 @Inherited
-@Repeatable(NgModuleReferences.class)
-public @interface NgModuleReference
+@Repeatable(NgDataTypeReferences.class)
+public @interface NgDataTypeReference
 {
 	/**
 	 * The boot module to call from the angular app
 	 *
 	 * @return
 	 */
-	Class<? extends INgModule<?>> value();
+	Class<? extends INgDataType<?>> value();
+	
+	boolean primary() default true;
+	
+	String signalName() default "";
 }

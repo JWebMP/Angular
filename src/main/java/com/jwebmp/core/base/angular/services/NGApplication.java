@@ -1,25 +1,27 @@
 package com.jwebmp.core.base.angular.services;
 
 import com.jwebmp.core.*;
-import com.jwebmp.core.base.angular.modules.services.angular.*;
 import com.jwebmp.core.base.angular.modules.services.base.*;
+import com.jwebmp.core.base.angular.services.annotations.references.*;
+import com.jwebmp.core.base.angular.services.compiler.*;
 import com.jwebmp.core.base.angular.services.interfaces.*;
 import com.jwebmp.core.base.html.*;
-import com.jwebmp.core.databind.*;
 
-import java.util.*;
+import java.io.*;
 import java.util.List;
 import java.util.Map;
+import java.util.*;
 
+@NgImportReference(name = "platformBrowserDynamic", reference = "@angular/platform-browser-dynamic")
+@NgImportReference(name = "enableProdMode", reference = "@angular/core")
+@NgComponentReference(EnvironmentModule.class)
+@NgComponentReference(AngularAppBootModule.class)
 public class NGApplication<J extends NGApplication<J>> extends Page<J> implements ITSComponent<J>, INgApp<J>
 {
 	private List<String> renderAfterImports;
 	
 	public NGApplication()
 	{
-		addConfiguration(new EnableProdModeFunction());
-		addConfiguration(new DynamicPlatformBrowserModule());
-		addConfiguration(new EnvironmentModule());
 		getHead()
 				.add(new Meta(Meta.MetadataFields.Charset, "utf-8"));
 		getHead()
@@ -43,17 +45,19 @@ public class NGApplication<J extends NGApplication<J>> extends Page<J> implement
 	}
 	
 	@Override
-	public Map<String, String> imports()
+	public void putRelativeLinkInMap(Class<?> clazz, Map<String, String> out, NgComponentReference moduleRef)
 	{
-		Map<String, String> map = new java.util.HashMap<>(Map.of(getClass().getSimpleName(), "./" + getClass().getPackageName()
-		                                                                                                      .replaceAll("\\.", "\\/")
-		                                                                                     + "/" + getClass().getSimpleName()));
-		
-		for (IConfiguration configuration : getConfigurations(INgModule.class))
+		var baseDir = JWebMPTypeScriptCompiler.getCurrentAppFile();
+		try
 		{
-			INgModule<?> module = (INgModule<?>) configuration;
-			map.putAll(module.imports());
+			File me = new File(baseDir.get().getCanonicalPath().replace('\\','/') + "/src");
+			File destination = new File(getFileReference(baseDir.get()
+			                                                    .getCanonicalPath(), moduleRef.value()));
+			out.putIfAbsent(ITSComponent.getTsFilename(moduleRef.value()), ITSComponent.getRelativePath(me, destination, null));
 		}
-		return map;
+		catch (IOException e)
+		{
+			e.printStackTrace();
+		}
 	}
 }

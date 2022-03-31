@@ -23,6 +23,7 @@ import com.guicedee.logger.*;
 import com.jwebmp.core.annotations.*;
 import com.jwebmp.core.base.angular.modules.services.base.*;
 import com.jwebmp.core.base.angular.services.annotations.*;
+import com.jwebmp.core.base.angular.services.compiler.*;
 import com.jwebmp.core.base.angular.services.interfaces.*;
 import com.jwebmp.core.implementations.*;
 import io.github.classgraph.*;
@@ -62,18 +63,19 @@ public class AngularTSSiteBinder
 		                                       .getClassesWithAnnotation(NgApp.class))
 		{
 			Class<?> loadClass = classInfo.loadClass();
-			NgApp app = getAnnotation(loadClass, NgApp.class);
-			PageConfiguration pc = loadClass.getAnnotation(PageConfiguration.class);
-			File file = new File(FileUtils.getUserDirectory() + "/jwebmp/" + app.name() + "/dist/jwebmp/");
-			StringBuilder url;
-			url = new StringBuilder(pc.url()
-			                          .substring(0, pc.url()
-			                                          .length() - 1) + "/*");
-			module.serve$(url.toString())
-			      .with(new FileSystemResourceServlet().setFolder(file));
-			AngularTSSiteBinder.log.log(Level.FINE, "Serving Angular TS for defined @NgApp " + app.name() + " at  " + file.getPath());
+			for (NgApp app : AnnotationsMap.getAnnotations(loadClass, NgApp.class))
+			{
+				PageConfiguration pc = loadClass.getAnnotation(PageConfiguration.class);
+				File file = new File(FileUtils.getUserDirectory() + "/jwebmp/" + app.name() + "/dist/jwebmp/");
+				StringBuilder url;
+				url = new StringBuilder(pc.url()
+				                          .substring(0, pc.url()
+				                                          .length() - 1) + "/*");
+				module.serve$(url.toString())
+				      .with(new FileSystemResourceServlet().setFolder(file));
+				AngularTSSiteBinder.log.log(Level.FINE, "Serving Angular TS for defined @NgApp " + app.name() + " at  " + file.getPath());
+			}
 		}
-		
 		JWebMPSiteBinder.bindSites = false;
 		JWebMPJavaScriptDynamicScriptRenderer.renderJavascript = false;
 		

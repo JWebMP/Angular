@@ -8,12 +8,14 @@ import com.jwebmp.core.base.angular.modules.services.angular.*;
 import com.jwebmp.core.base.angular.rnd.ProductList;
 import com.jwebmp.core.base.angular.services.*;
 import com.jwebmp.core.base.angular.services.annotations.*;
+import com.jwebmp.core.base.angular.services.annotations.functions.*;
+import com.jwebmp.core.base.angular.services.annotations.references.*;
 import com.jwebmp.core.base.angular.services.interfaces.*;
 import com.jwebmp.core.base.html.*;
 
 @NgComponent(value = "test-component")
-@NgProviderReference(SocketClientService.class)
-@NgModuleReference(OnInitModule.class)
+@NgComponentReference(SocketClientService.class)
+@NgOnInit
 public class AngularTestComponent extends DivSimple<AngularTestComponent>
 		implements INgComponent<AngularTestComponent>
 {

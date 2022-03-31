@@ -3,7 +3,7 @@ package com.jwebmp.core.base.angular.typescript;
 import com.guicedee.guicedinjection.*;
 import com.guicedee.guicedservlets.undertow.*;
 import com.guicedee.logger.*;
-import com.jwebmp.core.base.angular.services.*;
+import com.jwebmp.core.base.angular.services.compiler.*;
 import com.jwebmp.core.base.angular.services.interfaces.*;
 import org.junit.jupiter.api.*;
 

@@ -1,4 +1,4 @@
-package com.jwebmp.core.base.angular.services.annotations.angularconfig;
+package com.jwebmp.core.base.angular.services.annotations.references;
 
 import java.lang.annotation.*;
 
@@ -8,12 +8,12 @@ import static java.lang.annotation.RetentionPolicy.*;
 @Target({TYPE})
 @Retention(RUNTIME)
 @Inherited
-public @interface NgAssets
+public @interface NgImportProviders
 {
 	/**
 	 * The string name of the dev dependency for the given ng app
 	 *
 	 * @return
 	 */
-	NgAsset[] value();
+	NgImportProvider[] value();
 }

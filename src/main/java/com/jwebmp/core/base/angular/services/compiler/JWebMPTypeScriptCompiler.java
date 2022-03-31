@@ -1,31 +1,23 @@
-package com.jwebmp.core.base.angular.services;
+package com.jwebmp.core.base.angular.services.compiler;
 
-import com.fasterxml.jackson.core.*;
 import com.fasterxml.jackson.databind.*;
 import com.google.common.base.*;
 import com.guicedee.guicedinjection.*;
-import com.guicedee.guicedinjection.interfaces.*;
 import com.guicedee.logger.*;
 import com.jwebmp.core.*;
 import com.jwebmp.core.base.*;
-import com.jwebmp.core.base.angular.modules.services.angular.*;
 import com.jwebmp.core.base.angular.modules.services.base.*;
-import com.jwebmp.core.base.angular.services.annotations.NgModule;
 import com.jwebmp.core.base.angular.services.annotations.*;
 import com.jwebmp.core.base.angular.services.annotations.angularconfig.*;
 import com.jwebmp.core.base.angular.services.interfaces.*;
 import com.jwebmp.core.base.angular.typescript.JWebMP.*;
 import com.jwebmp.core.base.html.*;
-import com.jwebmp.core.base.references.*;
 import com.jwebmp.core.base.servlets.enumarations.*;
-import com.jwebmp.core.htmlbuilder.css.composer.*;
 import io.github.classgraph.*;
 import org.apache.commons.io.*;
 import org.apache.commons.lang3.*;
 
 import java.io.*;
-import java.lang.reflect.*;
-import java.math.*;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -34,6 +26,7 @@ import java.util.concurrent.*;
 import java.util.logging.*;
 
 import static com.guicedee.guicedinjection.interfaces.ObjectBinderKeys.*;
+import static com.jwebmp.core.base.angular.services.compiler.AnnotationsMap.*;
 import static com.jwebmp.core.base.angular.services.interfaces.ITSComponent.*;
 import static java.nio.charset.StandardCharsets.*;
 
@@ -45,6 +38,8 @@ public class JWebMPTypeScriptCompiler
 	private static JWebMPTypeScriptCompiler instance;
 	
 	public static File baseUserDirectory;
+	
+	private static ThreadLocal<File> currentAppFile = ThreadLocal.withInitial(() -> null);
 	
 	private File srcDirectory;
 	private File appDirectory;
@@ -61,6 +56,11 @@ public class JWebMPTypeScriptCompiler
 	private INgApp<?> app;
 	
 	public static final Map<INgApp, File> appDirectories = new HashMap<>();
+	
+	public static ThreadLocal<File> getCurrentAppFile()
+	{
+		return currentAppFile;
+	}
 	
 	static
 	{
@@ -87,7 +87,7 @@ public class JWebMPTypeScriptCompiler
 	{
 		instance = this;
 		this.app = app;
-		this.ngApp = ITSComponent.getAnnotation(app.getClass(), NgApp.class);
+		this.ngApp = getAnnotations(app.getClass(), NgApp.class).get(0);
 		try
 		{
 			appBaseDirectory = new File(baseUserDirectory.getCanonicalPath() + "/" + ngApp.name());
@@ -97,6 +97,7 @@ public class JWebMPTypeScriptCompiler
 				FileUtils.forceMkdir(appBaseDirectory);
 			}
 			appDirectories.put(app, appBaseDirectory);
+			currentAppFile.set(appBaseDirectory);
 		}
 		catch (IOException e)
 		{
@@ -104,26 +105,6 @@ public class JWebMPTypeScriptCompiler
 		}
 		log.info("Application [" + ngApp.name() + "] is compiling to " + baseUserDirectory.getPath() + ". Change with env property \"jwebmp\"");
 	}
-	
-	public File getAppBaseDirectory()
-	{
-		return appBaseDirectory;
-	}
-	
-	public JWebMPTypeScriptCompiler addPageConfig(Page<?> page)
-	{
-		for (CSSReference cssReference : page.getCssReferencesAll())
-		{
-			stylesGlobal.add(cssReference.toString());
-		}
-		for (JavascriptReference javascriptReference : page.getJavascriptReferencesAll())
-		{
-			scripts.add(javascriptReference.toString());
-		}
-		
-		return this;
-	}
-	
 	
 	public static Set<INgApp<?>> getAllApps()
 	{
@@ -150,15 +131,17 @@ public class JWebMPTypeScriptCompiler
 		return out;
 	}
 	
+	public StringBuilder renderDataTypeTS(NgApp ngApp, AngularAppBootModule appBootModule, File srcDirectory, INgDataType<?> component, Class<?> requestingClass) throws IOException
+	{
+		StringBuilder sb = new StringBuilder();
+		sb.append(component.renderClassTs());
+		return sb;
+	}
+	
 	public StringBuilder renderProviderTS(NgApp ngApp, AngularAppBootModule appBootModule, File srcDirectory, INgProvider<?> component, Class<?> requestingClass) throws IOException
 	{
 		StringBuilder sb = new StringBuilder();
-		
-		StringBuilder imports = new StringBuilder();
-		imports = renderImports(component, component.renderImports(), requestingClass);
-		sb.append(imports);
-		sb.append("\n");
-		sb.append(renderClassTs(component, requestingClass, ""));
+		sb.append(component.renderClassTs());
 		return sb;
 	}
 	
@@ -166,175 +149,34 @@ public class JWebMPTypeScriptCompiler
 	public StringBuilder renderServiceTS(NgApp ngApp, AngularAppBootModule appBootModule, File srcDirectory, INgDataService<?> component, Class<?> requestingClass) throws IOException
 	{
 		StringBuilder sb = new StringBuilder();
-		
-		StringBuilder imports = new StringBuilder();
-		imports = renderImports(component, component.renderImports(), requestingClass);
-		sb.append(imports);
-		sb.append("\n");
-		sb.append(renderClassTs(component, requestingClass, ""));
+		sb.append(component.renderClassTs());
 		return sb;
 	}
 	
 	public StringBuilder renderDirectiveTS(NgApp ngApp, AngularAppBootModule appBootModule, File srcDirectory, INgDirective<?> component, Class<?> requestingClass) throws IOException
 	{
 		StringBuilder sb = new StringBuilder();
-		
-		StringBuilder imports = new StringBuilder();
-		StringBuilder selector = new StringBuilder();
-		StringBuilder styles = new StringBuilder();
-		StringBuilder template = new StringBuilder();
-		StringBuilder styleUrls = new StringBuilder();
-		StringBuilder providers = new StringBuilder();
-		
-		NgDirective ngComponent = getAnnotation(component.getClass(), NgDirective.class);
-		
-		selector.append(ngComponent.selector());
-		
-		component.providers()
-		         .forEach((key) -> {
-			         providers.append(key)
-			                  .append(",")
-			                  .append("\n");
-		         });
-		if (!component.providers()
-		              .isEmpty())
-		{
-			providers.deleteCharAt(providers.length() - 2);
-		}
-		
-		String componentString = String.format(ITSComponent.directiveString, selector, providers);
-		
-		imports = renderImports(component, component.renderImports(), requestingClass);
-		sb.append(imports);
-		
-		//  sb.append(componentString);
-		//  sb.append("\n");
-		
-		sb.append(renderClassTs(component, requestingClass, componentString));
+		sb.append(component.renderClassTs());
 		return sb;
 	}
 	
 	public StringBuilder renderComponentTS(NgApp ngApp, AngularAppBootModule appBootModule, File srcDirectory, INgComponent<?> component, Class<?> requestingClass) throws IOException
 	{
 		StringBuilder sb = new StringBuilder();
-		
-		StringBuilder imports = new StringBuilder();
-		StringBuilder selector = new StringBuilder();
-		StringBuilder template = new StringBuilder();
-		StringBuilder styles = new StringBuilder();
-		StringBuilder styleUrls = new StringBuilder();
-		StringBuilder viewProviders = new StringBuilder();
-		StringBuilder animations = new StringBuilder();
-		StringBuilder providers = new StringBuilder();
-		
-		NgComponent ngComponent = getAnnotation(component.getClass(), NgComponent.class);
-		
-		ComponentHierarchyBase chb = (ComponentHierarchyBase) component;
-		selector.append(ngComponent.value());
-		
-		StringBuilder templateUrls = new StringBuilder();
-		String templateHtml = chb.toString(0);
-		
-		templateUrls.append("./")
-		            .append(getTsFilename(component.getClass()))
-		            .append(".html");
-		File htmlFile = getFile(component.getClass(), ".html");
-		FileUtils.writeStringToFile(htmlFile, templateHtml, UTF_8);
-		
-		styleUrls.append("'./")
-		         .append(getTsFilename(component.getClass()))
-		         .append(".css")
-		         .append("',\n");
-		for (String styleUrl : component.styleUrls())
-		{
-			styleUrls.append("'")
-			         .append(styleUrl)
-			         .append("',\n");
-		}
-		if (styleUrls.length() > 0)
-		{
-			styleUrls.deleteCharAt(styleUrls.length() - 2);
-		}
-		
-		for (String style : component.styles())
-		{
-			styles.append("'")
-			      .append(style)
-			      .append("',\n");
-		}
-		if (styles.length() > 0)
-		{
-			styles.deleteCharAt(styles.length() - 2);
-		}
-		
-		CSSComposer cssComposer = new CSSComposer();
-		cssComposer.addComponent(chb);
-		//styles.append("\"" + cssComposer.toString() + "\"");
-		File cssFile = getFile(component.getClass(), ".css");
-		FileUtils.writeStringToFile(cssFile, cssComposer.toString(), UTF_8);
-		
-		component.providers()
-		         .forEach((key) -> {
-			         providers.append(key)
-			                  .append(",")
-			                  .append("\n");
-		         });
-		
-		NgServiceReferences annotation = getAnnotation(component.getClass(), NgServiceReferences.class);
-		if (annotation != null)
-		{
-			for (NgServiceReference ngServiceReference : annotation.value())
-			{
-				if (ngServiceReference.provide())
-				{
-					providers.append(getTsFilename(ngServiceReference.value()))
-					         .append(",")
-					         .append("\n");
-				}
-			}
-		}
-		
-		if (isAnnotationPresent(component.getClass(), NgServiceReference.class))
-		{
-			NgServiceReference ngServiceReference = getAnnotation(component.getClass(), NgServiceReference.class);
-			if (ngServiceReference.provide())
-			{
-				providers.append(getTsFilename(ngServiceReference.value()))
-				         .append(",")
-				         .append("\n");
-			}
-		}
-		
-		
-		if (providers.length() > 1)
-		{
-			providers.deleteCharAt(providers.length() - 2);
-		}
-		
-		String componentString = String.format(ITSComponent.componentString, selector, templateUrls, styles, styleUrls,
-				"", //viewProviders
-				"", //Animations
-				providers //Directive Providers
-		);
-		
-		imports = renderImports(component, component.renderImports(), requestingClass);
-		sb.append(imports);
-		
-		//  sb.append(componentString);
-		
-		StringBuilder czzz = renderClassTs(component, getClass(), componentString);
-		
-		sb.append(czzz);
-	/*	sb.append("\n");
-		sb.append("export class ")
-		  .append(getTsFilename(component.getClass()))
-		  .append("\n");
-		sb.append("{")
-		  .append("\n");
-		sb.append("}")
-		  .append("\n");
-		*/
+		sb.append(component.renderClassTs());
 		return sb;
+	}
+	
+	public String getFileReference(String baseDirectory, Class<?> clazz, String... extension)
+	{
+		String classLocationDirectory = getClassLocationDirectory(clazz);
+		classLocationDirectory = classLocationDirectory.replaceAll("\\\\", "/");
+		String baseLocation = baseDirectory;
+		baseLocation.replaceAll("\\\\", "/");
+		baseLocation += "/src/app/";
+		classLocationDirectory = baseLocation + classLocationDirectory + getTsFilename(clazz) + (extension.length > 0 ? extension[0] : "");
+		
+		return classLocationDirectory;
 	}
 	
 	public File getFile(Class<?> clazz, String... extension)
@@ -358,124 +200,18 @@ public class JWebMPTypeScriptCompiler
 	public StringBuilder renderModuleTS(NgApp ngApp, AngularAppBootModule appBootModule, File srcDirectory, INgModule<?> component, Class<?> requestingClass) throws IOException
 	{
 		StringBuilder sb = new StringBuilder();
-		
 		if (component instanceof AngularAppBootModule)
 		{
 			component = appBootModule;
 		}
-		
 		component.setApp(app);
-		
-		StringBuilder imports = new StringBuilder();
-		StringBuilder declarations = new StringBuilder();
-		StringBuilder providers = new StringBuilder();
-		StringBuilder exports = new StringBuilder();
-		StringBuilder bootstrap = new StringBuilder();
-		StringBuilder schemas = new StringBuilder();
-		
-		imports = renderImports(component, component.renderImports(), requestingClass);
-		
-		
-		component.declarations()
-		         .forEach(a -> {
-			         declarations.append(a)
-			                     .append(",")
-			                     .append("\n");
-		         });
-		if (declarations.length() > 1)
-		{
-			declarations.deleteCharAt(declarations.length() - 2);
-		}
-		
-		component.providers()
-		         .forEach((key) -> {
-			         providers.append(key)
-			                  .append(",")
-			                  .append("\n");
-		         });
-		
-		if (providers.length() > 1)
-		{
-			providers.deleteCharAt(providers.length() - 2);
-		}
-		
-		
-		component.exports()
-		         .forEach((key) -> {
-			         exports.append(key)
-			                .append(",")
-			                .append("\n");
-		         });
-		if (exports.length() > 1)
-		{
-			exports.deleteCharAt(exports.length() - 2);
-		}
-		
-		bootstrap.append(component.bootstrap());
-		
-		
-		component.schemas()
-		         .forEach((key) -> {
-			         schemas.append(key)
-			                .append(",")
-			                .append("\n");
-		         });
-		if (schemas.length() > 1)
-		{
-			schemas.deleteCharAt(schemas.length() - 2);
-		}
-		
-		sb.append(imports);
-		
-		StringBuilder importNames = new StringBuilder();
-		
-		Arrays.stream(component.moduleImports()
-		                       .toArray())
-		      .forEach((key) -> {
-			
-			      importNames.append(key)
-			                 .append(",")
-			                 .append("\n");
-		      });
-		
-		if (importNames.length() > 1)
-		{
-			importNames.deleteCharAt(importNames.length() - 2);
-		}
-		
-		String componentString = String.format(moduleString, importNames, declarations, providers, exports, bootstrap, schemas);
-		sb.append("\n");
-		
-		StringBuilder classRender = renderClassTs(component, getClass(), componentString);
-		String result = StringUtils.trim(classRender.toString());
-        
-       /* if (!result.startsWith("export")) {
-            classRender.insert(0, " export ");
-        }*/
-		sb.append(classRender);
-		
+		sb.append(component.renderClassTs());
 		return sb;
 	}
 	
-	// if unable to get parent, try substring to get the parent folder.
-	private static String getParentPath(File file)
-	{
-		if (file.getParent() == null)
-		{
-			String absolutePath = file.getAbsolutePath();
-			return absolutePath.substring(0,
-					absolutePath.lastIndexOf(File.separator));
-		}
-		else
-		{
-			return file.getParent();
-		}
-	}
-	
-	
 	private void loadClassFilePaths(INgApp<?> app) throws IOException
 	{
-		ngApp = getAnnotation(app.getClass(), NgApp.class);
+		ngApp = getAnnotations(app.getClass(), NgApp.class).get(0);
 		
 		//======================================================================
 		buildFolderStructure(appBaseDirectory);
@@ -500,17 +236,11 @@ public class JWebMPTypeScriptCompiler
 		GuiceContext.get(EnvironmentModule.class)
 		            .getEnvironmentOptions()
 		            .setAppClass(app.getClass()
-		                            .toString());
+		                            .getCanonicalName());
 		GuiceContext.get(EnvironmentModule.class)
 		            .getEnvironmentOptions()
 		            .setProduction(((Page<?>) app).getRunningEnvironment()
 		                                          .equals(DevelopmentEnvironments.Production));
-		
-		String relativePath = getRelativePath(mainTsFile, getFile(AngularAppBootModule.class), null);
-		String relativePath2 = getRelativePath(mainTsFile, getFile(EnvironmentModule.class), null);
-		
-		sb.append(renderImportStatement("AngularAppBootModule", relativePath));
-		sb.append(renderImportStatement("EnvironmentModule", relativePath2));
 		
 		File packageJsonFile = new File(appBaseDirectory.getCanonicalPath() + "/package.json");
 		String packageTemplate = IOUtils.toString(Objects.requireNonNull(ResourceLocator.class.getResourceAsStream("package.json")), UTF_8);
@@ -572,6 +302,7 @@ public class JWebMPTypeScriptCompiler
 							}
 						}
 				);
+		
 		
 		ObjectMapper om = GuiceContext.get(DefaultObjectMapper);
 		packageTemplate = packageTemplate.replace("/*appName*/", app.name());
@@ -814,11 +545,7 @@ public class JWebMPTypeScriptCompiler
 		                                                              )
 		);
 		FileUtils.writeStringToFile(angularFile, angularTemplate, UTF_8, false);
-		
-		
-		Map<String, String> importsMap = app.imports();
-		sb.append(renderImports(app, importsMap, app.getClass()));
-		
+		sb.append(app.renderImports());
 		
 		sb.append("if(EnvironmentModule.production) {\n" + " enableProdMode();\n" + "}\n" + "" + "platformBrowserDynamic().bootstrapModule(")
 		  .append(appBootModule.getClass()
@@ -864,6 +591,7 @@ public class JWebMPTypeScriptCompiler
 		}
 		
 		File finalSrcDirectory = srcDirectory;
+		
 		scan
 				.getClassesWithAnnotation(NgModule.class)
 				.stream()
@@ -933,7 +661,6 @@ public class JWebMPTypeScriptCompiler
 							FileUtils.forceMkdirParent(classFile);
 							INgComponent<?> modd = (INgComponent<?>) GuiceContext.get(aClass);
 							ComponentHierarchyBase chb2 = (ComponentHierarchyBase) modd;
-							chb2.addConfiguration(new NgComponentModule());
 							FileUtils.write(classFile, renderComponentTS(ngApp, appBootModule, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
 						}
 						catch (IOException e)
@@ -1086,7 +813,7 @@ public class JWebMPTypeScriptCompiler
 				    {
 					    FileUtils.forceMkdirParent(classFile);
 					    INgDataType modd = (INgDataType) GuiceContext.get(aClass);
-					    FileUtils.write(classFile, renderClassTs(modd, modd.getClass(), ""), UTF_8, false);
+					    FileUtils.write(classFile, renderDataTypeTS(ngApp, appBootModule, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
 				    }
 				    catch (IOException e)
 				    {
@@ -1105,73 +832,6 @@ public class JWebMPTypeScriptCompiler
 		return sb;
 	}
 	
-	private StringBuilder renderImports(ITSComponent<?> app, Map<String, String> importsMap, Class<?> requestingClass) throws IOException
-	{
-		StringBuilder sb = new StringBuilder();
-		writeImportsForMap(app, sb, importsMap, requestingClass);
-		if (sb.length() > 1)
-		{
-			sb.deleteCharAt(sb.length() - 1);
-		}
-		sb.append("\n");
-		return sb;
-	}
-	
-	private void writeImportsForMap(ITSComponent<?> app, StringBuilder sb, Map<String, String> importsMap, Class<?> requestingFromClass) throws IOException
-	{
-		for (Map.Entry<String, String> entry : importsMap
-				.entrySet())
-		{
-			String key = entry.getKey();
-			String value = entry.getValue();
-			if (key.equals(app.getClass()
-			                  .getSimpleName()))
-			{
-				continue;
-			}
-			
-			if (!value.startsWith("@"))
-			{
-				File referenceModuleFile = getFile(value);
-				File sourceModuleFile = getFile(requestingFromClass);
-				String relPath = getRelativePath(sourceModuleFile.toPath(), referenceModuleFile.toPath(), null);
-				sb.append(renderImportStatement(key,
-						relPath));
-			}
-			else if (value.startsWith("!"))
-			{
-				sb.append((renderImportStatement(key,
-						value.substring(1))));
-			}
-			else
-			{
-				sb.append((renderImportStatement(key,
-						value)));
-			}
-		}
-	}
-	
-	public static Set<String> getAngularPackageScans(Class<?> baseClass, INgApp<?> app)
-	{
-		
-		Set<String> packages = new HashSet<>(app.includePackages());
-		if (packages.isEmpty())
-		{
-			System.out.println("NgApp " + app.name() + " is using the default package, itself and all children");
-		}
-		packages.add(baseClass.getPackage()
-		                      .getName());
-		
-		packages.add("com.jwebmp.core.base.angular.modules.services.angular");
-		
-		Set<AngularScanPackages> packageScan = IDefaultService.loaderToSet(ServiceLoader.load(AngularScanPackages.class));
-		for (AngularScanPackages angularScanPackages : packageScan)
-		{
-			packages.addAll(angularScanPackages.packages());
-		}
-		return packages;
-	}
-	
 	private File buildFolderStructure(File appBaseDirectory) throws IOException
 	{
 		
@@ -1181,7 +841,6 @@ public class JWebMPTypeScriptCompiler
 			FileUtils.forceMkdirParent(srcDirectory);
 			FileUtils.forceMkdir(srcDirectory);
 		}
-		
 		
 		appDirectory = new File(srcDirectory.getCanonicalPath() + "/app");
 		if (!appDirectory.exists())
@@ -1207,351 +866,6 @@ public class JWebMPTypeScriptCompiler
 		return srcDirectory;
 	}
 	
-	/**
-	 * Renders the body of .ts file, excluding import statements
-	 *
-	 * @param component
-	 * @return
-	 * @throws JsonProcessingException
-	 */
-	public <T extends INgDataType<T>> StringBuilder renderClassTs(T component, boolean renderImports, Class<?> requestingClass) throws IOException
-	{
-		StringBuilder out = new StringBuilder();
-		NgDataType dt = getAnnotation(component.getClass(), NgDataType.class);
-		
-		//	if (renderImports)
-		//	{
-		out.append(renderImports(component, component.imports(), requestingClass));
-		
-		if (!Strings.isNullOrEmpty(component.renderBeforeClass()))
-		{
-			out.append(";")
-			   .append(component.renderBeforeClass());
-		}
-		//	}
-		
-		out.append(dt.exports() ? "export " : "")
-		   .append(dt.value()
-		             .description())
-		   .append(" ")
-		   .append(getTsFilename(component.getClass()));
-		
-		if (!Strings.isNullOrEmpty(component.ofType()))
-		{
-			out.append(" ")
-			   .append(component.ofType());
-		}
-		ObjectMapper om = GuiceContext.get(JavascriptObjectMapper);
-		
-		out.append(om.writerWithDefaultPrettyPrinter()
-		             .writeValueAsString(component));
-		
-		if (!Strings.isNullOrEmpty(component.renderAfterClass()))
-		{
-			out.append(";")
-			   .append(component.renderAfterClass());
-		}
-		
-		return out;
-	}
-	
-	public StringBuilder renderClassTs(ITSComponent<?> configuration, Class<?> requestingClass, String classDecoration) throws IOException
-	{
-		StringBuilder out = new StringBuilder();
-		
-		if (!Strings.isNullOrEmpty(configuration.renderBeforeClass()))
-		{
-			out.append(configuration.renderBeforeClass());
-		}
-		
-		for (String globalField : configuration.globalFields())
-		{
-			out.append(globalField)
-			   .append("\n");
-		}
-		
-		for (String decorator : configuration.decorators())
-		{
-			out.append(decorator)
-			   .append("\n");
-		}
-		
-		boolean isDataType = configuration.getClass()
-		                                  .isAnnotationPresent(NgDataType.class);
-		if (isDataType)
-		{
-			INgDataType tt = (INgDataType<?>) configuration;
-			NgDataType dt = getAnnotation(tt.getClass(), NgDataType.class);
-			if (dt.value()
-			      .equals(NgDataType.DataTypeClass.Const))
-			{
-				return renderClassTs(tt, false, requestingClass);
-			}
-		}
-		
-		out.append(classDecoration);
-		
-		//default class object
-		out.append("export class ")
-		   .append(getTsFilename(configuration.getClass()));
-		
-		
-		if (!Strings.isNullOrEmpty(configuration.ofType()))
-		{
-			out.append(" ")
-			   .append(configuration.ofType());
-		}
-		
-		List<String> ints = new ArrayList<>(configuration.interfaces());
-		if (INgDataService.class.isAssignableFrom(configuration.getClass()))
-		{
-			ints.add("OnDestroy");
-		}
-		if (!ints.isEmpty())
-		{
-			StringBuilder sbInterfaces = new StringBuilder();
-			sbInterfaces.append(" implements ");
-			for (String interf : ints)
-			{
-				sbInterfaces.append(interf)
-				            .append(",");
-			}
-			sbInterfaces.deleteCharAt(sbInterfaces.length() - 1);
-			out.append(sbInterfaces);
-		}
-		
-		out.append("\n");
-		out.append("{" + "\n");
-		out.append("\n");
-		
-		
-		if (isDataType)
-		{
-			//load all the fields
-			for (Field declaredField : configuration.getClass()
-			                                        .getDeclaredFields())
-			{
-				renderFieldTS(out, declaredField.getName(), declaredField.getType(), declaredField, false);
-			}
-		}
-		
-		if (INgDataService.class.isAssignableFrom(configuration.getClass()))
-		{
-			//create data references...
-			INgDataService<?> data = (INgDataService<?>) configuration;
-			
-			List<NgDataTypeReference> dReferences =
-					TypescriptAnnotationHandler.getListOfAnnotations(configuration.getClass(), NgDataTypeReference.class, NgDataTypeReferences.class);
-			for (NgDataTypeReference dReference : dReferences)
-			{
-				if (dReference.primary())
-				{
-					out.append(" public data : " + getTsFilename(dReference.value()) + " = {};\n");
-				}
-			}
-			
-			NgDataService dService = getAnnotation(data.getClass(), NgDataService.class);
-			out.append(" public listenerName = '" + dService.value() + "';");
-			out.append(" private subscription? : Subscription;\n");
-			//add ajax data fetch from component
-		}
-		
-		for (String field : configuration.fields())
-		{
-			out.append(field)
-			   .append("\n");
-		}
-		
-		out.append("\n");
-		
-		out.append("constructor(  ");
-		
-		StringBuilder constructorParameters = new StringBuilder();
-		if (!(configuration instanceof AngularAppBootModule))
-		{
-			if (isAnnotationPresent(configuration.getClass(), NgProviderReferences.class))
-			{
-				NgProviderReferences annotation = getAnnotation(configuration.getClass(), NgProviderReferences.class);
-				
-				for (NgProviderReference ngProviderReference : annotation.value())
-				{
-					String nameCamel = getTsFilename(ngProviderReference.value()).substring(0, 1)
-					                                                             .toLowerCase() +
-					                   getTsFilename(ngProviderReference.value()).substring(1);
-					constructorParameters.append(" public ")
-					                     .append(nameCamel)
-					                     .append(" : ")
-					                     .append(getTsFilename(ngProviderReference.value()))
-					                     .append(", ");
-				}
-			}
-			if (isAnnotationPresent(configuration.getClass(), NgProviderReference.class))
-			{
-				
-				NgProviderReference ngProviderReference = getAnnotation(configuration.getClass(), NgProviderReference.class);
-				String nameCamel = getTsFilename(ngProviderReference.value()).substring(0, 1)
-				                                                             .toLowerCase() +
-				                   getTsFilename(ngProviderReference.value()).substring(1);
-				constructorParameters.append(" public ")
-				                     .append(nameCamel)
-				                     .append(" : ")
-				                     .append(getTsFilename(ngProviderReference.value()))
-				                     .append(", ");
-			}
-			
-			
-			if (isAnnotationPresent(configuration.getClass(), NgServiceReferences.class))
-			{
-				NgServiceReferences annotation = getAnnotation(configuration.getClass(), NgServiceReferences.class);
-				for (NgServiceReference ngServiceReference : annotation.value())
-				{
-					String nameCamel = getTsFilename(ngServiceReference.value()).substring(0, 1)
-					                                                            .toLowerCase() +
-					                   getTsFilename(ngServiceReference.value()).substring(1);
-					constructorParameters.append(" public ")
-					                     .append(nameCamel)
-					                     .append(" : ")
-					                     .append(getTsFilename(ngServiceReference.value()))
-					                     .append(", ");
-				}
-			}
-			if (isAnnotationPresent(configuration.getClass(), NgServiceReference.class))
-			{
-				NgServiceReference ngServiceReference = getAnnotation(configuration.getClass(), NgServiceReference.class);
-				String nameCamel = getTsFilename(ngServiceReference.value()).substring(0, 1)
-				                                                            .toLowerCase() +
-				                   getTsFilename(ngServiceReference.value()).substring(1);
-				constructorParameters.append(" public ")
-				                     .append(nameCamel)
-				                     .append(" : ")
-				                     .append(getTsFilename(ngServiceReference.value()))
-				                     .append(", ");
-			}
-		}
-		
-		for (String constructorParameter : configuration.constructorParameters())
-		{
-			constructorParameters.append(constructorParameter + ", ");
-		}
-
-		if (constructorParameters.length() > 1)
-		{
-			constructorParameters.deleteCharAt(constructorParameters.lastIndexOf(", "));
-		}
-		out.append(constructorParameters);
-		
-		out.append(")\n");
-		
-		out.append("{" + "\n");
-		
-		List<String> constructorBodies = new ArrayList<>();
-		if (INgDataService.class.isAssignableFrom(configuration.getClass()))
-		{
-			INgDataService<?> service = (INgDataService<?>) configuration;
-			NgDataService dService = getAnnotation(service.getClass(), NgDataService.class);
-			List<NgDataTypeReference> dReferences = TypescriptAnnotationHandler.getListOfAnnotations(configuration.getClass(), NgDataTypeReference.class, NgDataTypeReferences.class);
-			for (NgDataTypeReference dReference : dReferences)
-			{
-				if (dReference.primary())
-				{
-					constructorBodies.add("this.subscription = this.socketClientService.registerListener(this.listenerName)\n" +
-					                      ".subscribe((message : " + ITSComponent.getTsFilename(dReference.value()) + ") => {\n" +
-					                      "this.data = message; \n" +
-					                      "});\n" +
-					                      "this.fetchData();\n");
-				}
-			}
-		}
-		
-		constructorBodies.addAll(configuration.constructorBody());
-		for (String body : constructorBodies)
-		{
-			out.append(body);
-		}
-		
-		out.append("}" + "\n");
-		
-		List<String> methods = new ArrayList<>();
-		if (INgDataService.class.isAssignableFrom(configuration.getClass()))
-		{
-			methods.add("ngOnDestroy()\n" +
-			            "{\n" +
-			            "   alert('destroy');\n" +
-			            "   this.subscription?.unsubscribe();\n " +
-			            "}");
-			INgDataService<?> service = (INgDataService<?>) configuration;
-			NgDataService dService = getAnnotation(service.getClass(), NgDataService.class);
-			methods.add("fetchData(){\n" +
-			            "   this.socketClientService.send('data',{className :  '" + configuration.getClass()
-			                                                                                     .getCanonicalName() + "'},this.listenerName);\n" +
-			            "}\n");
-		}
-		methods.addAll(configuration.methods());
-		for (String method : methods)
-		{
-			out.append(method)
-			   .append("\n");
-		}
-		
-		out.append("}\n");
-		
-		if (!Strings.isNullOrEmpty(configuration.renderAfterClass()))
-		{
-			out.append(";")
-			   .append(configuration.renderAfterClass() + "\n");
-		}
-		
-		return out;
-	}
-	
-	private void renderFieldTS(StringBuilder out, String fieldName, Class fieldType, Field field, boolean array)
-	{
-		if (Number.class.isAssignableFrom(fieldType))
-		{
-			out.append(" public " + fieldName + "? : number" + (array ? "[]" : "") + " = " + (array ? "[]" : "0") + ";\n");
-		}
-		else if (BigDecimal.class.isAssignableFrom(fieldType))
-		{
-			out.append(" public " + fieldName + "? : number" + (array ? "[]" : "") + " = " + (array ? "[]" : "0") + ";\n");
-		}
-		else if (BigInteger.class.isAssignableFrom(fieldType))
-		{
-			out.append(" public " + fieldName + "? : number" + (array ? "[]" : "") + " = " + (array ? "[]" : "0") + ";\n");
-		}
-		else if (String.class.isAssignableFrom(fieldType))
-		{
-			out.append(" public " + fieldName + "? : string" + (array ? "[]" : "") + " = " + (array ? "[]" : "''") + ";\n");
-		}
-		else if (Boolean.class.isAssignableFrom(fieldType))
-		{
-			out.append(" public " + fieldName + "? : boolean" + (array ? "[]" : "") + " =" + (array ? "[]" : "false") + ";\n");
-		}
-		else if (INgDataType.class.isAssignableFrom(fieldType))
-		{
-			//todo make this import the data type from the class
-			//out.append(" public " + fieldName + "? : " + getTsFilename(fieldType) + "" + (array ? "[]" : "") + " = " + (array ? "[]" : "{}") + ";\n");
-			out.append(" public " + fieldName + "? : any " + (array ? "[]" : "") + " = " + (array ? "[]" : "{}") + ";\n");
-		}
-		else if (Collection.class.isAssignableFrom(fieldType))
-		{
-			//get generic type
-			String genericType = StringUtils.substringBetween(field.getGenericType()
-			                                                       .getTypeName(), "<", ">");
-			try
-			{
-				renderFieldTS(out, fieldName, Class.forName(genericType), field, true);
-			}
-			catch (ClassNotFoundException e)
-			{
-				e.printStackTrace();
-			}
-			//out.append(" public " + fieldName + "? : " + getTsFilename(fieldType) + " = [];\n");
-		}
-		else if (Object.class.isAssignableFrom(fieldType))
-		{
-			out.append(" public " + fieldName + "? : any" + (array ? "[]" : "") + ";\n");
-		}
-	}
 	
 	public StringBuilder renderBootIndexHtml(INgApp<?> app, AngularAppBootModule appBootModule)
 	{
@@ -1562,7 +876,8 @@ public class JWebMPTypeScriptCompiler
 		
 		body.getChildren()
 		    .clear();
-		body.add(new DivSimple<>().setTag(getAnnotation(appBootModule.getBootModule(), NgComponent.class).value()));
+		body.add(new DivSimple<>().setTag(getAnnotations(appBootModule.getBootModule(), NgComponent.class).get(0)
+		                                                                                                  .value()));
 		p.setBody(body);
 		sb.append(p.toString(0));
 		
@@ -1576,8 +891,9 @@ public class JWebMPTypeScriptCompiler
 			try
 			{
 				ProcessBuilder processBuilder = new ProcessBuilder("cmd.exe", "/c", FileUtils.getUserDirectory() + "/AppData/Roaming/npm/npm.cmd install");
-				processBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
-				processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
+				//processBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+				//processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
+				processBuilder.inheritIO();
 				processBuilder
 						.environment()
 						.putAll(System.getenv());

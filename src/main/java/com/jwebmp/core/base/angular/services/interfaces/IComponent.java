@@ -9,7 +9,6 @@ import java.util.*;
 
 import static com.jwebmp.core.base.angular.services.annotations.NgSourceDirectoryReference.SourceDirectories.*;
 
-@NgSourceDirectoryReference(App)
 interface IComponent<J extends IComponent<J>> extends IDefaultService<J>
 {
 	default List<String> constructorParameters()

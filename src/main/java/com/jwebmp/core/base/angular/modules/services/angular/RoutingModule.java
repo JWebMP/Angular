@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.*;
 import com.guicedee.guicedinjection.*;
 import com.jwebmp.core.base.angular.services.DefinedRoute;
 import com.jwebmp.core.base.angular.services.annotations.*;
-import com.jwebmp.core.base.angular.services.annotations.references.NgBootImportReference;
+import com.jwebmp.core.base.angular.services.annotations.references.*;
 import com.jwebmp.core.base.angular.services.interfaces.*;
 import com.jwebmp.core.base.interfaces.*;
 import io.github.classgraph.*;
@@ -16,17 +16,18 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static com.guicedee.guicedinjection.interfaces.ObjectBinderKeys.*;
-import static com.jwebmp.core.base.angular.services.JWebMPTypeScriptCompiler.*;
-import static com.jwebmp.core.base.angular.services.annotations.NgSourceDirectoryReference.SourceDirectories.*;
+import static com.jwebmp.core.base.angular.services.compiler.AnnotationsMap.*;
+import static com.jwebmp.core.base.angular.services.compiler.JWebMPTypeScriptCompiler.*;
 import static com.jwebmp.core.base.angular.services.interfaces.ITSComponent.*;
 
 
-@NgSourceDirectoryReference(value = App)
-@NgModuleReference(com.jwebmp.core.base.angular.modules.services.angular.NgModule.class)
-@NgModuleReference(NgRouterModule.class)
-@NgModuleReference(NgRoutesModule.class)
-@NgBootImportReference(name = "RoutingModule", reference = "")
-@com.jwebmp.core.base.angular.services.annotations.NgModule
+@NgImportReference(name = "RouterModule, ParamMap,Router",reference="@angular/router")
+@NgImportReference(name = "Routes",reference="@angular/router")
+
+@NgBootModuleImport("RoutingModule")
+@TsDependency(value = "@angular/router",version = "^13.3.1")
+
+@NgModule
 public class RoutingModule implements INgModule<RoutingModule>
 {
 	private INgApp<?> app;
@@ -52,35 +53,15 @@ public class RoutingModule implements INgModule<RoutingModule>
 	}
 	
 	@Override
-	public Map<String, String> renderImports(File... srcRelative)
+	public StringBuilder renderImports()
 	{
 		Map<String, String> out = new HashMap<>();
 		
-		if (getClass()
-				.isAnnotationPresent(NgModuleReferences.class))
+		List<NgImportReference> refs = getAnnotations(getClass(), NgImportReference.class);
+		for (NgImportReference ref : refs)
 		{
-			NgModuleReferences references = getClass()
-					.getAnnotation(NgModuleReferences.class);
-			for (NgModuleReference ngModuleReference : references.value())
-			{
-				INgModule<?> module = GuiceContext.get(ngModuleReference.value());
-				module.imports()
-				      .forEach((key, value) -> {
-					      out.putIfAbsent(key, value);
-				      });
-			}
+			out.putIfAbsent(ref.name(), ref.reference());
 		}
-		NgModuleReference ngModuleReference = getClass()
-				.getAnnotation(NgModuleReference.class);
-		if (ngModuleReference != null)
-		{
-			INgModule<?> module = GuiceContext.get(ngModuleReference.value());
-			module.imports()
-			      .forEach((key, value) -> {
-				      out.putIfAbsent(key, value);
-			      });
-		}
-		
 		
 		ScanResult scan = GuiceContext.instance()
 		                              .getScanResult();
@@ -132,40 +113,17 @@ public class RoutingModule implements INgModule<RoutingModule>
 			addImportToMap(out, definedRoute);
 			buildRouteActualPathway(out, definedRoute, children);
 		}
+		out.forEach((key,value)->{
+			imports.append(String.format(importString, key, value));
+		});
 		
-		return out;
+		return imports;
 	}
 	
 	private void addImportToMap(Map<String, String> out, DefinedRoute<?> definedRoute)
 	{
-		String key = definedRoute.getComponentName();
-		String value = definedRoute.getPath();
-		File routingFilePath = ITSComponent.getFile(appDirectories.get(app)
-		                                                          .getPath(), getClass());
-		File routeFilePath = ITSComponent.getFile(appDirectories.get(app)
-		                                                        .getPath(),
-				definedRoute.getComponent());
-		
-		if (!value.startsWith("@"))
-		{
-			String relPathhed = getRelativePath(routingFilePath, routeFilePath, null);
-			out.put(key, routeFilePath.getPath());
-			//	out.add((renderImportStatement(key,
-			//		relPathhed)));
-		}
-		
-		else if (value.startsWith("!"))
-		{
-			out.put(key, value.substring(1));
-			//	imports.add((renderImportStatement(key,
-			//	value.substring(1))));
-		}
-		else
-		{
-			out.put(key, value);
-			//imports.add((renderImportStatement(key,
-			//		value)));
-		}
+		NgComponentReference reference = getNgComponentReference(definedRoute.getComponent());
+		putRelativeLinkInMap(getClass(), out, reference);
 	}
 	
 	private void buildRouteActualPathway(Map<String, String> out, DefinedRoute<?> definedRoute, List<DefinedRoute<?>> children)
