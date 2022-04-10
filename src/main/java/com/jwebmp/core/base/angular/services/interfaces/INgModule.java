@@ -14,8 +14,8 @@ import java.util.*;
 @TsDependency(value = "tslib", version = "^2.3.0")
 @TsDependency(value = "zone.js", version = "^0.11.4")
 
-@TsDevDependency(value = "@angular-devkit/build-angular", version = "^13.2.4")
-@TsDevDependency(value = "@angular/cli", version = "^13.2.4")
+@TsDevDependency(value = "@angular-devkit/build-angular", version = "^13.3.1")
+@TsDevDependency(value = "@angular/cli", version = "^13.3.1")
 @TsDevDependency(value = "@angular/compiler-cli", version = "^13.3.1")
 @TsDevDependency(value = "@types/node", version = "^12.11.1")
 @TsDevDependency(value = "typescript", version = "^4.5.2")
