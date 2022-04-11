@@ -116,7 +116,6 @@ public interface INgComponent<J extends INgComponent<J>>
 			}
 		}
 		
-		
 		if (providers.length() > 1)
 		{
 			providers.deleteCharAt(providers.length() - 2);

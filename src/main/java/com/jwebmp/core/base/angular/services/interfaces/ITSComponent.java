@@ -137,90 +137,17 @@ public interface ITSComponent<J extends ITSComponent<J>> extends IComponent<J>
 	default Map<String, String> getImportsFromTypes()
 	{
 		Map<String, String> out = new HashMap<>();
-		if (this instanceof INgComponent)
+		for (Map.Entry<String, String> entry : imports()
+		                                         .entrySet())
 		{
-			INgComponent<?> ng = (INgComponent) this;
-			for (Map.Entry<String, String> entry : ng.imports()
-			                                         .entrySet())
+			String key = entry.getKey();
+			String value = entry.getValue();
+			if (key.equals(getTsFilename(getClass())))
 			{
-				String key = entry.getKey();
-				String value = entry.getValue();
-				out.putIfAbsent(key, value);
+				continue;
 			}
-			
+			out.putIfAbsent(key, value);
 		}
-		else if (this instanceof INgModule)
-		{
-			INgModule<?> ng = (INgModule) this;
-			for (Map.Entry<String, String> entry : ng.imports()
-			                                         .entrySet())
-			{
-				String key = entry.getKey();
-				String value = entry.getValue();
-				out.putIfAbsent(key, value);
-			}
-		}
-		else if (this instanceof INgProvider)
-		{
-			INgProvider<?> ng = (INgProvider) this;
-			for (Map.Entry<String, String> entry : ng.imports()
-			                                         .entrySet())
-			{
-				String key = entry.getKey();
-				String value = entry.getValue();
-				if (key.equals(getTsFilename(getClass())))
-				{
-					continue;
-				}
-				out.putIfAbsent(key, value);
-			}
-		}
-		else if (this instanceof INgDataType)
-		{
-			INgDataType<?> ng = (INgDataType) this;
-			for (Map.Entry<String, String> entry : ng.imports()
-			                                         .entrySet())
-			{
-				String key = entry.getKey();
-				String value = entry.getValue();
-				if (key.equals(getTsFilename(getClass())))
-				{
-					continue;
-				}
-				out.putIfAbsent(key, value);
-			}
-		}
-		else if (this instanceof INgDirective)
-		{
-			INgDirective<?> ng = (INgDirective) this;
-			for (Map.Entry<String, String> entry : ng.imports()
-			                                         .entrySet())
-			{
-				String key = entry.getKey();
-				String value = entry.getValue();
-				if (key.equals(getTsFilename(getClass())))
-				{
-					continue;
-				}
-				out.putIfAbsent(key, value);
-			}
-		}
-		else if (this instanceof INgDataService)
-		{
-			INgDataService<?> ng = (INgDataService) this;
-			for (Map.Entry<String, String> entry : ng.imports()
-			                                         .entrySet())
-			{
-				String key = entry.getKey();
-				String value = entry.getValue();
-				if (key.equals(getTsFilename(getClass())))
-				{
-					continue;
-				}
-				out.putIfAbsent(key, value);
-			}
-		}
-		
 		return out;
 	}
 	
@@ -390,6 +317,11 @@ public interface ITSComponent<J extends ITSComponent<J>> extends IComponent<J>
 			   .append("\n");
 		}
 		
+		for (String decorator : componentDecorators())
+		{
+			out.append(decorator)
+			   .append("\n");
+		}
 		for (String decorator : decorators())
 		{
 			out.append(decorator)
@@ -458,7 +390,7 @@ public interface ITSComponent<J extends ITSComponent<J>> extends IComponent<J>
 	default StringBuilder renderInterfaces()
 	{
 		StringBuilder out = new StringBuilder();
-		List<String> ints = new ArrayList<>(interfaces());
+		Set<String> ints = new HashSet<>(interfaces());
 		List<NgInterface> interfacs = getAnnotations(getClass(), NgInterface.class);
 		for (NgInterface interfac : interfacs)
 		{
@@ -467,6 +399,7 @@ public interface ITSComponent<J extends ITSComponent<J>> extends IComponent<J>
 				ints.add(interfac.value());
 			}
 		}
+		ints.addAll(componentInterfaces());
 		
 		if (!ints.isEmpty())
 		{
@@ -495,6 +428,7 @@ public interface ITSComponent<J extends ITSComponent<J>> extends IComponent<J>
 				fStrings.add(ngField.value());
 			}
 		}
+		fStrings.addAll(componentFields());
 		fStrings.addAll(fields());
 		
 		for (String field : fStrings)
@@ -535,6 +469,10 @@ public interface ITSComponent<J extends ITSComponent<J>> extends IComponent<J>
 			}
 		}
 		
+		for (String constructorParameter : componentConstructorParameters())
+		{
+			constructorParameters.add(constructorParameter);
+		}
 		for (String constructorParameter : constructorParameters())
 		{
 			constructorParameters.add(constructorParameter);
@@ -563,6 +501,8 @@ public interface ITSComponent<J extends ITSComponent<J>> extends IComponent<J>
 				constructorBodies.add(ngConstructorBody.value());
 			}
 		}
+		
+		constructorBodies.addAll(componentConstructorBody());
 		constructorBodies.addAll(constructorBody());
 		
 		for (String body : constructorBodies)
@@ -633,7 +573,9 @@ public interface ITSComponent<J extends ITSComponent<J>> extends IComponent<J>
 			}
 		}
 		
+		fStrings.addAll(componentMethods());
 		fStrings.addAll(methods());
+		
 		for (String field : fStrings)
 		{
 			out.append(field)
@@ -668,6 +610,43 @@ public interface ITSComponent<J extends ITSComponent<J>> extends IComponent<J>
 			public boolean onParent()
 			{
 				return false;
+			}
+			
+			@Override
+			public boolean onSelf()
+			{
+				return true;
+			}
+		};
+		return componentReference;
+	}
+	
+	default NgComponentReference getNgComponentReferenceOnParent(Class<? extends ITSComponent<?>> aClass)
+	{
+		NgComponentReference componentReference = new NgComponentReference()
+		{
+			@Override
+			public Class<? extends Annotation> annotationType()
+			{
+				return NgComponentReference.class;
+			}
+			
+			@Override
+			public Class<? extends ITSComponent<?>> value()
+			{
+				return aClass;
+			}
+			
+			@Override
+			public boolean provides()
+			{
+				return false;
+			}
+			
+			@Override
+			public boolean onParent()
+			{
+				return true;
 			}
 			
 			@Override

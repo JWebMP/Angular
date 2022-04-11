@@ -11,6 +11,10 @@ import static com.jwebmp.core.base.angular.services.annotations.NgSourceDirector
 
 interface IComponent<J extends IComponent<J>> extends IDefaultService<J>
 {
+	default List<String> componentConstructorParameters()
+	{
+		return List.of();
+	}
 	default List<String> constructorParameters()
 	{
 		return List.of();
@@ -21,11 +25,19 @@ interface IComponent<J extends IComponent<J>> extends IDefaultService<J>
 		return List.of();
 	}
 	
+	default List<String> componentConstructorBody()
+	{
+		return List.of();
+	}
 	default List<String> constructorBody()
 	{
 		return List.of();
 	}
 	
+	default List<String> componentMethods()
+	{
+		return List.of();
+	}
 	default List<String> methods()
 	{
 		return List.of();
@@ -36,6 +48,10 @@ interface IComponent<J extends IComponent<J>> extends IDefaultService<J>
 		return List.of();
 	}
 	
+	default List<String> componentFields()
+	{
+		return List.of();
+	}
 	default List<String> fields()
 	{
 		return List.of();
@@ -46,11 +62,19 @@ interface IComponent<J extends IComponent<J>> extends IDefaultService<J>
 		return "";
 	}
 	
+	default List<String> componentInterfaces()
+	{
+		return List.of();
+	}
 	default List<String> interfaces()
 	{
 		return List.of();
 	}
 	
+	default List<String> componentDecorators()
+	{
+		return List.of();
+	}
 	default List<String> decorators()
 	{
 		return List.of();

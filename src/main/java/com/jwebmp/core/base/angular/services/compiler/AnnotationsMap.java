@@ -96,7 +96,7 @@ public class AnnotationsMap
 	
 	private static Map<Class<?>, AnnotationsMap> annoMap = new HashMap<>();
 	
-	public static <A extends Annotation> List<A> getAnnotations(Class<?> clazz, Class<A> annotation)
+	public static AnnotationsMap getAnnotationMap(Class<?> clazz)
 	{
 		AnnotationsMap mappy = null;
 		if (!annoMap.containsKey(clazz))
@@ -108,6 +108,12 @@ public class AnnotationsMap
 		{
 			mappy = annoMap.get(clazz);
 		}
+		return mappy;
+	}
+	
+	public static <A extends Annotation> List<A> getAnnotations(Class<?> clazz, Class<A> annotation)
+	{
+		AnnotationsMap mappy = getAnnotationMap(clazz);
 		var out = (List<A>) mappy.annotationsMapping.get(annotation);
 		if (out == null)
 		{
@@ -116,6 +122,66 @@ public class AnnotationsMap
 		return out;
 	}
 	
+	public static <A extends Annotation> List<A> getAnnotationParents(Class<?> clazz)
+	{
+		var map = getAnnotationMap(clazz);
+		List<A> out = new ArrayList<>();
+		for (List<Annotation> value : map.annotationsMapping.values())
+		{
+			out.addAll((Collection<? extends A>) value);
+		}
+		List<A> filteredAnnotations = new ArrayList<>();
+		for (A refAnnotation : out)
+		{
+			try
+			{
+				Method valueMethod = refAnnotation.annotationType()
+				                                  .getDeclaredMethod("onParent");
+				boolean result = (boolean) valueMethod.invoke(refAnnotation);
+				if(result)
+				{
+					filteredAnnotations.add((A) refAnnotation);
+				}
+			}
+			catch (NoSuchMethodException e)
+			{
+				//expected
+			}
+			catch (InvocationTargetException | IllegalAccessException e)
+			{
+				e.printStackTrace();
+			}
+		}
+		return filteredAnnotations;
+	}
+	
+	public static <A extends Annotation> List<A> getAnnotationSelf(Class<?> clazz, Class<A> annotation)
+	{
+		var out =  getAnnotations(clazz, annotation);
+		List<A> filteredAnnotations = new ArrayList<>();
+		for (A refAnnotation : out)
+		{
+			try
+			{
+				Method valueMethod = refAnnotation.annotationType()
+				                                  .getDeclaredMethod("onSelf");
+				boolean result = (boolean) valueMethod.invoke(refAnnotation);
+				if(result)
+				{
+					filteredAnnotations.add((A) refAnnotation);
+				}
+			}
+			catch (NoSuchMethodException e)
+			{
+				//expected
+			}
+			catch (InvocationTargetException | IllegalAccessException e)
+			{
+				e.printStackTrace();
+			}
+		}
+		return filteredAnnotations;
+	}
 	
 	private AnnotationsMap(Class<?> clazz)
 	{
@@ -183,7 +249,7 @@ public class AnnotationsMap
 		return null;
 	}
 	
-	private void addAnnotation(Annotation source)
+	public void addAnnotation(Annotation source)
 	{
 		if (!annotationsMapping.containsKey(source.annotationType()))
 		{
@@ -193,7 +259,7 @@ public class AnnotationsMap
 		                  .add(source);
 	}
 	
-	<T extends Annotation> List<T> getListOfAnnotations(Class<?> clazz, Class<T> singularAnnotation, Class<? extends Annotation> multipleAnnotation)
+	private <T extends Annotation> List<T> getListOfAnnotations(Class<?> clazz, Class<T> singularAnnotation, Class<? extends Annotation> multipleAnnotation)
 	{
 		List<T> out = new ArrayList<>();
 		if (clazz.isAnnotationPresent(multipleAnnotation))

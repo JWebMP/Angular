@@ -30,7 +30,7 @@ public interface INgDataService<J extends INgDataService<J>> extends INgComponen
 	}
 	
 	@Override
-	default List<String> constructorBody()
+	default List<String> componentConstructorBody()
 	{
 		List<String> bodies = new ArrayList<>();
 		List<NgDataTypeReference> dReferences = getAnnotations(getClass(), NgDataTypeReference.class);
@@ -50,7 +50,7 @@ public interface INgDataService<J extends INgDataService<J>> extends INgComponen
 	}
 	
 	@Override
-	default List<String> methods()
+	default List<String> componentMethods()
 	{
 		List<String> methods = new ArrayList<>();
 		methods.add("fetchData(){\n" +
@@ -61,7 +61,7 @@ public interface INgDataService<J extends INgDataService<J>> extends INgComponen
 	}
 	
 	@Override
-	default List<String> fields()
+	default List<String> componentFields()
 	{
 		List<String> fields = new ArrayList<>();
 		
