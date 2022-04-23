@@ -11,6 +11,7 @@ module com.jwebmp.core.angular {
 	
 	exports com.jwebmp.core.base.angular.modules.services.angular.forms;
 	exports com.jwebmp.core.base.angular;
+	exports com.jwebmp.core.base.angular.implementations;
 	exports com.jwebmp.core.base.angular.forms;
 	exports com.jwebmp.core.base.angular.forms.enumerations;
 	exports com.jwebmp.core.base.angular.services.compiler;
@@ -23,22 +24,17 @@ module com.jwebmp.core.angular {
 	
 	requires transitive com.jwebmp.core;
 	
-	requires jakarta.validation;
-	requires java.logging;
-	requires com.guicedee.logmaster;
-	requires com.google.guice;
-	requires com.guicedee.guicedinjection;
-	requires com.google.guice.extensions.servlet;
-	requires com.guicedee.guicedservlets;
+
 	
 	requires com.fasterxml.jackson.databind;
 	requires org.apache.commons.io;
 	requires org.apache.commons.lang3;
-	requires jakarta.servlet;
+
 	requires com.guicedee.guicedservlets.websockets;
 	
 	requires transitive undertow.core;
 	requires transitive undertow.servlet;
+	
 	requires undertow.websockets.jsr;
 	requires jakarta.websocket.api;
 	requires org.apache.commons.text;

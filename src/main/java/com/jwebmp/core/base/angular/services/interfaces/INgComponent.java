@@ -30,6 +30,7 @@ public interface INgComponent<J extends INgComponent<J>>
 		StringBuilder viewProviders = new StringBuilder();
 		StringBuilder animations = new StringBuilder();
 		StringBuilder providers = new StringBuilder();
+		StringBuilder hosts = new StringBuilder();
 		
 		NgComponent ngComponent = getAnnotations(getClass(), NgComponent.class).get(0);
 		
@@ -121,10 +122,18 @@ public interface INgComponent<J extends INgComponent<J>>
 			providers.deleteCharAt(providers.length() - 2);
 		}
 		
+		if(!host().isEmpty())
+		for (String s : host())
+		{
+			hosts.append(s);
+		}
+		else hosts.append("{}");
+		
 		String componentString = String.format(ITSComponent.componentString, selector, templateUrls, styles, styleUrls,
 				"", //viewProviders
 				"", //Animations
-				providers //Directive Providers
+				providers, //Directive Providers,
+				hosts //hosts entry
 		);
 		
 		list.add(componentString);

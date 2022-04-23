@@ -114,7 +114,14 @@ public class RoutingModule implements INgModule<RoutingModule>
 			buildRouteActualPathway(out, definedRoute, children);
 		}
 		out.forEach((key,value)->{
-			imports.append(String.format(importString, key, value));
+			if (!key.startsWith("!"))
+			{
+				imports.append(String.format(importString, key, value));
+			}
+			else
+			{
+				imports.append(String.format(importPlainString, key.substring(1), value));
+			}
 		});
 		
 		return imports;

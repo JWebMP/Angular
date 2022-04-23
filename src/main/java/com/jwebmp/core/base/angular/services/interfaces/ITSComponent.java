@@ -2,6 +2,7 @@ package com.jwebmp.core.base.angular.services.interfaces;
 
 import com.fasterxml.jackson.core.*;
 import com.google.common.base.*;
+import com.jwebmp.core.base.*;
 import com.jwebmp.core.base.angular.services.annotations.*;
 import com.jwebmp.core.base.angular.services.annotations.functions.*;
 import com.jwebmp.core.base.angular.services.annotations.references.*;
@@ -18,6 +19,8 @@ import static com.jwebmp.core.base.angular.services.compiler.AnnotationsMap.*;
 public interface ITSComponent<J extends ITSComponent<J>> extends IComponent<J>
 {
 	String importString = "import { %s } from '%s';\n";
+	String importPlainString = "import %s from '%s';\n";
+	
 	String componentString = "@Component({\n" +
 	                         "\tselector:'%s',\n" +
 	                         "\ttemplateUrl:'%s',\n" +
@@ -26,7 +29,8 @@ public interface ITSComponent<J extends ITSComponent<J>> extends IComponent<J>
 	                         "\tviewProviders:[%s],\n" +
 	                         "\tanimations:[%s],\n" +
 	                         "\tproviders:[%s],\n" +
-	                         "\tpreserveWhitespaces:true\n" +
+	                         "\tpreserveWhitespaces:true,\n" +
+	                         "\thost:%s\n" +
 	                         "" +
 	                         "})";
 	
@@ -79,10 +83,17 @@ public interface ITSComponent<J extends ITSComponent<J>> extends IComponent<J>
 	default StringBuilder renderImports()
 	{
 		StringBuilder sb = new StringBuilder();
-		Map<String, String> out = new java.util.HashMap<>();
+		Map<String, String> out = new LinkedHashMap<>();
 		processReferenceAnnotations(out);
 		out.forEach((key, value) -> {
-			sb.append(String.format(importString, key, value));
+			if (!key.startsWith("!"))
+			{
+				sb.append(String.format(importString, key, value));
+			}
+			else
+			{
+				sb.append(String.format(importPlainString, key.substring(1), value));
+			}
 		});
 		return sb;
 	}
@@ -91,6 +102,7 @@ public interface ITSComponent<J extends ITSComponent<J>> extends IComponent<J>
 	{
 		var reference = getAnnotations(getClass(), NgSourceDirectoryReference.class);
 		List<NgComponentReference> moduleRefs = getAnnotations(getClass(), NgComponentReference.class);
+		moduleRefs.addAll(getComponentReferences());
 		for (NgComponentReference moduleRef : moduleRefs)
 		{
 			putRelativeLinkInMap(getClass(), out, moduleRef);
@@ -137,8 +149,26 @@ public interface ITSComponent<J extends ITSComponent<J>> extends IComponent<J>
 	default Map<String, String> getImportsFromTypes()
 	{
 		Map<String, String> out = new HashMap<>();
-		for (Map.Entry<String, String> entry : imports()
-		                                         .entrySet())
+		var imps = imports();
+		if (getClass().isAnnotationPresent(NgComponent.class) && this instanceof ComponentHierarchyBase && this instanceof INgComponent)
+		{
+			ComponentHierarchyBase chb = (ComponentHierarchyBase) this;
+			chb.toString(0);
+			Set childrenHierarchy = chb.getChildrenHierarchy();
+			for (Object o : childrenHierarchy)
+			{
+				ComponentHierarchyBase chb1 = (ComponentHierarchyBase) o;
+				if (!chb1.getClass()
+				         .isAnnotationPresent(NgComponent.class) && chb1 instanceof INgComponent)
+				{
+					INgComponent ngComp = (INgComponent) chb1;
+					imps.putAll(ngComp.imports());
+				}
+			}
+		}
+		
+		for (Map.Entry<String, String> entry : imps
+				.entrySet())
 		{
 			String key = entry.getKey();
 			String value = entry.getValue();
@@ -149,6 +179,11 @@ public interface ITSComponent<J extends ITSComponent<J>> extends IComponent<J>
 			out.putIfAbsent(key, value);
 		}
 		return out;
+	}
+	
+	default List<NgComponentReference> getComponentReferences()
+	{
+		return List.of();
 	}
 	
 	static String getTsVarName(Class<?> clazz)
@@ -431,6 +466,21 @@ public interface ITSComponent<J extends ITSComponent<J>> extends IComponent<J>
 		fStrings.addAll(componentFields());
 		fStrings.addAll(fields());
 		
+		if (getClass().isAnnotationPresent(NgComponent.class) && this instanceof ComponentHierarchyBase && this instanceof INgComponent)
+		{
+			ComponentHierarchyBase chb = (ComponentHierarchyBase) this;
+			for (Object o : chb.getChildrenHierarchy())
+			{
+				ComponentHierarchyBase chb1 = (ComponentHierarchyBase) o;
+				if (!chb1.getClass()
+				         .isAnnotationPresent(NgComponent.class) && chb1 instanceof INgComponent)
+				{
+					INgComponent ngComp = (INgComponent) chb1;
+					fStrings.addAll(ngComp.fields());
+				}
+			}
+		}
+		
 		for (String field : fStrings)
 		{
 			out.append(field)
@@ -469,6 +519,23 @@ public interface ITSComponent<J extends ITSComponent<J>> extends IComponent<J>
 			}
 		}
 		
+		if (getClass().isAnnotationPresent(NgComponent.class) && this instanceof ComponentHierarchyBase && this instanceof INgComponent)
+		{
+			ComponentHierarchyBase chb = (ComponentHierarchyBase) this;
+			chb.toString(0);
+			Set childrenHierarchy = chb.getChildrenHierarchy();
+			for (Object o : childrenHierarchy)
+			{
+				ComponentHierarchyBase chb1 = (ComponentHierarchyBase) o;
+				if (!chb1.getClass()
+				         .isAnnotationPresent(NgComponent.class) && chb1 instanceof INgComponent)
+				{
+					INgComponent ngComp = (INgComponent) chb1;
+					constructorParameters.addAll(ngComp.constructorParameters());
+				}
+			}
+		}
+		
 		for (String constructorParameter : componentConstructorParameters())
 		{
 			constructorParameters.add(constructorParameter);
@@ -479,7 +546,7 @@ public interface ITSComponent<J extends ITSComponent<J>> extends IComponent<J>
 		}
 		
 		StringBuilder constructorParametersString = new StringBuilder();
-		if(!constructorParameters.isEmpty())
+		if (!constructorParameters.isEmpty())
 		{
 			for (String constructorParameter : constructorParameters)
 			{
@@ -499,6 +566,23 @@ public interface ITSComponent<J extends ITSComponent<J>> extends IComponent<J>
 			if (ngConstructorBody.onSelf())
 			{
 				constructorBodies.add(ngConstructorBody.value());
+			}
+		}
+		
+		if (getClass().isAnnotationPresent(NgComponent.class) && this instanceof ComponentHierarchyBase && this instanceof INgComponent)
+		{
+			ComponentHierarchyBase chb = (ComponentHierarchyBase) this;
+			chb.toString(0);
+			Set childrenHierarchy = chb.getChildrenHierarchy();
+			for (Object o : childrenHierarchy)
+			{
+				ComponentHierarchyBase chb1 = (ComponentHierarchyBase) o;
+				if (!chb1.getClass()
+				         .isAnnotationPresent(NgComponent.class) && chb1 instanceof INgComponent)
+				{
+					INgComponent ngComp = (INgComponent) chb1;
+					constructorBodies.addAll(ngComp.constructorBody());
+				}
 			}
 		}
 		
@@ -540,7 +624,7 @@ public interface ITSComponent<J extends ITSComponent<J>> extends IComponent<J>
 				for (String s : ngField.onInit())
 				{
 					fInitOut.append(s)
-					   .append("\n");
+					        .append("\n");
 				}
 			}
 			fInitOut.append("}\n");
@@ -557,7 +641,7 @@ public interface ITSComponent<J extends ITSComponent<J>> extends IComponent<J>
 				for (String s : ngField.onDestroy())
 				{
 					fDestroyOut.append(s)
-					   .append("\n");
+					           .append("\n");
 				}
 			}
 			fDestroyOut.append("}\n");

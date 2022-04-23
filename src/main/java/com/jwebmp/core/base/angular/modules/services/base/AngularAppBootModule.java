@@ -1,9 +1,12 @@
 package com.jwebmp.core.base.angular.modules.services.base;
 
+import com.google.common.base.*;
 import com.guicedee.guicedinjection.*;
 import com.jwebmp.core.base.angular.services.annotations.*;
 import com.jwebmp.core.base.angular.services.annotations.angularconfig.*;
 import com.jwebmp.core.base.angular.services.annotations.references.*;
+import com.jwebmp.core.base.angular.services.annotations.structures.*;
+import com.jwebmp.core.base.angular.services.compiler.*;
 import com.jwebmp.core.base.angular.services.interfaces.*;
 import com.jwebmp.core.base.html.*;
 import com.jwebmp.core.databind.*;
@@ -15,27 +18,24 @@ import java.util.*;
 
 import static com.jwebmp.core.base.angular.services.compiler.AnnotationsMap.*;
 
-//@NgComponentReference(SocketClientService.class)
-//@NgComponentReference(RoutingModule.class)
-
-
-@TsDependency(value = "@angular/platform-browser", version = "^13.3.1")
+@TsDependency(value = "@angular/platform-browser", version = "^13.3.4", overrides = true)
 @NgImportReference(name = "BrowserModule", reference = "@angular/platform-browser")
 @NgBootModuleImport("BrowserModule")
 
-@TsDependency(value = "@angular/forms", version = "^13.3.1")
-@NgImportReference(name = "FormsModule", reference = "@angular/forms")
+@TsDependency(value = "@angular/forms", version = "^13.3.4", overrides = true)
+@NgImportReference(name = "FormsModule, ReactiveFormsModule", reference = "@angular/forms")
 @NgBootModuleImport("FormsModule")
+@NgBootModuleImport("ReactiveFormsModule")
 
-@TsDependency(value = "@angular/common", version = "^13.3.1")
+@TsDependency(value = "@angular/common", version = "^13.3.4", overrides = true)
 @NgImportReference(name = "CommonModule", reference = "@angular/common")
 @NgBootModuleImport("CommonModule")
 
-@NgImportReference(name = "HttpClient, HttpResponse, HttpHeaders,HttpParams,HttpErrorResponse", reference = "@angular/common/http")
+//@NgImportReference(name = "HttpClient, HttpResponse, HttpHeaders,HttpParams,HttpErrorResponse", reference = "@angular/common/http")
 
 @NgPolyfill("zone.js")
 
-@TsDependency(value = "@angular/platform-browser-dynamic", version = "^13.3.1")
+@TsDependency(value = "@angular/platform-browser-dynamic", version = "^13.3.4")
 public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implements INgModule<AngularAppBootModule>
 {
 	private Class<? extends INgComponent<?>> bootModule;
@@ -130,7 +130,11 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 				continue;
 			}
 			String value = entry.getValue();
+			if(!key.startsWith("!"))
 			sb.append(String.format(importString, key, value));
+			else {
+				sb.append(String.format(importPlainString, key.substring(1), value));
+			}
 		}
 		return sb;
 	}
@@ -141,7 +145,7 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 		                              .getScanResult();
 		
 		
-		Map<String, String> out = new java.util.HashMap<>();
+		Map<String, String> out = new LinkedHashMap<>();
 		for (IConfiguration configuration : getConfigurations(INgModule.class))
 		{
 			INgModule<?> module = (INgModule<?>) configuration;
@@ -161,6 +165,24 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 			if (moduleRef.onSelf())
 			{
 				out.putIfAbsent(moduleRef.name(), moduleRef.reference());
+			}
+		}
+		
+		for (ClassInfo classInfo : GuiceContext.instance()
+		                                       .getScanResult()
+		                                       .getClassesWithAnnotation(NgBootImportReference.class))
+		{
+			List<NgBootImportReference> refs = AnnotationsMap.getAnnotations(classInfo.loadClass(), NgBootImportReference.class);
+			for (NgBootImportReference ref : refs)
+			{
+				if (ref.overrides())
+				{
+					out.put(ref.name(), ref.reference());
+				}
+				else
+				{
+					out.putIfAbsent(ref.name(), ref.reference());
+				}
 			}
 		}
 		
@@ -188,7 +210,7 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 			for (Class<? extends ITSComponent<?>> aClass : classes)
 			{
 				INgComponent<?> component = (INgComponent<?>) GuiceContext.get(aClass);
-				var annos = getAnnotations(aClass,NgComponent.class);
+				var annos = getAnnotations(aClass, NgComponent.class);
 				for (NgComponent anno : annos)
 				{
 					NgComponentReference componentReference = getNgComponentReference(aClass);
@@ -232,7 +254,7 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 					continue;
 				}
 				INgModule<?> component = (INgModule<?>) GuiceContext.get(aClass);
-				var annos = getAnnotations(aClass,NgModule.class);
+				var annos = getAnnotations(aClass, NgModule.class);
 				for (NgModule anno : annos)
 				{
 					if (anno != null)
@@ -250,7 +272,7 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 				}
 			}
 		}
-
+		
 		for (ClassInfo classInfo : GuiceContext.instance()
 		                                       .getScanResult()
 		                                       .getClassesWithAnnotation(NgDirective.class))
@@ -275,7 +297,7 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 			for (Class<? extends ITSComponent<?>> aClass : classes)
 			{
 				INgDirective<?> component = (INgDirective<?>) GuiceContext.get(aClass);
-				var annos = getAnnotations(aClass,NgDirective.class);
+				var annos = getAnnotations(aClass, NgDirective.class);
 				for (NgDirective anno : annos)
 				{
 					if (anno != null)
@@ -317,7 +339,7 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 			for (Class<? extends ITSComponent<?>> aClass : classes)
 			{
 				INgProvider<?> component = (INgProvider<?>) GuiceContext.get(aClass);
-				var annos = getAnnotations(aClass,NgProvider.class);
+				var annos = getAnnotations(aClass, NgProvider.class);
 				for (NgProvider anno : annos)
 				{
 					NgComponentReference componentReference = getNgComponentReference(aClass);
@@ -415,5 +437,126 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 		}
 		
 		return new ArrayList<>(out);
+	}
+	
+	@Override
+	public StringBuilder renderConstructor()
+	{
+		StringBuilder out = new StringBuilder();
+		Set<String> constructorParameters = new LinkedHashSet<>();
+		Set<Class<? extends ITSComponent<?>>> aClasses = new HashSet<>();
+		aClasses.add((Class<? extends ITSComponent<?>>) getClass());
+		
+		List<NgComponentReference> componentReferences = getAnnotations(getClass(), NgComponentReference.class);
+		for (NgComponentReference componentReference : componentReferences)
+		{
+			Class<? extends ITSComponent> aClass = componentReference.value();
+			List<NgConstructorParameter> constructorParams = getAnnotations(aClass, NgConstructorParameter.class);
+			for (NgConstructorParameter constructorParam : constructorParams)
+			{
+				if (constructorParam.onParent())
+				{
+					constructorParameters.add(constructorParam.value());
+				}
+			}
+		}
+		
+		List<NgConstructorParameter> constructorParams = getAnnotations(getClass(), NgConstructorParameter.class);
+		for (NgConstructorParameter constructorParam : constructorParams)
+		{
+			if (constructorParam.onSelf())
+			{
+				constructorParameters.add(constructorParam.value());
+			}
+		}
+		
+		List<NgBootConstructorParameter> constructorBootParams = getAllAnnotations(NgBootConstructorParameter.class);
+		for (NgBootConstructorParameter constructorBootParam : constructorBootParams)
+		{
+			if (constructorBootParam.onSelf())
+			{
+				constructorParameters.add(constructorBootParam.value());
+			}
+		}
+		
+		for (String constructorParameter : componentConstructorParameters())
+		{
+			constructorParameters.add(constructorParameter);
+		}
+		for (String constructorParameter : constructorParameters())
+		{
+			constructorParameters.add(constructorParameter);
+		}
+		
+		StringBuilder constructorParametersString = new StringBuilder();
+		if (!constructorParameters.isEmpty())
+		{
+			for (String constructorParameter : constructorParameters)
+			{
+				constructorParametersString.append(constructorParameter + ", ");
+			}
+			if (constructorParametersString.length() > 1)
+			{
+				constructorParametersString.deleteCharAt(constructorParametersString.lastIndexOf(", "));
+			}
+		}
+		
+		StringBuilder cBodyBuilder = new StringBuilder();
+		Set<String> constructorBodies = new LinkedHashSet<>();
+		List<NgConstructorBody> bDy = getAnnotations(getClass(), NgConstructorBody.class);
+		for (NgConstructorBody ngConstructorBody : bDy)
+		{
+			if (ngConstructorBody.onSelf())
+			{
+				constructorBodies.add(ngConstructorBody.value());
+			}
+		}
+		
+		List<NgBootConstructorBody> bootDy = getAllAnnotations(NgBootConstructorBody.class);
+		for (NgBootConstructorBody ngConstructorBody : bootDy)
+		{
+			if (ngConstructorBody.onSelf())
+			{
+				constructorBodies.add(ngConstructorBody.value());
+			}
+		}
+		
+		constructorBodies.addAll(componentConstructorBody());
+		constructorBodies.addAll(constructorBody());
+		
+		for (String body : constructorBodies)
+		{
+			cBodyBuilder.append(body)
+			            .append("\n");
+		}
+		
+		if (!Strings.isNullOrEmpty(constructorParametersString.toString()) || !constructorBodies.isEmpty())
+		{
+			out.append("constructor( ");
+			out.append(constructorParametersString);
+			out.append(")\n");
+			
+			out.append("{\n");
+			out.append(cBodyBuilder);
+			out.append("}\n");
+		}
+		
+		return out;
+	}
+	
+	@Override
+	public List<String> globalFields()
+	{
+		List<String> gf = new ArrayList<>();
+		List<NgBootGlobalField> bootDy = getAllAnnotations(NgBootGlobalField.class);
+		for (NgBootGlobalField globalFields : bootDy)
+		{
+			if (globalFields.onSelf())
+			{
+				gf.add(globalFields.value());
+			}
+		}
+		gf.addAll(INgModule.super.globalFields());
+		return gf;
 	}
 }

@@ -31,7 +31,10 @@ public class AnnotationsMap
 			NgBootDeclaration.class, NgBootDeclarations.class,
 			NgBootModuleImport.class, NgBootModuleImports.class,
 			NgBootImportReference.class, NgBootImportReferences.class,
-			NgBootProvider.class, NgBootProviders.class
+			NgBootProvider.class, NgBootProviders.class,
+			NgBootConstructorBody.class,NgBootConstructorBodys.class,
+			NgBootConstructorParameter.class, NgBootConstructorParameters.class,
+			NgBootGlobalField.class,NgBootGlobalFields.class
 	);
 	private static final Map<Class<? extends Annotation>, Class<? extends Annotation>> ngReferences
 			= Map.of(
@@ -71,6 +74,9 @@ public class AnnotationsMap
 			NgBootModuleImport.class,
 			NgBootImportReference.class,
 			NgBootProvider.class,
+			NgBootConstructorParameter.class,
+			NgBootConstructorBody.class,
+			NgBootGlobalField.class,
 			NgComponentReference.class,
 			NgImportProvider.class,
 			NgImportReference.class,
@@ -285,6 +291,24 @@ public class AnnotationsMap
 			out.add(clazz.getAnnotation(singularAnnotation));
 		}
 		return out;
+	}
+	
+	public static <T extends Annotation> List<T> getAllAnnotations(Class<T> annotation)
+	{
+		List<T> annos = new ArrayList<>();
+		annoMap.forEach((key,value)->{
+			value.annotationsMapping.forEach((key2,value2)->{
+				for (Annotation annotation1 : value2)
+				{
+					if(annotation1.annotationType().equals(annotation))
+					{
+						annos.add((T) annotation1);
+					}
+				}
+			});
+		});
+		
+		return annos;
 	}
 	
 }

@@ -19,9 +19,18 @@ public @interface TsDependency
 	String value();
 	
 	/**
-	 * The version of the plugin (without any ~)
+	 * The version of the plugin in package.json
 	 *
 	 * @return
 	 */
 	String version();
+	
+	
+	String name() default "";
+	
+	/**
+	 * If this must be rendered in the overrides section as well
+	 * @return
+	 */
+	boolean overrides() default false;
 }

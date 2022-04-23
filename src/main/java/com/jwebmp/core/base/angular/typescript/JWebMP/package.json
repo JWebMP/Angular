@@ -8,9 +8,10 @@
     "watch": "ng build --watch --configuration development"
   },
   "private": true,
+  "overrides":
+    /*overrideDependencies*/,
   "dependencies":
-    /*dependencies*/
-  ,
+    /*dependencies*/,
   "devDependencies":
     /*devDependencies*/
 

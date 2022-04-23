@@ -14,10 +14,12 @@ import static com.jwebmp.core.base.angular.services.interfaces.ITSComponent.*;
 public class AngularTSPostStartup implements IGuicePostStartup<AngularTSPostStartup>
 {
 	private static final Logger log = LogFactory.getLog(AngularTSPostStartup.class);
+	public static boolean loadTSOnStartup = true;
 	
 	@Override
 	public void postLoad()
 	{
+		if(loadTSOnStartup)
 		for (INgApp<?> app : JWebMPTypeScriptCompiler.getAllApps())
 		{
 			JWebMPTypeScriptCompiler compiler = new JWebMPTypeScriptCompiler(app);

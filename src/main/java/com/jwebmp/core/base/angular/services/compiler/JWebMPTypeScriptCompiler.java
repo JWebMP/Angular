@@ -3,6 +3,7 @@ package com.jwebmp.core.base.angular.services.compiler;
 import com.fasterxml.jackson.databind.*;
 import com.google.common.base.*;
 import com.guicedee.guicedinjection.*;
+import com.guicedee.guicedinjection.pairing.*;
 import com.guicedee.logger.*;
 import com.jwebmp.core.*;
 import com.jwebmp.core.base.*;
@@ -247,6 +248,7 @@ public class JWebMPTypeScriptCompiler
 		
 		Map<String, String> dependencies = new HashMap<>();
 		Map<String, String> devDependencies = new HashMap<>();
+		Map<String, String> overrideDependencies = new HashMap<>();
 		
 		scan
 				.getClassesWithAnnotation(TsDependency.class)
@@ -256,7 +258,12 @@ public class JWebMPTypeScriptCompiler
 							                           .getAnnotation(TsDependency.class);
 							if (annotation != null)
 							{
-								dependencies.put(annotation.value(), annotation.version());
+								var annotation1 = getNamedTSDependency(annotation);
+								dependencies.putIfAbsent(annotation1.value(), annotation1.version());
+								if (annotation1.overrides())
+								{
+									overrideDependencies.put(annotation1.value(), annotation1.version());
+								}
 							}
 						}
 				);
@@ -282,7 +289,12 @@ public class JWebMPTypeScriptCompiler
 							{
 								for (TsDependency annotation : annotations.value())
 								{
-									dependencies.put(annotation.value(), annotation.version());
+									var annotation1 = getNamedTSDependency(annotation);
+									dependencies.putIfAbsent(annotation1.value(), annotation1.version());
+									if (annotation1.overrides())
+									{
+										overrideDependencies.put(annotation1.value(), annotation1.version());
+									}
 								}
 							}
 						}
@@ -310,6 +322,9 @@ public class JWebMPTypeScriptCompiler
 		                                                                .writeValueAsString(dependencies));
 		packageTemplate = packageTemplate.replace("/*devDependencies*/", om.writerWithDefaultPrettyPrinter()
 		                                                                   .writeValueAsString(devDependencies));
+		packageTemplate = packageTemplate.replace("/*overrideDependencies*/", om.writerWithDefaultPrettyPrinter()
+		                                                                   .writeValueAsString(overrideDependencies));
+		
 		
 		FileUtils.writeStringToFile(packageJsonFile, packageTemplate, UTF_8, false);
 		
@@ -901,11 +916,7 @@ public class JWebMPTypeScriptCompiler
 				Process p = processBuilder.start();
 				p.waitFor();
 			}
-			catch (IOException e)
-			{
-				e.printStackTrace();
-			}
-			catch (InterruptedException e)
+			catch (Exception e)
 			{
 				e.printStackTrace();
 			}
@@ -989,4 +1000,26 @@ public class JWebMPTypeScriptCompiler
 			}
 		}
 	}
+	
+	private static final Map<String, TsDependency> namedDependencies = new HashMap<>();
+	private TsDependency getNamedTSDependency(TsDependency dependency)
+	{
+		String name = dependency.value();
+		if (!Strings.isNullOrEmpty(dependency.name()))
+		{
+			name = dependency.name();
+		}
+		
+		if (dependency.overrides())
+		{
+			namedDependencies.put(name, dependency);
+		}
+		else
+		{
+			namedDependencies.putIfAbsent(name, dependency);
+		}
+		TsDependency dep = namedDependencies.get(name);
+		return dep;
+	}
+	
 }
