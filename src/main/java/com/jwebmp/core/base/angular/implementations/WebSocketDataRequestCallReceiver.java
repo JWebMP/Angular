@@ -25,85 +25,31 @@ import static com.jwebmp.core.base.angular.services.interfaces.ITSComponent.*;
 import static com.jwebmp.interception.JWebMPInterceptionBinder.*;
 
 public class WebSocketDataRequestCallReceiver
+	extends WebSocketAbstractCallReceiver
 		implements IWebSocketMessageReceiver
 {
-	private static final Logger log = LogFactory.getInstance()
-	                                            .getLogger("WebSocketDataFetch");
-	
-	@Inject
-	@Named("callScope")
-	private CallScoper scope;
-	
 	@Override
-	public Set<String> messageNames()
+	public String getMessageDirector()
 	{
-		Set<String> messageNames = new HashSet<>();
-		messageNames.add("data");
-		return messageNames;
+		return "data";
 	}
 	
 	@Override
-	public void receiveMessage(WebSocketMessageReceiver message) throws SecurityException
+	public AjaxResponse<?> action(AjaxCall<?> call, AjaxResponse<?> response)
 	{
-		String output;
+		Class<? extends INgDataService<?>> clazzy = null;
 		try
 		{
-			scope.enter();
+			clazzy = (Class<? extends INgDataService<?>>) Class.forName(call.getClassName());
 		}
-		catch (Throwable T)
+		catch (ClassNotFoundException e)
 		{
-			log.log(Level.WARNING, "Check scope entries and exits, enter called twice", T);
+			e.printStackTrace();
 		}
-		AjaxResponse<?> ajaxResponse = GuiceContext.get(AjaxResponse.class);
-		try
-		{
-			AjaxCall<?> ajaxCall = GuiceContext.get(AjaxCall.class);
-			ObjectMapper om = GuiceContext.get(DefaultObjectMapper);
-			String originalValues = om.writeValueAsString(message.getData());
-			AjaxCall<?> call = om.readValue(originalValues, AjaxCall.class);
-			ajaxCall.fromCall(call);
-			
-			ajaxCall.setWebSocketCall(true);
-			ajaxCall.setWebsocketSession(message.getSession());
-			
-			Class<? extends INgDataService<?>> clazzy = (Class<? extends INgDataService<?>>) Class.forName(ajaxCall.getClassName());
-			INgDataService<?> dataService = GuiceContext.get(clazzy);
-			for (AjaxCallIntercepter<?> ajaxCallIntercepter : get(AjaxCallInterceptorKey))
-			{
-				ajaxCallIntercepter.intercept(ajaxCall, ajaxResponse);
-			}
-			
-			var returned = dataService.getData(ajaxCall);
-			AjaxResponse<?> response = GuiceContext.get(AjaxResponse.class);
-			NgDataService dService = getAnnotations(clazzy, NgDataService.class).get(0);
-			response.addDataResponse(dService.value(), returned);
-			GuicedWebSocket.broadcastMessage(message.getBroadcastGroup(), response.toString());
-		}
-		catch (Exception T)
-		{
-			ajaxResponse.setSuccess(false);
-			AjaxResponseReaction<?> arr = new AjaxResponseReaction<>("Unknown Error",
-					"An AJAX call resulted in an unknown server error<br>" + T.getMessage() + "<br>" + TextUtilities.stackTraceToString(
-							T), ReactionType.DialogDisplay);
-			arr.setResponseType(AjaxResponseType.Danger);
-			ajaxResponse.addReaction(arr);
-			output = ajaxResponse.toString();
-			WebSocketDataRequestCallReceiver.log.log(Level.SEVERE, "Unknown in ajax reply\n", T);
-		}
-		catch (Throwable T)
-		{
-			ajaxResponse.setSuccess(false);
-			AjaxResponseReaction<?> arr = new AjaxResponseReaction<>("Unknown Error",
-					"An AJAX call resulted in an internal server error<br>" + T.getMessage() + "<br>" + TextUtilities.stackTraceToString(
-							T), ReactionType.DialogDisplay);
-			arr.setResponseType(AjaxResponseType.Danger);
-			ajaxResponse.addReaction(arr);
-			output = ajaxResponse.toString();
-			WebSocketDataRequestCallReceiver.log.log(Level.SEVERE, "Unknown in ajax reply\n", T);
-		}
-		finally
-		{
-			scope.exit();
-		}
+		INgDataService<?> dataService = GuiceContext.get(clazzy);
+		var returned = dataService.getData(call);
+		NgDataService dService = getAnnotations(clazzy, NgDataService.class).get(0);
+		response.addDataResponse(dService.value(), returned);
+		return response;
 	}
 }

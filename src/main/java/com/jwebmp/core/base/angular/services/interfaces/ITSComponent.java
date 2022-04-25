@@ -635,14 +635,16 @@ public interface ITSComponent<J extends ITSComponent<J>> extends IComponent<J>
 		if (!fDestroy.isEmpty())
 		{
 			StringBuilder fDestroyOut = new StringBuilder();
+			Set<String> destroys = new LinkedHashSet<>();
 			fDestroyOut.append("ngOnDestroy(){\n");
 			for (NgOnDestroy ngField : fDestroy)
 			{
-				for (String s : ngField.onDestroy())
-				{
-					fDestroyOut.append(s)
-					           .append("\n");
-				}
+				destroys.addAll(Arrays.asList(ngField.onDestroy()));
+			}
+			for (String destroy : destroys)
+			{
+				fDestroyOut.append(destroy)
+				           .append("\n");
 			}
 			fDestroyOut.append("}\n");
 			fStrings.add(fDestroyOut.toString());
