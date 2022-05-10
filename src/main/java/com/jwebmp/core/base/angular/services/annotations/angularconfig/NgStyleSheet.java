@@ -16,4 +16,6 @@ public @interface NgStyleSheet
 	String[] replaces() default {};
 	
 	String name() default "";
+	
+	int sortOrder() default 100;
 }

@@ -17,9 +17,14 @@ public interface INgDirective<J extends INgDirective<J>> extends ITSComponent<J>
 		return new ArrayList<>(out);
 	}
 	
-	default List<String> decorators()
+	@Override
+	default List<String> componentDecorators()
 	{
-		List<String> list = new ArrayList<>();
+		List<String> list =ITSComponent.super.componentDecorators();
+		if (list == null)
+		{
+			list = new ArrayList<>();
+		}
 		StringBuilder selector = new StringBuilder();
 		StringBuilder styles = new StringBuilder();
 		StringBuilder template = new StringBuilder();

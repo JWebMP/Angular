@@ -19,10 +19,13 @@ import static java.nio.charset.StandardCharsets.*;
 public interface INgComponent<J extends INgComponent<J>>
 		extends ITSComponent<J>, IConfiguration
 {
-	
-	default List<String> decorators()
+	default List<String> componentDecorators()
 	{
-		List<String> list = new ArrayList<>();
+		List<String> list = ITSComponent.super.componentDecorators();
+		if (list == null)
+		{
+			list = new ArrayList<>();
+		}
 		StringBuilder selector = new StringBuilder();
 		StringBuilder template = new StringBuilder();
 		StringBuilder styles = new StringBuilder();
@@ -31,6 +34,11 @@ public interface INgComponent<J extends INgComponent<J>>
 		StringBuilder animations = new StringBuilder();
 		StringBuilder providers = new StringBuilder();
 		StringBuilder hosts = new StringBuilder();
+		
+		if (!getClass().isAnnotationPresent(NgComponent.class))
+		{
+			System.out.println("This one doesn't have a ng component");
+		}
 		
 		NgComponent ngComponent = getAnnotations(getClass(), NgComponent.class).get(0);
 		

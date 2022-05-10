@@ -13,48 +13,48 @@ interface IComponent<J extends IComponent<J>> extends IDefaultService<J>
 {
 	default List<String> componentConstructorParameters()
 	{
-		return List.of();
+		return new ArrayList<>();
 	}
 	default List<String> constructorParameters()
 	{
-		return List.of();
+		return new ArrayList<>();
 	}
 
 	default List<Class<? extends NgDataType>> types()
 	{
-		return List.of();
+		return new ArrayList<>();
 	}
 	
 	default List<String> componentConstructorBody()
 	{
-		return List.of();
+		return new ArrayList<>();
 	}
 	default List<String> constructorBody()
 	{
-		return List.of();
+		return new ArrayList<>();
 	}
 	
 	default List<String> componentMethods()
 	{
-		return List.of();
+		return new ArrayList<>();
 	}
 	default List<String> methods()
 	{
-		return List.of();
+		return new ArrayList<>();
 	}
 	
 	default List<String> globalFields()
 	{
-		return List.of();
+		return new ArrayList<>();
 	}
 	
 	default List<String> componentFields()
 	{
-		return List.of();
+		return new ArrayList<>();
 	}
 	default List<String> fields()
 	{
-		return List.of();
+		return new ArrayList<>();
 	}
 	
 	default String ofType()
@@ -64,19 +64,19 @@ interface IComponent<J extends IComponent<J>> extends IDefaultService<J>
 	
 	default List<String> componentInterfaces()
 	{
-		return List.of();
+		return new ArrayList<>();
 	}
 	default List<String> interfaces()
 	{
-		return List.of();
+		return new ArrayList<>();
 	}
 	
 	default List<String> componentDecorators()
 	{
-		return List.of();
+		return new ArrayList<>();
 	}
 	default List<String> decorators()
 	{
-		return List.of();
+		return new ArrayList<>();
 	}
 }

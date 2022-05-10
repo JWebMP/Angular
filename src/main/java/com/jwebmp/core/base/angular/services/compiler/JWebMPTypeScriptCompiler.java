@@ -3,7 +3,6 @@ package com.jwebmp.core.base.angular.services.compiler;
 import com.fasterxml.jackson.databind.*;
 import com.google.common.base.*;
 import com.guicedee.guicedinjection.*;
-import com.guicedee.guicedinjection.pairing.*;
 import com.guicedee.logger.*;
 import com.jwebmp.core.*;
 import com.jwebmp.core.base.*;
@@ -323,7 +322,7 @@ public class JWebMPTypeScriptCompiler
 		packageTemplate = packageTemplate.replace("/*devDependencies*/", om.writerWithDefaultPrettyPrinter()
 		                                                                   .writeValueAsString(devDependencies));
 		packageTemplate = packageTemplate.replace("/*overrideDependencies*/", om.writerWithDefaultPrettyPrinter()
-		                                                                   .writeValueAsString(overrideDependencies));
+		                                                                        .writeValueAsString(overrideDependencies));
 		
 		
 		FileUtils.writeStringToFile(packageJsonFile, packageTemplate, UTF_8, false);
@@ -415,26 +414,17 @@ public class JWebMPTypeScriptCompiler
 			assets.add("src/assets/" + asset);
 		}
 		
-		
-		Map<String, String> namedStylesheets = new HashMap<>();
-		for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgStyleSheets.class))
-		{
-			NgStyleSheets assets = classInfo.loadClass()
-			                                .getAnnotation(NgStyleSheets.class);
-			for (NgStyleSheet ngAsset : assets.value())
+		Map<String, String> namedStylesheets = new LinkedHashMap<>();
+		List<NgStyleSheet> ngStyleSheets = getAllAnnotations(NgStyleSheet.class);
+		ngStyleSheets.sort(new Comparator<NgStyleSheet>() {
+			@Override
+			public int compare(NgStyleSheet o1, NgStyleSheet o2)
 			{
-				String name = ngAsset.name();
-				if (Strings.isNullOrEmpty(ngAsset.name()))
-				{
-					name = ngAsset.value();
-				}
-				namedStylesheets.put(name, ngAsset.value());
+				return Integer.compare(o1.sortOrder(), o2.sortOrder());
 			}
-		}
-		for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgStyleSheet.class))
+		});
+		for (NgStyleSheet ngAsset : ngStyleSheets)
 		{
-			Class<?> aClass = classInfo.loadClass();
-			NgStyleSheet ngAsset = aClass.getAnnotation(NgStyleSheet.class);
 			String name = ngAsset.name();
 			if (Strings.isNullOrEmpty(ngAsset.name()))
 			{
@@ -442,26 +432,8 @@ public class JWebMPTypeScriptCompiler
 			}
 			namedStylesheets.put(name, ngAsset.value());
 		}
-		for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgStyleSheets.class))
+		for (NgStyleSheet ngAsset : ngStyleSheets)
 		{
-			NgStyleSheets assets = classInfo.loadClass()
-			                                .getAnnotation(NgStyleSheets.class);
-			for (NgStyleSheet ngAsset : assets.value())
-			{
-				String name = ngAsset.name();
-				if (ngAsset.replaces().length > 0)
-				{
-					for (String replace : ngAsset.replaces())
-					{
-						namedStylesheets.put(replace, ngAsset.value());
-					}
-				}
-			}
-		}
-		for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgStyleSheet.class))
-		{
-			Class<?> aClass = classInfo.loadClass();
-			NgStyleSheet ngAsset = aClass.getAnnotation(NgStyleSheet.class);
 			String name = ngAsset.name();
 			if (ngAsset.replaces().length > 0)
 			{
@@ -482,25 +454,18 @@ public class JWebMPTypeScriptCompiler
 			stylesGlobal.add("src/assets/" + stylesheet);
 		}
 		
-		Map<String, String> namedScripts = new HashMap<>();
-		for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgScripts.class))
-		{
-			NgScripts assets = classInfo.loadClass()
-			                            .getAnnotation(NgScripts.class);
-			for (NgScript ngAsset : assets.value())
+		Map<String, String> namedScripts = new LinkedHashMap<>();
+		
+		List<NgScript> allAnnotations = getAllAnnotations(NgScript.class);
+		allAnnotations.sort(new Comparator<NgScript>() {
+			@Override
+			public int compare(NgScript o1, NgScript o2)
 			{
-				String name = ngAsset.name();
-				if (Strings.isNullOrEmpty(ngAsset.name()))
-				{
-					name = ngAsset.value();
-				}
-				namedScripts.put(name, ngAsset.value());
+				return Integer.compare(o1.sortOrder(), o2.sortOrder());
 			}
-		}
-		for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgScripts.class))
+		});
+		for (NgScript ngAsset : allAnnotations)
 		{
-			Class<?> aClass = classInfo.loadClass();
-			NgScript ngAsset = aClass.getAnnotation(NgScript.class);
 			String name = ngAsset.name();
 			if (Strings.isNullOrEmpty(ngAsset.name()))
 			{
@@ -508,26 +473,8 @@ public class JWebMPTypeScriptCompiler
 			}
 			namedScripts.put(name, ngAsset.value());
 		}
-		for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgScripts.class))
+		for (NgScript ngAsset :allAnnotations)
 		{
-			NgScripts assets = classInfo.loadClass()
-			                            .getAnnotation(NgScripts.class);
-			for (NgScript ngAsset : assets.value())
-			{
-				String name = ngAsset.name();
-				if (ngAsset.replaces().length > 0)
-				{
-					for (String replace : ngAsset.replaces())
-					{
-						namedScripts.put(replace, ngAsset.value());
-					}
-				}
-			}
-		}
-		for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgScripts.class))
-		{
-			Class<?> aClass = classInfo.loadClass();
-			NgScript ngAsset = aClass.getAnnotation(NgScript.class);
 			String name = ngAsset.name();
 			if (ngAsset.replaces().length > 0)
 			{
@@ -545,7 +492,7 @@ public class JWebMPTypeScriptCompiler
 		
 		for (String stylesheet : app.scripts())
 		{
-			scripts.add("src/assets/" + scripts);
+			scripts.add("src/assets/" + stylesheet);
 		}
 		
 		String angularTemplate = IOUtils.toString(Objects.requireNonNull(ResourceLocator.class.getResourceAsStream("angular.json")), UTF_8);
@@ -891,8 +838,16 @@ public class JWebMPTypeScriptCompiler
 		
 		body.getChildren()
 		    .clear();
-		body.add(new DivSimple<>().setTag(getAnnotations(appBootModule.getBootModule(), NgComponent.class).get(0)
-		                                                                                                  .value()));
+		List<NgComponent> annotations = getAnnotations(appBootModule.getBootModule(), NgComponent.class);
+		if (annotations.isEmpty())
+		{
+			throw new RuntimeException("No components found to render for boot index, the boot module specified does not have a @NgComponent");
+		}
+		else
+		{
+			body.add(new DivSimple<>().setTag(annotations.get(0)
+			                                             .value()));
+		}
 		p.setBody(body);
 		sb.append(p.toString(0));
 		
@@ -1002,6 +957,7 @@ public class JWebMPTypeScriptCompiler
 	}
 	
 	private static final Map<String, TsDependency> namedDependencies = new HashMap<>();
+	
 	private TsDependency getNamedTSDependency(TsDependency dependency)
 	{
 		String name = dependency.value();

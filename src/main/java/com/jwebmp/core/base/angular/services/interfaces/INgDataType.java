@@ -12,9 +12,13 @@ public interface INgDataType<J extends INgDataType<J>>
 		extends ITSComponent<J>, IConfiguration, IJsonRepresentation<J>
 {
 	@Override
-	default List<String> fields()
+	default List<String> componentFields()
 	{
-		List<String> fields = new ArrayList<>();
+		List<String> fields = ITSComponent.super.componentFields();
+		if (fields == null)
+		{
+			fields = new ArrayList<>();
+		}
 		StringBuilder sb = new StringBuilder();
 		for (Field declaredField : getClass()
 				.getDeclaredFields())
@@ -66,7 +70,19 @@ public interface INgDataType<J extends INgDataType<J>>
 			{
 				e.printStackTrace();
 			}
-			//out.append(" public " + fieldName + "? : " + getTsFilename(fieldType) + " = [];\n");
+		}
+		else if (fieldType.isArray())
+		{
+			//get generic type
+			String genericType = fieldType.arrayType().getCanonicalName();
+			try
+			{
+				renderFieldTS(out, fieldName, Class.forName(genericType), field, true);
+			}
+			catch (ClassNotFoundException e)
+			{
+				e.printStackTrace();
+			}
 		}
 		else if (Object.class.isAssignableFrom(fieldType))
 		{

@@ -12,8 +12,8 @@ import com.jwebmp.core.base.angular.services.interfaces.*;
 public class AngularFormDataService extends FormDataService<AngularFormDataService>
 {
 	@Override
-	public DataComponentData getData(AjaxCall<?> call)
+	public DynamicData getData(AjaxCall<?> call)
 	{
-		return new DataComponentData().setName("Name was set and sent!");
+		return new DynamicData().addData(new DataComponentData().setName("Name was set and sent!"));
 	}
 }

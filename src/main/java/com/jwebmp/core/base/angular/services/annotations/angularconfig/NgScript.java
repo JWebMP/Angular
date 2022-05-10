@@ -15,4 +15,5 @@ public @interface NgScript
 	
 	String name() default "";
 	String[] replaces() default {};
+	int sortOrder() default 100;
 }

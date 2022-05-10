@@ -11,13 +11,6 @@ public class DataComponentData
 		implements INgDataType<DataComponentData>, IJsonRepresentation<DataComponentData>
 {
 	private String name = "";
-	private List<String> datas = new ArrayList<>();
-	
-	public String getName()
-	{
-		return name;
-	}
-	
 	public DataComponentData setName(String name)
 	{
 		this.name = name;

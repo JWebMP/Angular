@@ -30,9 +30,14 @@ public interface INgModule<J extends INgModule<J>>
 		return List.of();
 	}
 	
-	default List<String> decorators()
+	@Override
+	default List<String> componentDecorators()
 	{
-		List<String> list = new ArrayList<>();
+		List<String> list = ITSComponent.super.componentDecorators();
+		if (list == null)
+		{
+			list = new ArrayList<>();
+		}
 		
 		StringBuilder declarations = new StringBuilder();
 		StringBuilder providers = new StringBuilder();

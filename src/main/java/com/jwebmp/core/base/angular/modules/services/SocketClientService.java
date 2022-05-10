@@ -41,6 +41,10 @@ import java.util.*;
           "   }" +
           "   return observer;" +
           "}")
+@NgMethod("deregisterListener(listener: string): void {\n" +
+          "        this.dataListenerMappings.delete(listener);\n" +
+          "    }")
+
 @NgMethod("getParametersObject() : object {\n" +
           "    try {\n" +
           "        var search = location.search.substring(1);\n" +

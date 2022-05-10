@@ -162,7 +162,14 @@ public interface ITSComponent<J extends ITSComponent<J>> extends IComponent<J>
 				         .isAnnotationPresent(NgComponent.class) && chb1 instanceof INgComponent)
 				{
 					INgComponent ngComp = (INgComponent) chb1;
-					imps.putAll(ngComp.imports());
+					ngComp.imports().forEach((impKey,impValue)->{
+						if(impKey.equals(ngComp.getClass().getSimpleName()))
+						{
+							//System.out.println("equals class name");
+						} else {
+							imps.put(impKey.toString(),impValue.toString());
+						}
+					});
 				}
 			}
 		}

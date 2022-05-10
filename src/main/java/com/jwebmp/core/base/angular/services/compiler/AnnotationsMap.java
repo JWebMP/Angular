@@ -1,10 +1,12 @@
 package com.jwebmp.core.base.angular.services.compiler;
 
+import com.guicedee.guicedinjection.*;
 import com.jwebmp.core.base.angular.services.annotations.*;
 import com.jwebmp.core.base.angular.services.annotations.angularconfig.*;
 import com.jwebmp.core.base.angular.services.annotations.functions.*;
 import com.jwebmp.core.base.angular.services.annotations.references.*;
 import com.jwebmp.core.base.angular.services.annotations.structures.*;
+import io.github.classgraph.*;
 
 import java.lang.annotation.*;
 import java.lang.reflect.*;
@@ -32,9 +34,9 @@ public class AnnotationsMap
 			NgBootModuleImport.class, NgBootModuleImports.class,
 			NgBootImportReference.class, NgBootImportReferences.class,
 			NgBootProvider.class, NgBootProviders.class,
-			NgBootConstructorBody.class,NgBootConstructorBodys.class,
+			NgBootConstructorBody.class, NgBootConstructorBodys.class,
 			NgBootConstructorParameter.class, NgBootConstructorParameters.class,
-			NgBootGlobalField.class,NgBootGlobalFields.class
+			NgBootGlobalField.class, NgBootGlobalFields.class
 	);
 	private static final Map<Class<? extends Annotation>, Class<? extends Annotation>> ngReferences
 			= Map.of(
@@ -105,14 +107,14 @@ public class AnnotationsMap
 	public static AnnotationsMap getAnnotationMap(Class<?> clazz)
 	{
 		AnnotationsMap mappy = null;
-		if (!annoMap.containsKey(clazz))
+		if (!getAnnoMap().containsKey(clazz))
 		{
 			mappy = new AnnotationsMap(clazz);
-			annoMap.put(clazz, mappy);
+			getAnnoMap().put(clazz, mappy);
 		}
 		else
 		{
-			mappy = annoMap.get(clazz);
+			mappy = getAnnoMap().get(clazz);
 		}
 		return mappy;
 	}
@@ -144,7 +146,7 @@ public class AnnotationsMap
 				Method valueMethod = refAnnotation.annotationType()
 				                                  .getDeclaredMethod("onParent");
 				boolean result = (boolean) valueMethod.invoke(refAnnotation);
-				if(result)
+				if (result)
 				{
 					filteredAnnotations.add((A) refAnnotation);
 				}
@@ -163,7 +165,7 @@ public class AnnotationsMap
 	
 	public static <A extends Annotation> List<A> getAnnotationSelf(Class<?> clazz, Class<A> annotation)
 	{
-		var out =  getAnnotations(clazz, annotation);
+		var out = getAnnotations(clazz, annotation);
 		List<A> filteredAnnotations = new ArrayList<>();
 		for (A refAnnotation : out)
 		{
@@ -172,7 +174,7 @@ public class AnnotationsMap
 				Method valueMethod = refAnnotation.annotationType()
 				                                  .getDeclaredMethod("onSelf");
 				boolean result = (boolean) valueMethod.invoke(refAnnotation);
-				if(result)
+				if (result)
 				{
 					filteredAnnotations.add((A) refAnnotation);
 				}
@@ -188,7 +190,7 @@ public class AnnotationsMap
 		}
 		return filteredAnnotations;
 	}
-	
+
 	private AnnotationsMap(Class<?> clazz)
 	{
 		this.clazz = clazz;
@@ -197,9 +199,12 @@ public class AnnotationsMap
 	
 	private void readClass()
 	{
-		readAnnotations(clazz);
-		readSubclassHierarchy(clazz);
-		readInterfaceHierarchy(clazz);
+		if(!annoMap.containsKey(clazz))
+		{
+			readAnnotations(clazz);
+			readSubclassHierarchy(clazz);
+			readInterfaceHierarchy(clazz);
+		}
 	}
 	
 	private void readSubclassHierarchy(Class<?> clazz)
@@ -230,7 +235,7 @@ public class AnnotationsMap
 		{
 			if (ngAllMultiples.containsValue(anno.annotationType()))
 			{
-				var key = getKey(ngAllMultiples,anno.annotationType());
+				var key = getKey(ngAllMultiples, anno.annotationType());
 				var allAnnos = getListOfAnnotations(clazz, key, ngAllMultiples.get(key));
 				for (Annotation allAnno : allAnnos)
 				{
@@ -246,9 +251,13 @@ public class AnnotationsMap
 		}
 	}
 	
-	public <K, V> K getKey(Map<K, V> map, V value) {
-		for (Map.Entry<K, V> entry : map.entrySet()) {
-			if (entry.getValue().equals(value)) {
+	public <K, V> K getKey(Map<K, V> map, V value)
+	{
+		for (Map.Entry<K, V> entry : map.entrySet())
+		{
+			if (entry.getValue()
+			         .equals(value))
+			{
 				return entry.getKey();
 			}
 		}
@@ -296,11 +305,12 @@ public class AnnotationsMap
 	public static <T extends Annotation> List<T> getAllAnnotations(Class<T> annotation)
 	{
 		List<T> annos = new ArrayList<>();
-		annoMap.forEach((key,value)->{
-			value.annotationsMapping.forEach((key2,value2)->{
+		getAnnoMap().forEach((key, value) -> {
+			value.annotationsMapping.forEach((key2, value2) -> {
 				for (Annotation annotation1 : value2)
 				{
-					if(annotation1.annotationType().equals(annotation))
+					if (annotation1.annotationType()
+					               .equals(annotation))
 					{
 						annos.add((T) annotation1);
 					}
@@ -309,6 +319,47 @@ public class AnnotationsMap
 		});
 		
 		return annos;
+	}
+	
+	public static Map<Class<?>, AnnotationsMap> getAnnoMap()
+	{
+		return annoMap;
+	}
+	
+	public static void loadAllClasses()
+	{
+		for (Class<? extends Annotation> annotation : annotations)
+		{
+			for (ClassInfo allClass : GuiceContext.instance()
+			                                      .getScanResult()
+			                                      .getClassesWithAnnotation(annotation))
+			{
+				try
+				{
+					getAnnotationMap(allClass.loadClass());
+				}
+				catch (Exception e)
+				{
+					e.printStackTrace();
+				}
+			}
+		}
+		for (Class<? extends Annotation> annotation : ngAllMultiples.values())
+		{
+			for (ClassInfo allClass : GuiceContext.instance()
+			                                      .getScanResult()
+			                                      .getClassesWithAnnotation(annotation))
+			{
+				try
+				{
+					getAnnotationMap(allClass.loadClass());
+				}
+				catch (Exception e)
+				{
+					e.printStackTrace();
+				}
+			}
+		}
 	}
 	
 }
