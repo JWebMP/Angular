@@ -79,7 +79,7 @@ public abstract class WebSocketAbstractCallReceiver
 				ajaxCallIntercepter.intercept(ajaxCall, ajaxResponse);
 			}
 			AjaxResponse<?> response = GuiceContext.get(AjaxResponse.class);
-			response = action(call, response);
+			response = action(ajaxCall, response);
 			GuicedWebSocket.broadcastMessage(message.getBroadcastGroup(), response.toString());
 		}
 		catch (Exception T)

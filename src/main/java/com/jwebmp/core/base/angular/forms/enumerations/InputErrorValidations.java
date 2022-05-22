@@ -36,12 +36,12 @@ public enum InputErrorValidations
 	time,
 	week,
 	month;
-
+	
 	public String toFullString()
 	{
-		return "$error." + name().toLowerCase();
+		return "$error." + name().toLowerCase() + "";
 	}
-
+	
 	@Override
 	public String toString()
 	{

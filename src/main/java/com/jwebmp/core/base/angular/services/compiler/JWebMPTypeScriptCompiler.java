@@ -14,6 +14,7 @@ import com.jwebmp.core.base.angular.typescript.JWebMP.*;
 import com.jwebmp.core.base.html.*;
 import com.jwebmp.core.base.servlets.enumarations.*;
 import io.github.classgraph.*;
+import io.github.classgraph.Resource;
 import org.apache.commons.io.*;
 import org.apache.commons.lang3.*;
 
@@ -26,6 +27,7 @@ import java.util.concurrent.*;
 import java.util.logging.*;
 
 import static com.guicedee.guicedinjection.interfaces.ObjectBinderKeys.*;
+import static com.jwebmp.core.base.angular.implementations.AngularTSPostStartup.*;
 import static com.jwebmp.core.base.angular.services.compiler.AnnotationsMap.*;
 import static com.jwebmp.core.base.angular.services.interfaces.ITSComponent.*;
 import static java.nio.charset.StandardCharsets.*;
@@ -48,7 +50,7 @@ public class JWebMPTypeScriptCompiler
 	private File environmentDirectory;
 	private File mainTsFile;
 	
-	private final Set<String> assets = new LinkedHashSet<>();
+	private final Set<String> assetStringBuilder = new LinkedHashSet<>();
 	private final Set<String> stylesGlobal = new LinkedHashSet<>();
 	private final Set<String> scripts = new LinkedHashSet<>();
 	
@@ -227,6 +229,20 @@ public class JWebMPTypeScriptCompiler
 		//render the main.ts file
 		loadClassFilePaths(app);
 		
+		log.config("Loading resources from assets directory");
+		ScanResult assetsResults = new ClassGraph().acceptPaths("app/")
+		                                           .acceptPaths("src/")
+		                                           .scan();
+		for (Resource allResource : assetsResults.getAllResources())
+		{
+			//System.out.println("Resource Found : " + allResource.getPath());
+			String assetLocation = allResource.getPathRelativeToClasspathElement();
+			File assetFile = new File(appBaseDirectory.getCanonicalPath() + "/" + assetLocation);
+			FileUtils.forceMkdirParent(assetFile);
+			IOUtils.copy(allResource.getURL(), assetFile);
+		}
+		
+		
 		ScanResult scan = GuiceContext.instance()
 		                              .getScanResult();
 		
@@ -346,27 +362,12 @@ public class JWebMPTypeScriptCompiler
 		}
 		FileUtils.writeStringToFile(polyfillFile, polyfills.toString(), UTF_8, false);
 		
-		
 		File angularFile = new File(appBaseDirectory.getCanonicalPath() + "/angular.json");
+		
 		Map<String, String> namedAssets = new HashMap<>();
-		for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgAssets.class))
+		List<NgAsset> assets = AnnotationsMap.getAllAnnotations(NgAsset.class);
+		for (NgAsset ngAsset : assets)
 		{
-			NgAssets assets = classInfo.loadClass()
-			                           .getAnnotation(NgAssets.class);
-			for (NgAsset ngAsset : assets.value())
-			{
-				String name = ngAsset.name();
-				if (Strings.isNullOrEmpty(ngAsset.name()))
-				{
-					name = ngAsset.value();
-				}
-				namedAssets.put(name, ngAsset.value());
-			}
-		}
-		for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgAsset.class))
-		{
-			Class<?> aClass = classInfo.loadClass();
-			NgAsset ngAsset = aClass.getAnnotation(NgAsset.class);
 			String name = ngAsset.name();
 			if (Strings.isNullOrEmpty(ngAsset.name()))
 			{
@@ -374,26 +375,8 @@ public class JWebMPTypeScriptCompiler
 			}
 			namedAssets.put(name, ngAsset.value());
 		}
-		for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgAssets.class))
+		for (NgAsset ngAsset : assets)
 		{
-			NgAssets assets = classInfo.loadClass()
-			                           .getAnnotation(NgAssets.class);
-			for (NgAsset ngAsset : assets.value())
-			{
-				String name = ngAsset.name();
-				if (ngAsset.replaces().length > 0)
-				{
-					for (String replace : ngAsset.replaces())
-					{
-						namedAssets.put(replace, ngAsset.value());
-					}
-				}
-			}
-		}
-		for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgAsset.class))
-		{
-			Class<?> aClass = classInfo.loadClass();
-			NgAsset ngAsset = aClass.getAnnotation(NgAsset.class);
 			String name = ngAsset.name();
 			if (ngAsset.replaces().length > 0)
 			{
@@ -406,17 +389,18 @@ public class JWebMPTypeScriptCompiler
 		
 		for (String value : namedAssets.values())
 		{
-			assets.add(value);
+			assetStringBuilder.add(value);
 		}
 		
 		for (String asset : app.assets())
 		{
-			assets.add("src/assets/" + asset);
+			assetStringBuilder.add("src/assets/" + asset);
 		}
 		
 		Map<String, String> namedStylesheets = new LinkedHashMap<>();
 		List<NgStyleSheet> ngStyleSheets = getAllAnnotations(NgStyleSheet.class);
-		ngStyleSheets.sort(new Comparator<NgStyleSheet>() {
+		ngStyleSheets.sort(new Comparator<NgStyleSheet>()
+		{
 			@Override
 			public int compare(NgStyleSheet o1, NgStyleSheet o2)
 			{
@@ -457,7 +441,8 @@ public class JWebMPTypeScriptCompiler
 		Map<String, String> namedScripts = new LinkedHashMap<>();
 		
 		List<NgScript> allAnnotations = getAllAnnotations(NgScript.class);
-		allAnnotations.sort(new Comparator<NgScript>() {
+		allAnnotations.sort(new Comparator<NgScript>()
+		{
 			@Override
 			public int compare(NgScript o1, NgScript o2)
 			{
@@ -473,7 +458,7 @@ public class JWebMPTypeScriptCompiler
 			}
 			namedScripts.put(name, ngAsset.value());
 		}
-		for (NgScript ngAsset :allAnnotations)
+		for (NgScript ngAsset : allAnnotations)
 		{
 			String name = ngAsset.name();
 			if (ngAsset.replaces().length > 0)
@@ -497,7 +482,7 @@ public class JWebMPTypeScriptCompiler
 		
 		String angularTemplate = IOUtils.toString(Objects.requireNonNull(ResourceLocator.class.getResourceAsStream("angular.json")), UTF_8);
 		angularTemplate = angularTemplate.replace("/*BuildAssets*/", om.writerWithDefaultPrettyPrinter()
-		                                                               .writeValueAsString(assets));
+		                                                               .writeValueAsString(assetStringBuilder));
 		angularTemplate = angularTemplate.replace("/*BuildStylesSCSS*/", om.writerWithDefaultPrettyPrinter()
 		                                                                   .writeValueAsString(stylesGlobal));
 		angularTemplate = angularTemplate.replace("/*BuildScripts*/", om.writerWithDefaultPrettyPrinter()
@@ -784,11 +769,13 @@ public class JWebMPTypeScriptCompiler
 			    }
 		    });
 		
-		
-		System.out.println("Installing node-modules...");
-		installDependencies(appBaseDirectory);
-		System.out.println("Building Angular Client App...");
-		installAngular(appBaseDirectory);
+		if (buildApp)
+		{
+			System.out.println("Installing node-modules...");
+			installDependencies(appBaseDirectory);
+			System.out.println("Building Angular Client App...");
+			installAngular(appBaseDirectory);
+		}
 		//System.out.println("Starting Local Angular Client...");
 		//serveAngular(appBaseDirectory);
 		return sb;

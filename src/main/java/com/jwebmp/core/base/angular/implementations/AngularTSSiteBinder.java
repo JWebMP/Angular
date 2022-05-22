@@ -19,14 +19,18 @@ package com.jwebmp.core.base.angular.implementations;
 import com.guicedee.guicedinjection.*;
 import com.guicedee.guicedservlets.*;
 import com.guicedee.guicedservlets.services.*;
+import com.guicedee.guicedservlets.undertow.*;
 import com.guicedee.logger.*;
 import com.jwebmp.core.annotations.*;
+import com.jwebmp.core.base.angular.modules.services.angular.*;
 import com.jwebmp.core.base.angular.modules.services.base.*;
+import com.jwebmp.core.base.angular.services.*;
 import com.jwebmp.core.base.angular.services.annotations.*;
 import com.jwebmp.core.base.angular.services.compiler.*;
 import com.jwebmp.core.base.angular.services.interfaces.*;
 import com.jwebmp.core.implementations.*;
 import io.github.classgraph.*;
+import io.undertow.server.handlers.resource.*;
 import org.apache.commons.io.*;
 
 import java.io.*;
@@ -67,13 +71,39 @@ public class AngularTSSiteBinder
 			{
 				PageConfiguration pc = loadClass.getAnnotation(PageConfiguration.class);
 				File file = new File(FileUtils.getUserDirectory() + "/jwebmp/" + app.name() + "/dist/jwebmp/");
+				try
+				{
+					FileUtils.forceMkdirParent(file);
+					FileUtils.forceMkdir(file);
+				}
+				catch (IOException e)
+				{
+					throw new RuntimeException(e);
+				}
 				StringBuilder url;
 				url = new StringBuilder(pc.url()
 				                          .substring(0, pc.url()
 				                                          .length() - 1) + "/*");
-				module.serve$(url.toString())
+				module.serveRegex$(url.toString())
 				      .with(new FileSystemResourceServlet().setFolder(file));
+				GuicedUndertowResourceManager.setPathManager(new PathResourceManager(file.toPath()));
+				AngularTSPostStartup.basePath = file.toPath();
 				AngularTSSiteBinder.log.log(Level.FINE, "Serving Angular TS for defined @NgApp " + app.name() + " at  " + file.getPath());
+				
+				for (DefinedRoute<?> route : RoutingModule.getRoutes())
+				{
+					String path = route.getPath();
+					if (!path.startsWith("/"))
+					{
+						path = "/" + path;
+					}
+					module.serveRegex$(path)
+					      .with(new FileSystemResourceServlet().setFolder(file));
+					if(route.getChildren() != null && !route.getChildren().isEmpty())
+					{
+					
+					}
+				}
 			}
 		}
 		JWebMPSiteBinder.bindSites = false;

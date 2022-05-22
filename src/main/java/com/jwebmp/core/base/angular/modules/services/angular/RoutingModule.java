@@ -2,6 +2,7 @@ package com.jwebmp.core.base.angular.modules.services.angular;
 
 import com.fasterxml.jackson.core.*;
 import com.fasterxml.jackson.databind.*;
+import com.google.common.base.*;
 import com.guicedee.guicedinjection.*;
 import com.jwebmp.core.base.angular.services.DefinedRoute;
 import com.jwebmp.core.base.angular.services.annotations.*;
@@ -32,6 +33,23 @@ public class RoutingModule implements INgModule<RoutingModule>
 {
 	private INgApp<?> app;
 	private List<DefinedRoute<?>> definedRoutesList;
+	private static List<DefinedRoute<?>> routes = new ArrayList<>();
+	
+	public static List<DefinedRoute<?>> getRoutes()
+	{
+		if(routes.isEmpty())
+		{
+			try
+			{
+				new RoutingModule().renderImports();
+			}catch (Throwable T)
+			{
+			
+			}
+		}
+		
+		return routes;
+	}
 	
 	@Override
 	public List<String> moduleImports()
@@ -100,9 +118,18 @@ public class RoutingModule implements INgModule<RoutingModule>
 			dr.setPath(annotation.path());
 			dr.setComponentName(getTsFilename(aClass));
 			dr.setComponent(aClass);
+			if (!Strings.isNullOrEmpty(annotation.redirectTo()))
+			{
+				dr.setRedirectTo(annotation.redirectTo());
+			}
+			if (!Strings.isNullOrEmpty(annotation.pathMatch()))
+			{
+				dr.setPathMatch(annotation.pathMatch());
+			}
 			
 			buildRoutePathway(filterByValue(childParentMappings, value -> value.equals(aClass)), aClass, dr);
 			definedRoutesList.add(dr);
+			routes.add(dr);
 		});
 		
 		StringBuilder imports = new StringBuilder();

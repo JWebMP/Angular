@@ -13,14 +13,41 @@ import static com.fasterxml.jackson.annotation.JsonInclude.Include.*;
 @JsonAutoDetect(fieldVisibility = ANY,
         getterVisibility = NONE,
         setterVisibility = NONE)
-@JsonInclude(NON_EMPTY)
+@JsonInclude(NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonPropertyOrder({"component","path","children"})
+@JsonPropertyOrder({"component","path","redirectTo","pathMatch","children"})
 public class DefinedRoute<J extends DefinedRoute<J>> implements IJsonRepresentation<J> {
     private String path;
     @JsonRawValue
     @JsonProperty("component")
     private String componentName;
+    
+    private String redirectTo;
+    
+    private String pathMatch;
+    
+    public String getRedirectTo()
+    {
+        return redirectTo;
+    }
+    
+    public DefinedRoute<J> setRedirectTo(String redirectTo)
+    {
+        this.redirectTo = redirectTo;
+        return this;
+    }
+    
+    public String getPathMatch()
+    {
+        return pathMatch;
+    }
+    
+    public DefinedRoute<J> setPathMatch(String pathMatch)
+    {
+        this.pathMatch = pathMatch;
+        return this;
+    }
+    
     @JsonIgnore
     private Class<? extends INgComponent<?>> component;
 

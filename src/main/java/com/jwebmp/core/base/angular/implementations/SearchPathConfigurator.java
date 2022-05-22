@@ -10,6 +10,8 @@ public class SearchPathConfigurator implements IGuiceConfigurator
 	{
 		config.setAnnotationScanning(true);
 		config.setClasspathScanning(true);
+		config.setPathScanning(true);
+		config.setAllowPaths(true);
 		return config;
 	}
 }

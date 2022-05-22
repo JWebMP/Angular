@@ -28,11 +28,6 @@
         </dependency>
 
         <dependency>
-            <groupId>com.guicedee.services</groupId>
-            <artifactId>typescript4j</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>com.guicedee.servlets</groupId>
             <artifactId>guiced-websockets</artifactId>
         </dependency>
@@ -40,12 +35,6 @@
         <dependency>
             <groupId>com.guicedee.servlets</groupId>
             <artifactId>guiced-undertow</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.jwebmp.core</groupId>
-            <artifactId>jwebmp-testlib</artifactId>
-            <scope>test</scope>
         </dependency>
 
         <dependency>
@@ -66,17 +55,6 @@
         <dependency>
             <groupId>com.guicedee.services</groupId>
             <artifactId>undertow-core</artifactId>
-        </dependency>
-
-        <!-- remove these from prod - for testing -->
-        <dependency>
-            <groupId>com.jwebmp.plugins.security</groupId>
-            <artifactId>jwebmp-plugins-local-storage-security</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.jwebmp.plugins.security</groupId>
-            <artifactId>jwebmp-plugins-session-storage-security</artifactId>
         </dependency>
 
     </dependencies>

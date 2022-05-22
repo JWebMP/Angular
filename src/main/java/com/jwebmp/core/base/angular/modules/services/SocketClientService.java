@@ -16,6 +16,7 @@ import java.util.*;
 @NgImportReference(name = "ElementRef", reference = "@angular/core")
 @NgImportReference(name = "BehaviorSubject", reference = "rxjs/internal/BehaviorSubject")
 @NgImportReference(name = "webSocket", reference = "rxjs/webSocket")
+@NgImportReference(name = "retry, RetryConfig", reference = "rxjs/operators")
 @NgImportReference(name = "RouterModule, ParamMap,Router", reference = "@angular/router")
 @NgComponentReference(EnvironmentModule.class)
 @NgOnDestroy
@@ -27,7 +28,12 @@ import java.util.*;
 @NgConstructorParameter("private router: Router")
 @NgConstructorBody("const subject = webSocket((location.protocol + '//' + location.host).replace('http','ws') + '/wssocket');")
 @NgConstructorBody("this.websocket = subject;")
-@NgConstructorBody("subject.asObservable().subscribe(\n" +
+@NgConstructorBody("const retryConfig: RetryConfig = {\n" +
+                   "  delay: 3000,\n" +
+                   "};\n")
+@NgConstructorBody("subject.pipe(\n" +
+                   "   retry(retryConfig) //support auto reconnect\n" +
+                   ").subscribe(\n" +
                    "   msg => this.processResult(msg), \n" +
                    "   err => console.log('websocket error : ',err), \n" +
                    "   () => console.log('complete') \n" +

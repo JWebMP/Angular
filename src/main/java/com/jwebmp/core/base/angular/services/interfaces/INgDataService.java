@@ -25,6 +25,10 @@ public interface INgDataService<J extends INgDataService<J>> extends INgComponen
 {
 	DynamicData getData(AjaxCall<?> call);
 	
+	default void receiveData(AjaxCall<?> call, AjaxResponse<?> response)
+	{
+	}
+	
 	@Override
 	default List<String> componentDecorators()
 	{
@@ -90,6 +94,11 @@ public interface INgDataService<J extends INgDataService<J>> extends INgComponen
 		            "    }" +
 		            "" +
 		            "");
+		
+		methods.add("public sendData(datas : any) {\n" +
+		            "        this.socketClientService.send('dataSend', {data :{...datas},\n" +
+		            "            className: '" + getClass().getCanonicalName() + "'}, this.listenerName);\n" +
+		            "    }");
 		return methods;
 	}
 	
@@ -106,7 +115,7 @@ public interface INgDataService<J extends INgDataService<J>> extends INgComponen
 			{
 				fields.add(" private _data = new BehaviorSubject<" + getTsFilename(dReference.value()) + ">({});");
 				fields.add(" private dataStore: { datas: " + getTsFilename(dReference.value()) + " } = { datas: {} }; ");
-			//	fields.add(" public data : " + getTsFilename(dReference.value()) + " = {};\n");
+				//	fields.add(" public data : " + getTsFilename(dReference.value()) + " = {};\n");
 			}
 		}
 		
@@ -116,7 +125,8 @@ public interface INgDataService<J extends INgDataService<J>> extends INgComponen
 		return fields;
 	}
 	
-	default boolean buffer() {
+	default boolean buffer()
+	{
 		return false;
 	}
 	

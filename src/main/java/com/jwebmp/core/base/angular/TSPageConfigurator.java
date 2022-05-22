@@ -124,11 +124,6 @@ public class TSPageConfigurator
 	@Override
 	public Page<?> configure(Page<?> page)
 	{
-		if (TSPageConfigurator.required)
-		{
-			page.getBody()
-			    .addEvent(new FirePageOnConnectEvent(page.getBody()));
-		}
 		return page;
 	}
 	

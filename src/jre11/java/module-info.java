@@ -5,6 +5,7 @@ import com.jwebmp.core.base.angular.modules.listeners.*;
 import com.jwebmp.core.base.angular.services.interfaces.*;
 import com.jwebmp.core.databind.*;
 import com.jwebmp.core.events.click.*;
+import io.undertow.servlet.*;
 
 module com.jwebmp.core.angular {
 	uses com.jwebmp.core.base.angular.services.AngularScanPackages;
@@ -41,11 +42,6 @@ module com.jwebmp.core.angular {
 	
 	requires com.guicedee.guicedservlets.undertow;
 	
-	requires com.mangofactory.typescript4j;
-	
-	requires static com.jwebmp.plugins.security.localstorage ;
-	requires static com.jwebmp.plugins.security.sessionstorage ;
-	
 	provides com.guicedee.guicedinjection.interfaces.IGuiceScanModuleInclusions with AngularScanModuleInclusion;
 	provides com.guicedee.guicedservlets.websockets.services.IWebSocketPreConfiguration with JWebMPGuicedUndertowWebSocketConfiguration;
 	provides IOnComponentHtmlRender with OnComponentRenderApplyAngular;
@@ -53,13 +49,13 @@ module com.jwebmp.core.angular {
 	provides IOnComponentAdded with OnComponentAdded;
 	provides com.guicedee.guicedservlets.services.IGuiceSiteBinder with AngularTSSiteBinder;
 	provides com.guicedee.guicedinjection.interfaces.IGuicePostStartup with AngularTSPostStartup;
-	provides com.guicedee.guicedservlets.undertow.services.UndertowPathHandler with AngularTSPathHandler;
+	//provides com.guicedee.guicedservlets.undertow.services.UndertowPathHandler with AngularTSPathHandler;
 	provides com.jwebmp.core.databind.IOnDataBind with AngularTSOnBind;
 	provides IGuicePreStartup with AngularTSPreStartup;
 	
 	provides IOnClickService with OnClickListener;
 	
-	provides IWebSocketMessageReceiver with WebSocketAjaxCallReceiver,WebSocketDataRequestCallReceiver;
+	provides IWebSocketMessageReceiver with WebSocketAjaxCallReceiver,WebSocketDataRequestCallReceiver,WebSocketDataSendCallReceiver;
 	
 	uses IWebSocketAuthDataProvider;
 	

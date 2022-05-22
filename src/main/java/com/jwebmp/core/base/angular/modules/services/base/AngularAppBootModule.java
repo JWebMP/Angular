@@ -130,9 +130,12 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 				continue;
 			}
 			String value = entry.getValue();
-			if(!key.startsWith("!"))
-			sb.append(String.format(importString, key, value));
-			else {
+			if (!key.startsWith("!"))
+			{
+				sb.append(String.format(importString, key, value));
+			}
+			else
+			{
 				sb.append(String.format(importPlainString, key.substring(1), value));
 			}
 		}
@@ -513,6 +516,7 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 		}
 		
 		List<NgBootConstructorBody> bootDy = getAllAnnotations(NgBootConstructorBody.class);
+		bootDy.sort(Comparator.comparingInt(NgBootConstructorBody::sortOrder));
 		for (NgBootConstructorBody ngConstructorBody : bootDy)
 		{
 			if (ngConstructorBody.onSelf())

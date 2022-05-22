@@ -16,6 +16,10 @@ public @interface NgRoutable
 {
 	String path();
 	
+	String redirectTo() default "";
+	
+	String pathMatch() default "";
+	
 	/**
 	 * Only one parent allowed, set as an array to not enforce being set
 	 *

@@ -78,9 +78,9 @@ public interface INgComponent<J extends INgComponent<J>>
 		
 		for (String style : styles())
 		{
-			styles.append("'")
+			styles.append("`")
 			      .append(style)
-			      .append("',\n");
+			      .append("`,\n");
 		}
 		if (styles.length() > 0)
 		{

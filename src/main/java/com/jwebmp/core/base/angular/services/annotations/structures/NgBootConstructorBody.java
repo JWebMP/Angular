@@ -14,5 +14,8 @@ public @interface NgBootConstructorBody
 	String value();
 	
 	boolean onParent() default false;
+	
 	boolean onSelf() default true;
+	
+	int sortOrder() default 100;
 }
