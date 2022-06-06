@@ -1,8 +1,9 @@
 package com.jwebmp.core.base.angular.services;
 
 import com.jwebmp.core.*;
+import com.jwebmp.core.base.angular.client.annotations.references.*;
+import com.jwebmp.core.base.angular.client.services.interfaces.*;
 import com.jwebmp.core.base.angular.modules.services.base.*;
-import com.jwebmp.core.base.angular.services.annotations.references.*;
 import com.jwebmp.core.base.angular.services.compiler.*;
 import com.jwebmp.core.base.angular.services.interfaces.*;
 import com.jwebmp.core.base.html.*;
@@ -12,11 +13,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.*;
 
-@NgImportReference(name = "platformBrowserDynamic", reference = "@angular/platform-browser-dynamic")
-@NgImportReference(name = "enableProdMode", reference = "@angular/core")
+import static com.jwebmp.core.base.angular.client.services.interfaces.AnnotationUtils.*;
+import static com.jwebmp.core.base.angular.client.services.interfaces.ImportsStatementsComponent.*;
+
+@NgImportReference(value = "platformBrowserDynamic", reference = "@angular/platform-browser-dynamic")
+@NgImportReference(value = "enableProdMode", reference = "@angular/core")
 @NgComponentReference(EnvironmentModule.class)
 @NgComponentReference(AngularAppBootModule.class)
-public class NGApplication<J extends NGApplication<J>> extends Page<J> implements ITSComponent<J>, INgApp<J>
+public class NGApplication<J extends NGApplication<J>> extends Page<J> implements INgApp<J>
 {
 	private List<String> renderAfterImports;
 	
@@ -45,19 +49,23 @@ public class NGApplication<J extends NGApplication<J>> extends Page<J> implement
 	}
 	
 	@Override
-	public void putRelativeLinkInMap(Class<?> clazz, Map<String, String> out, NgComponentReference moduleRef)
+	public List<NgImportReference> putRelativeLinkInMap(Class<?> clazz, NgComponentReference moduleRef)
 	{
+		List<NgImportReference> out = new ArrayList<>();
 		var baseDir = JWebMPTypeScriptCompiler.getCurrentAppFile();
 		try
 		{
-			File me = new File(baseDir.get().getCanonicalPath().replace('\\','/') + "/src");
+			File me = new File(baseDir.get()
+			                          .getCanonicalPath()
+			                          .replace('\\', '/') + "/src");
 			File destination = new File(getFileReference(baseDir.get()
 			                                                    .getCanonicalPath(), moduleRef.value()));
-			out.putIfAbsent(ITSComponent.getTsFilename(moduleRef.value()), ITSComponent.getRelativePath(me, destination, null));
+			out.add(AnnotationUtils.getNgImportReference(getTsFilename(moduleRef.value()), getRelativePath(me, destination, null)));
 		}
 		catch (IOException e)
 		{
 			e.printStackTrace();
 		}
+		return out;
 	}
 }

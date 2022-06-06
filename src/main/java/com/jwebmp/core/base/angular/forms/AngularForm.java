@@ -1,32 +1,42 @@
 package com.jwebmp.core.base.angular.forms;
 
-import com.jwebmp.core.base.angular.modules.services.angular.forms.*;
-import com.jwebmp.core.base.angular.services.annotations.references.*;
-import com.jwebmp.core.base.angular.services.annotations.structures.*;
-import com.jwebmp.core.base.angular.services.interfaces.*;
+import com.jwebmp.core.base.angular.client.annotations.boot.*;
+import com.jwebmp.core.base.angular.client.annotations.constructors.*;
+import com.jwebmp.core.base.angular.client.annotations.references.*;
+import com.jwebmp.core.base.angular.client.annotations.structures.*;
+import com.jwebmp.core.base.angular.client.services.interfaces.*;
 import com.jwebmp.core.base.html.*;
 
-import java.util.*;
 import java.util.List;
 
+import static com.jwebmp.core.base.angular.client.services.interfaces.AnnotationUtils.*;
+
 @NgBootModuleImport("FormsModule")
-@NgImportReference(name = "AfterViewInit", reference = "@angular/core")
-@NgImportReference(name = "FormBuilder, FormGroup, Validators, FormControl, FormArray, ControlValueAccessor ", reference = "@angular/forms")
+@NgComponentReference(FormRegexProvider.class)
+@NgImportReference(value = "FormBuilder, FormGroup, Validators, FormControl, FormArray, ControlValueAccessor ", reference = "@angular/forms")
 @NgConstructorParameter("private formBuilder : FormBuilder")
-public class AngularForm<J extends AngularForm<J>> extends Form<J>
-		implements INgComponent<J>
+@NgField("regex = FormRegexProvider;")
+
+public class AngularForm<J extends AngularForm<J>> extends Form<J> implements INgComponent<J>
 {
-	private FormDataService<?> formDataService;
+	private INgServiceProvider<?> formDataProvider;
 	
 	AngularForm()
 	{
 	
 	}
 	
-	public AngularForm(String id, FormDataService<?> formDataService)
+	@Override
+	public List<String> afterViewInit()
+	{
+		List<String> out = INgComponent.super.afterViewInit();
+		return out;
+	}
+	
+	public AngularForm(String id, INgServiceProvider<?> formDataProvider)
 	{
 		setID(id);
-		this.formDataService = formDataService;
+		this.formDataProvider = formDataProvider;
 	}
 	
 	@Override
@@ -36,88 +46,43 @@ public class AngularForm<J extends AngularForm<J>> extends Form<J>
 		super.init();
 	}
 	
-	public List<String> methods()
+	@Override
+	public List<String> componentMethods()
 	{
-		if (formDataService == null)
+		List<String> out = INgComponent.super.componentMethods();
+		if (formDataProvider == null)
 		{
-			return List.of();
+			return out;
 		}
-		List<String> output = new ArrayList<>();
-		String name = getServiceName();
-		output.add(
-				"onSubmit() {\n" +
-				" this." + name + ".sendData(this.data);  \n" +
-				"}\n" +
-				"" +
-				""
-		);
-		return output;
+		out.add("onSubmit() {\n" + " this." + getFormDataProvider().getAnnotation()
+		                                                           .referenceName() +
+		        ".sendData(this." + getFormDataProvider().getAnnotation()
+		                                                 .referenceName() + "." + getFormDataProvider().getAnnotation()
+		                                                                                               .variableName()  + ");  \n" + "}\n");
+		
+		return out;
 	}
 	
-	public FormDataService<?> getFormDataService()
+	public INgServiceProvider<?> getFormDataProvider()
 	{
-		return formDataService;
+		return formDataProvider;
 	}
 	
 	public String getServiceName()
 	{
-		if (formDataService == null)
+		if (formDataProvider == null)
 		{
-			return "formDataService";
+			return "formDataProvider";
 		}
-		String name = ITSComponent.getTsFilename(formDataService.getClass());
-		name = name.substring(0, 1)
-		           .toLowerCase() + name.substring(1);
-		return name;
+		return getFormDataProvider().getAnnotation()
+		                            .referenceName();
 	}
 	
 	@Override
 	public List<NgComponentReference> getComponentReferences()
 	{
-		return List.of(getNgComponentReference((Class<? extends ITSComponent<?>>) formDataService.getClass()));
-	}
-	
-	@Override
-	public List<String> componentFields()
-	{
-		return List.of("    data?: any = {};\n" +
-		               "    private updated: boolean = false;");
-	}
-	
-	@Override
-	public List<String> componentMethods()
-	{
-		if (formDataService != null)
-		{
-			String name = getServiceName();
-			return List.of("ngAfterViewInit(): void {\n" +
-			               "        this." + name + ".data.subscribe((dd) => {\n" +
-			               "            this.data = dd;\n" +
-			               "            this.updated = true;\n" +
-			               "        });\n" +
-			               "    }");
-		}
-		else
-		{
-			return List.of();
-		}
-	}
-	
-	@Override
-	public List<String> componentInterfaces()
-	{
-		return List.of("AfterViewInit");
-	}
-	
-	@Override
-	public List<String> componentConstructorParameters()
-	{
-		List<String> out = new ArrayList<>();
-		if (formDataService != null)
-		{
-			out.add("public " + getServiceName() + " : " + formDataService.getClass()
-			                                                              .getSimpleName());
-		}
+		List<NgComponentReference> out = INgComponent.super.getComponentReferences();
+		out.add(getNgComponentReference((Class<? extends IComponent<?>>) formDataProvider.getClass()));
 		return out;
 	}
 	

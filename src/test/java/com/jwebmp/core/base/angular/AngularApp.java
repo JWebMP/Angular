@@ -1,7 +1,8 @@
 package com.jwebmp.core.base.angular;
 
+import com.jwebmp.core.base.angular.client.annotations.angular.*;
 import com.jwebmp.core.base.angular.services.*;
-import com.jwebmp.core.base.angular.services.annotations.*;
+
 
 import java.util.*;
 

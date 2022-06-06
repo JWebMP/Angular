@@ -5,14 +5,12 @@ import com.fasterxml.jackson.core.*;
 import com.fasterxml.jackson.databind.*;
 import com.google.inject.*;
 import com.guicedee.guicedinjection.*;
-import com.jwebmp.core.base.angular.services.annotations.*;
+
+import com.jwebmp.core.base.angular.client.annotations.angular.*;
+import com.jwebmp.core.base.angular.client.services.interfaces.*;
 import com.jwebmp.core.base.angular.services.interfaces.*;
 
-import java.lang.reflect.*;
-import java.util.*;
-
 import static com.guicedee.guicedinjection.interfaces.ObjectBinderKeys.*;
-import static com.jwebmp.core.base.angular.services.annotations.NgSourceDirectoryReference.SourceDirectories.*;
 
 @Singleton
 @NgDataType(value = NgDataType.DataTypeClass.Const)

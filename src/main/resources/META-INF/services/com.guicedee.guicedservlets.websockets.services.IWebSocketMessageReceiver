@@ -1,3 +1,5 @@
 com.jwebmp.core.base.angular.implementations.WebSocketAjaxCallReceiver
 com.jwebmp.core.base.angular.implementations.WebSocketDataRequestCallReceiver
 com.jwebmp.core.base.angular.implementations.WebSocketDataSendCallReceiver
+com.jwebmp.core.base.angular.implementations.WSAddToGroupMessageReceiver
+com.jwebmp.core.base.angular.implementations.WSRemoveFromWebsocketGroupMessageReceiver

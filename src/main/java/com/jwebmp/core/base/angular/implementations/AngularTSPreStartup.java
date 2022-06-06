@@ -2,6 +2,7 @@ package com.jwebmp.core.base.angular.implementations;
 
 import com.guicedee.guicedinjection.interfaces.*;
 import com.guicedee.logger.*;
+import com.jwebmp.core.base.angular.client.services.*;
 import com.jwebmp.core.base.angular.services.compiler.*;
 
 import java.util.logging.*;

@@ -12,7 +12,7 @@ public class AngularFormMessages<J extends AngularFormMessages<J>> extends DivSi
 		this.input = input;
 	}
 	
-	public J addMessage(InputErrorValidations validations, String messageString,boolean inline)
+	public J addMessage(InputErrorValidations validations, String messageString, boolean inline)
 	{
 		return addMessage(validations, messageString);
 	}

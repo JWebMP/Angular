@@ -3,10 +3,10 @@ package com.jwebmp.core.base.angular.implementations;
 import com.guicedee.guicedinjection.*;
 import com.guicedee.guicedservlets.websockets.services.*;
 import com.jwebmp.core.base.ajax.*;
-import com.jwebmp.core.base.angular.services.annotations.*;
-import com.jwebmp.core.base.angular.services.interfaces.*;
+import com.jwebmp.core.base.angular.client.annotations.angular.*;
+import com.jwebmp.core.base.angular.client.services.interfaces.*;
 
-import static com.jwebmp.core.base.angular.services.compiler.AnnotationsMap.*;
+import static com.jwebmp.core.base.angular.client.services.AnnotationsMap.*;
 
 public class WebSocketDataRequestCallReceiver
 	extends WebSocketAbstractCallReceiver
@@ -32,8 +32,11 @@ public class WebSocketDataRequestCallReceiver
 		}
 		INgDataService<?> dataService = GuiceContext.get(clazzy);
 		var returned = dataService.getData(call);
-		NgDataService dService = getAnnotations(clazzy, NgDataService.class).get(0);
-		response.addDataResponse(dService.value(), returned);
+		if(returned != null)
+		{
+			NgDataService dService = getAnnotations(clazzy, NgDataService.class).get(0);
+			response.addDataResponse(dService.value(), returned);
+		}
 		return response;
 	}
 }

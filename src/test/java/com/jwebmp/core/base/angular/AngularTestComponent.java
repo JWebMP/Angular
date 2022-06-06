@@ -1,21 +1,17 @@
 package com.jwebmp.core.base.angular;
 
 import com.google.inject.*;
-import com.jwebmp.core.base.angular.events.RebuildAppClickEvent;
-import com.jwebmp.core.base.angular.events.ServerClickEvent;
-import com.jwebmp.core.base.angular.modules.services.*;
+import com.jwebmp.core.base.angular.client.annotations.angular.*;
+import com.jwebmp.core.base.angular.client.annotations.functions.*;
+import com.jwebmp.core.base.angular.client.annotations.references.*;
+import com.jwebmp.core.base.angular.client.services.*;
+import com.jwebmp.core.base.angular.client.services.interfaces.*;
 import com.jwebmp.core.base.angular.modules.services.angular.*;
-import com.jwebmp.core.base.angular.rnd.ProductList;
 import com.jwebmp.core.base.angular.services.*;
-import com.jwebmp.core.base.angular.services.annotations.*;
-import com.jwebmp.core.base.angular.services.annotations.functions.*;
-import com.jwebmp.core.base.angular.services.annotations.references.*;
-import com.jwebmp.core.base.angular.services.interfaces.*;
 import com.jwebmp.core.base.html.*;
 
 @NgComponent(value = "test-component")
 @NgComponentReference(SocketClientService.class)
-@NgOnInit
 public class AngularTestComponent extends DivSimple<AngularTestComponent>
 		implements INgComponent<AngularTestComponent>
 {

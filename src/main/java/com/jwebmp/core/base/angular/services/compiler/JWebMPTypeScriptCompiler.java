@@ -6,9 +6,13 @@ import com.guicedee.guicedinjection.*;
 import com.guicedee.logger.*;
 import com.jwebmp.core.*;
 import com.jwebmp.core.base.*;
+import com.jwebmp.core.base.angular.client.annotations.angular.*;
+import com.jwebmp.core.base.angular.client.annotations.angularconfig.*;
+import com.jwebmp.core.base.angular.client.annotations.typescript.*;
+import com.jwebmp.core.base.angular.client.services.*;
+import com.jwebmp.core.base.angular.client.services.interfaces.*;
 import com.jwebmp.core.base.angular.modules.services.base.*;
-import com.jwebmp.core.base.angular.services.annotations.*;
-import com.jwebmp.core.base.angular.services.annotations.angularconfig.*;
+
 import com.jwebmp.core.base.angular.services.interfaces.*;
 import com.jwebmp.core.base.angular.typescript.JWebMP.*;
 import com.jwebmp.core.base.html.*;
@@ -27,9 +31,11 @@ import java.util.concurrent.*;
 import java.util.logging.*;
 
 import static com.guicedee.guicedinjection.interfaces.ObjectBinderKeys.*;
+import static com.jwebmp.core.base.angular.client.services.AnnotationsMap.*;
+import static com.jwebmp.core.base.angular.client.services.interfaces.AnnotationUtils.*;
+import static com.jwebmp.core.base.angular.client.services.interfaces.IComponent.*;
+import static com.jwebmp.core.base.angular.client.services.interfaces.ImportsStatementsComponent.*;
 import static com.jwebmp.core.base.angular.implementations.AngularTSPostStartup.*;
-import static com.jwebmp.core.base.angular.services.compiler.AnnotationsMap.*;
-import static com.jwebmp.core.base.angular.services.interfaces.ITSComponent.*;
 import static java.nio.charset.StandardCharsets.*;
 
 public class JWebMPTypeScriptCompiler
@@ -40,8 +46,6 @@ public class JWebMPTypeScriptCompiler
 	private static JWebMPTypeScriptCompiler instance;
 	
 	public static File baseUserDirectory;
-	
-	private static ThreadLocal<File> currentAppFile = ThreadLocal.withInitial(() -> null);
 	
 	private File srcDirectory;
 	private File appDirectory;
@@ -61,7 +65,7 @@ public class JWebMPTypeScriptCompiler
 	
 	public static ThreadLocal<File> getCurrentAppFile()
 	{
-		return currentAppFile;
+		return IComponent.getCurrentAppFile();
 	}
 	
 	static
@@ -134,6 +138,13 @@ public class JWebMPTypeScriptCompiler
 	}
 	
 	public StringBuilder renderDataTypeTS(NgApp ngApp, AngularAppBootModule appBootModule, File srcDirectory, INgDataType<?> component, Class<?> requestingClass) throws IOException
+	{
+		StringBuilder sb = new StringBuilder();
+		sb.append(component.renderClassTs());
+		return sb;
+	}
+	
+	public StringBuilder renderServiceProviderTS(NgApp ngApp, AngularAppBootModule appBootModule, File srcDirectory, INgServiceProvider<?> component, Class<?> requestingClass) throws IOException
 	{
 		StringBuilder sb = new StringBuilder();
 		sb.append(component.renderClassTs());
@@ -255,8 +266,8 @@ public class JWebMPTypeScriptCompiler
 		                            .getCanonicalName());
 		GuiceContext.get(EnvironmentModule.class)
 		            .getEnvironmentOptions()
-		            .setProduction(((Page<?>) app).getRunningEnvironment()
-		                                          .equals(DevelopmentEnvironments.Production));
+		            .setProduction(app.getRunningEnvironment()
+		                              .equals(DevelopmentEnvironments.Production));
 		
 		File packageJsonFile = new File(appBaseDirectory.getCanonicalPath() + "/package.json");
 		String packageTemplate = IOUtils.toString(Objects.requireNonNull(ResourceLocator.class.getResourceAsStream("package.json")), UTF_8);
@@ -761,6 +772,43 @@ public class JWebMPTypeScriptCompiler
 					    FileUtils.forceMkdirParent(classFile);
 					    INgDataType modd = (INgDataType) GuiceContext.get(aClass);
 					    FileUtils.write(classFile, renderDataTypeTS(ngApp, appBootModule, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
+				    }
+				    catch (IOException e)
+				    {
+					    e.printStackTrace();
+				    }
+			    }
+		    });
+		
+		scan.getClassesWithAnnotation(NgServiceProvider.class)
+		    .stream()
+		    //   .filter(a -> !(a.isInterface() || a.isAbstract()))
+		    .forEach(a -> {
+			    Set<Class<?>> classes = new HashSet<>();
+			    if (a.isInterface() || a.isAbstract())
+			    {
+				    for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
+				    {
+					    if (!subclass.isAbstract() && !subclass.isInterface())
+					    {
+						    classes.add(subclass.loadClass());
+					    }
+				    }
+			    }
+			    else
+			    {
+				    Class<?> aClass = a.loadClass();
+				    classes.add(aClass);
+			    }
+			    for (Class<?> aClass : classes)
+			    {
+				    File classFile = null;
+				    classFile = getFile(aClass, ".ts");
+				    try
+				    {
+					    FileUtils.forceMkdirParent(classFile);
+					    INgServiceProvider<?> modd = (INgServiceProvider<?>) GuiceContext.get(aClass);
+					    FileUtils.write(classFile, renderServiceProviderTS(ngApp, appBootModule, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
 				    }
 				    catch (IOException e)
 				    {

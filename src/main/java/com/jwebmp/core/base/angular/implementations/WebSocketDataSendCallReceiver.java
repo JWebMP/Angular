@@ -3,10 +3,7 @@ package com.jwebmp.core.base.angular.implementations;
 import com.guicedee.guicedinjection.*;
 import com.guicedee.guicedservlets.websockets.services.*;
 import com.jwebmp.core.base.ajax.*;
-import com.jwebmp.core.base.angular.services.annotations.*;
-import com.jwebmp.core.base.angular.services.interfaces.*;
-
-import static com.jwebmp.core.base.angular.services.compiler.AnnotationsMap.*;
+import com.jwebmp.core.base.angular.client.services.interfaces.*;
 
 public class WebSocketDataSendCallReceiver
 	extends WebSocketAbstractCallReceiver

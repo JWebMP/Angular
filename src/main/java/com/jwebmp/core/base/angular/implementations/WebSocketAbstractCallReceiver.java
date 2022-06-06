@@ -11,8 +11,6 @@ import com.guicedee.guicedservlets.websockets.options.*;
 import com.guicedee.guicedservlets.websockets.services.*;
 import com.guicedee.logger.*;
 import com.jwebmp.core.base.ajax.*;
-import com.jwebmp.core.base.angular.services.annotations.*;
-import com.jwebmp.core.base.angular.services.interfaces.*;
 import com.jwebmp.core.utilities.*;
 import com.jwebmp.interception.services.*;
 
@@ -21,7 +19,6 @@ import java.util.logging.*;
 
 import static com.guicedee.guicedinjection.GuiceContext.*;
 import static com.guicedee.guicedinjection.interfaces.ObjectBinderKeys.*;
-import static com.jwebmp.core.base.angular.services.compiler.AnnotationsMap.*;
 import static com.jwebmp.interception.JWebMPInterceptionBinder.*;
 
 public abstract class WebSocketAbstractCallReceiver

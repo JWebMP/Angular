@@ -19,7 +19,7 @@ public class WSAddToGroupMessageReceiver
 		try
 		{
 			String group = message.getData()
-			                      .get("websocketGroup").toString();
+			                      .get("groupName").toString();
 			GuicedWebSocket.addToGroup(group, message.getSession());
 		}
 		catch (Exception e)
