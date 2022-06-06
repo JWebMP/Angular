@@ -4,11 +4,11 @@ import com.jwebmp.core.base.ajax.*;
 import com.jwebmp.core.base.angular.client.*;
 import com.jwebmp.core.base.angular.client.annotations.angular.*;
 import com.jwebmp.core.base.angular.client.annotations.references.*;
-import com.jwebmp.core.base.angular.modules.services.angular.forms.*;
+import com.jwebmp.core.base.angular.client.services.interfaces.*;
 
 @NgDataTypeReference(value = DataComponentData.class)
 @NgDataService("updateDataComponent")
-public class AngularFormDataService extends FormDataService<AngularFormDataService>
+public class AngularFormDataService implements INgDataService<AngularFormDataService>
 {
 	@Override
 	public DynamicData getData(AjaxCall<?> call)
