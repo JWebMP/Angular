@@ -1,6 +1,7 @@
 package com.jwebmp.core.base.angular.forms;
 
 import com.jwebmp.core.base.angular.client.annotations.boot.*;
+import com.jwebmp.core.base.angular.client.annotations.components.*;
 import com.jwebmp.core.base.angular.client.annotations.constructors.*;
 import com.jwebmp.core.base.angular.client.annotations.references.*;
 import com.jwebmp.core.base.angular.client.annotations.structures.*;
@@ -9,6 +10,7 @@ import com.jwebmp.core.base.html.*;
 
 import java.util.List;
 
+import static com.jwebmp.core.base.angular.client.services.AnnotationsMap.*;
 import static com.jwebmp.core.base.angular.client.services.interfaces.AnnotationUtils.*;
 
 @NgBootModuleImport("FormsModule")
@@ -54,11 +56,34 @@ public class AngularForm<J extends AngularForm<J>> extends Form<J> implements IN
 		{
 			return out;
 		}
-		out.add("onSubmit() {\n" + " this." + getFormDataProvider().getAnnotation()
+		
+		StringBuilder sendDataString = new StringBuilder();
+		
+		sendDataString.append("onSubmit() {\n");
+		
+		List<NgInput> inputList = getAnnotations(getClass(), NgInput.class);
+		StringBuilder inputs = new StringBuilder();
+		for (NgInput ngInput : inputList)
+		{
+			if (ngInput.additionalData())
+			{
+				inputs.append("\t\tthis." + getFormDataProvider().getAnnotation()
+				                                                 .referenceName() +
+				              ".additionalData." + ngInput.value() + " = this." + ngInput.value() + ";\n");
+			}
+		}
+		sendDataString.append(inputs.toString());
+		
+		
+		sendDataString.append("" +
+		                      "" +
+		                      "" +
+		                      "" + " this." + getFormDataProvider().getAnnotation()
 		                                                           .referenceName() +
-		        ".sendData(this." + getFormDataProvider().getAnnotation()
-		                                                 .referenceName() + "." + getFormDataProvider().getAnnotation()
-		                                                                                               .variableName()  + ");  \n" + "}\n");
+		                      ".sendData(this." + getFormDataProvider().getAnnotation()
+		                                                               .referenceName() + "." + getFormDataProvider().getAnnotation()
+		                                                                                                             .variableName() + ");  \n" + "}\n");
+		out.add(sendDataString.toString());
 		
 		return out;
 	}

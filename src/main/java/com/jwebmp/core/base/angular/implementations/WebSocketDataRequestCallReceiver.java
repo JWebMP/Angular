@@ -31,7 +31,7 @@ public class WebSocketDataRequestCallReceiver
 			e.printStackTrace();
 		}
 		INgDataService<?> dataService = GuiceContext.get(clazzy);
-		var returned = dataService.getData(call);
+		var returned = dataService.getData(call,response);
 		if(returned != null)
 		{
 			NgDataService dService = getAnnotations(clazzy, NgDataService.class).get(0);
