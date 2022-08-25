@@ -37,7 +37,7 @@ public class AngularTSPostStartup implements IGuicePostStartup<AngularTSPostStar
 			
 			try
 			{
-				compiler.renderAppTS();
+				compiler.renderAppTS((Class<? extends INgApp<?>>) app.getClass());
 			}
 			catch (IOException e)
 			{

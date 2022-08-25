@@ -52,5 +52,6 @@ public class AngularTSOnBind
 		{
 			input.removeAttribute("[(ngModel)]");
 		}
+		input.addAttribute("#" + input.getID(),"ngModel");
 	}
 }

@@ -17,6 +17,7 @@
 package com.jwebmp.core.base.angular.implementations;
 
 import com.guicedee.guicedinjection.*;
+import com.guicedee.guicedinjection.properties.*;
 import com.guicedee.guicedservlets.*;
 import com.guicedee.guicedservlets.services.*;
 import com.guicedee.guicedservlets.undertow.*;
@@ -69,7 +70,8 @@ public class AngularTSSiteBinder
 			for (NgApp app : AnnotationsMap.getAnnotations(loadClass, NgApp.class))
 			{
 				PageConfiguration pc = loadClass.getAnnotation(PageConfiguration.class);
-				File file = new File(FileUtils.getUserDirectory() + "/jwebmp/" + app.name() + "/dist/jwebmp/");
+				String userDir = GlobalProperties.getSystemPropertyOrEnvironment("JWEBMP_ROOT_PATH", FileUtils.getUserDirectory().getPath());
+				File file = new File(userDir + "/jwebmp/" + app.name() + "/dist/jwebmp/");
 				try
 				{
 					FileUtils.forceMkdirParent(file);

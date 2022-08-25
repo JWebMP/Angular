@@ -60,7 +60,8 @@ public class WebSocketAjaxCallReceiver
 			ObjectMapper om = GuiceContext.get(DefaultObjectMapper);
 			String originalValues = om.writeValueAsString(message.getData());
 			AjaxCall<?> call = om.readValue(originalValues, AjaxCall.class);
-			ajaxCall.fromCall(call);
+			om.readerForUpdating(ajaxCall)
+			  .readValue(originalValues, AjaxCall.class);
 			
 			ajaxCall.setWebSocketCall(true);
 			ajaxCall.setWebsocketSession(message.getSession());

@@ -1,5 +1,6 @@
 package com.jwebmp.core.base.angular.services.interfaces;
 
+import com.google.common.base.*;
 import com.jwebmp.core.base.*;
 import com.jwebmp.core.base.angular.client.annotations.angular.*;
 import com.jwebmp.core.base.angular.client.annotations.components.*;
@@ -13,6 +14,7 @@ import com.jwebmp.core.base.html.interfaces.*;
 import com.jwebmp.core.databind.*;
 
 import java.lang.annotation.*;
+import java.util.*;
 import java.util.List;
 
 public class OnComponentAdded implements IOnComponentAdded<OnComponentAdded>
@@ -29,13 +31,38 @@ public class OnComponentAdded implements IOnComponentAdded<OnComponentAdded>
 				                                  .getAnnotation(NgComponent.class);
 				
 				DivSimple<?> displayDiv = new DivSimple<>().setTag(annotation.value())
-				                       .setRenderIDAttribute(false);
+				                                           .setRenderIDAttribute(false);
 				
 				
 				List<NgInput> inputs = AnnotationsMap.getAnnotations(component.getClass(), NgInput.class);
-				inputs.stream().distinct().forEach(a->{
-					displayDiv.getAttributes().put("[" + a.value() + "]","" + a.value() + "");
-				});
+				Set<NgInput> uniqueValues = new HashSet<>();
+				for (NgInput a : inputs)
+				{
+					if (a.renderAttributeReference())
+					{
+						if (uniqueValues.add(a))
+						{
+							displayDiv.getAttributes()
+							          .put("[" + a.value() + "]", "" + (Strings.isNullOrEmpty(a.attributeReference()) ? a.value() : a.attributeReference()) + "");
+						}
+					}
+				}
+				if (component.readChildrenPropertyFirstResult("renderAttributes", false))
+				{
+					Set<String> removables = new HashSet<>();
+					
+					displayDiv.getAttributes()
+					          .putAll(component.getAttributes());
+					displayDiv.getAttributes()
+					          .keySet()
+					          .stream()
+					          .filter(a -> a.startsWith("#"))
+					          .forEach(removables::add);
+					removables.forEach(a -> displayDiv.getAttributes()
+					                                  .remove(a));
+					displayDiv.getClasses()
+					          .addAll(component.getClasses());
+				}
 				parent.add(displayDiv);
 				
 				component.setRenderChildren(false);

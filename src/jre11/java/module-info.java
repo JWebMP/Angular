@@ -3,6 +3,7 @@ import com.guicedee.guicedservlets.websockets.services.*;
 import com.jwebmp.core.base.angular.client.services.spi.*;
 import com.jwebmp.core.base.angular.implementations.*;
 import com.jwebmp.core.base.angular.modules.listeners.*;
+import com.jwebmp.core.base.angular.services.*;
 import com.jwebmp.core.base.angular.services.interfaces.*;
 import com.jwebmp.core.databind.*;
 import com.jwebmp.core.events.click.*;
@@ -58,7 +59,7 @@ module com.jwebmp.core.angular {
 			WSAddToGroupMessageReceiver, WSRemoveFromWebsocketGroupMessageReceiver;
 	
 	uses IWebSocketAuthDataProvider;
-	
+	uses RenderedAssets;
 	
 	//opens com.jwebmp.core.base.angular.modules to com.google.guice, com.fasterxml.jackson.databind, com.jwebmp.core;
 	opens com.jwebmp.core.base.angular.typescript.JWebMP to com.google.guice, com.fasterxml.jackson.databind, com.jwebmp.core;

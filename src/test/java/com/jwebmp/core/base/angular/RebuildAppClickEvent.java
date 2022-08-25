@@ -23,7 +23,7 @@ public class RebuildAppClickEvent extends ClickAdapter<RebuildAppClickEvent>
 	{
 		try
 		{
-			new JWebMPTypeScriptCompiler(new AngularApp()).renderAppTS();
+			new JWebMPTypeScriptCompiler(new AngularApp()).renderAppTS(AngularApp.class);
 		}
 		catch (IOException e)
 		{

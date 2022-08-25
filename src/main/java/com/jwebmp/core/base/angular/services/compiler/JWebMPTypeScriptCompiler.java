@@ -3,22 +3,22 @@ package com.jwebmp.core.base.angular.services.compiler;
 import com.fasterxml.jackson.databind.*;
 import com.google.common.base.*;
 import com.guicedee.guicedinjection.*;
+import com.guicedee.guicedinjection.interfaces.*;
 import com.guicedee.logger.*;
 import com.jwebmp.core.*;
 import com.jwebmp.core.base.*;
+import com.jwebmp.core.base.angular.client.*;
 import com.jwebmp.core.base.angular.client.annotations.angular.*;
 import com.jwebmp.core.base.angular.client.annotations.angularconfig.*;
 import com.jwebmp.core.base.angular.client.annotations.typescript.*;
 import com.jwebmp.core.base.angular.client.services.*;
 import com.jwebmp.core.base.angular.client.services.interfaces.*;
 import com.jwebmp.core.base.angular.modules.services.base.*;
-
-import com.jwebmp.core.base.angular.services.interfaces.*;
+import com.jwebmp.core.base.angular.services.*;
 import com.jwebmp.core.base.angular.typescript.JWebMP.*;
 import com.jwebmp.core.base.html.*;
 import com.jwebmp.core.base.servlets.enumarations.*;
 import io.github.classgraph.*;
-import io.github.classgraph.Resource;
 import org.apache.commons.io.*;
 import org.apache.commons.lang3.*;
 
@@ -31,28 +31,18 @@ import java.util.concurrent.*;
 import java.util.logging.*;
 
 import static com.guicedee.guicedinjection.interfaces.ObjectBinderKeys.*;
+import static com.jwebmp.core.base.angular.client.AppUtils.*;
 import static com.jwebmp.core.base.angular.client.services.AnnotationsMap.*;
 import static com.jwebmp.core.base.angular.client.services.interfaces.AnnotationUtils.*;
 import static com.jwebmp.core.base.angular.client.services.interfaces.IComponent.*;
-import static com.jwebmp.core.base.angular.client.services.interfaces.ImportsStatementsComponent.*;
 import static com.jwebmp.core.base.angular.implementations.AngularTSPostStartup.*;
 import static java.nio.charset.StandardCharsets.*;
 
 public class JWebMPTypeScriptCompiler
 {
 	private static final Logger log = LogFactory.getLog(JWebMPTypeScriptCompiler.class);
-	
-	private Map<File, String> tsFiles = new HashMap<>();
 	private static JWebMPTypeScriptCompiler instance;
 	
-	public static File baseUserDirectory;
-	
-	private File srcDirectory;
-	private File appDirectory;
-	private File appBaseDirectory;
-	private File assetsDirectory;
-	private File environmentDirectory;
-	private File mainTsFile;
 	
 	private final Set<String> assetStringBuilder = new LinkedHashSet<>();
 	private final Set<String> stylesGlobal = new LinkedHashSet<>();
@@ -61,55 +51,20 @@ public class JWebMPTypeScriptCompiler
 	private NgApp ngApp;
 	private INgApp<?> app;
 	
-	public static final Map<INgApp, File> appDirectories = new HashMap<>();
-	
 	public static ThreadLocal<File> getCurrentAppFile()
 	{
 		return IComponent.getCurrentAppFile();
 	}
 	
-	static
-	{
-		String userDir = System.getProperty("jwebmp", FileUtils.getUserDirectory()
-		                                                       .getPath());
-		baseUserDirectory = new File(userDir.replaceAll("\\\\", "/") + "/jwebmp/");
-		try
-		{
-			if (!baseUserDirectory.exists())
-			{
-				FileUtils.forceMkdirParent(baseUserDirectory);
-				FileUtils.forceMkdir(baseUserDirectory);
-			}
-		}
-		catch (IOException e)
-		{
-			log.log(Level.SEVERE, "Unable to create base directory for creating typescript! - " + userDir);
-		}
-		log.info("TypeScript is compiling to " + baseUserDirectory.getPath() + ". Change with env property \"jwebmp\"");
-		
-	}
 	
 	public JWebMPTypeScriptCompiler(INgApp<?> app)
 	{
 		instance = this;
 		this.app = app;
 		this.ngApp = getAnnotations(app.getClass(), NgApp.class).get(0);
-		try
-		{
-			appBaseDirectory = new File(baseUserDirectory.getCanonicalPath() + "/" + ngApp.name());
-			if (!appBaseDirectory.exists())
-			{
-				FileUtils.forceMkdirParent(appBaseDirectory);
-				FileUtils.forceMkdir(appBaseDirectory);
-			}
-			appDirectories.put(app, appBaseDirectory);
-			currentAppFile.set(appBaseDirectory);
-		}
-		catch (IOException e)
-		{
-			e.printStackTrace();
-		}
-		log.info("Application [" + ngApp.name() + "] is compiling to " + baseUserDirectory.getPath() + ". Change with env property \"jwebmp\"");
+		File appPath = AppUtils.getAppPath((Class<? extends INgApp<?>>) app.getClass());
+		currentAppFile.set(appPath);
+		log.info("Application [" + ngApp.name() + "] is compiling to " + appPath.getPath() + ". Change with env property \"jwebmp\"");
 	}
 	
 	public static Set<INgApp<?>> getAllApps()
@@ -180,7 +135,7 @@ public class JWebMPTypeScriptCompiler
 		return sb;
 	}
 	
-	public String getFileReference(String baseDirectory, Class<?> clazz, String... extension)
+	/*public String getFileReference(String baseDirectory, Class<?> clazz, String... extension)
 	{
 		String classLocationDirectory = getClassLocationDirectory(clazz);
 		classLocationDirectory = classLocationDirectory.replaceAll("\\\\", "/");
@@ -190,17 +145,17 @@ public class JWebMPTypeScriptCompiler
 		classLocationDirectory = baseLocation + classLocationDirectory + getTsFilename(clazz) + (extension.length > 0 ? extension[0] : "");
 		
 		return classLocationDirectory;
-	}
+	}*/
 	
-	public File getFile(Class<?> clazz, String... extension)
+	/*public File getFile(Class<?> clazz, String... extension)
 	{
 		//	ITSComponent.getFile(appBaseDirectory.getPath(), clazz, extension);
 		String baseDir = getFileReference(appBaseDirectory.getPath(), clazz, extension);
 		File file = new File(baseDir);
 		return file;
-	}
+	}*/
 	
-	public File getFile(String filename, String... extension) throws IOException
+	/*public File getFile(String filename, String... extension) throws IOException
 	{
 		String baseDir = appBaseDirectory.getCanonicalPath()
 		                                 .replaceAll("\\\\", "/")
@@ -208,7 +163,7 @@ public class JWebMPTypeScriptCompiler
 				                 .replaceAll("\\\\", "/");
 		return new File(FilenameUtils.concat(baseDir, filename)
 		                + (extension.length > 0 ? extension[0] : ""));
-	}
+	}*/
 	
 	public StringBuilder renderModuleTS(NgApp ngApp, AngularAppBootModule appBootModule, File srcDirectory, INgModule<?> component, Class<?> requestingClass) throws IOException
 	{
@@ -222,37 +177,13 @@ public class JWebMPTypeScriptCompiler
 		return sb;
 	}
 	
-	private void loadClassFilePaths(INgApp<?> app) throws IOException
-	{
-		ngApp = getAnnotations(app.getClass(), NgApp.class).get(0);
-		
-		//======================================================================
-		buildFolderStructure(appBaseDirectory);
-		//======================================================================
-		//String mainFileFilename = ngApp.value() + ".ts";
-		String mainFileFilename = "main.ts";
-		mainTsFile = new File((srcDirectory.getCanonicalPath() + "/" + mainFileFilename).replaceAll("\\\\", "/"));
-	}
-	
-	public StringBuilder renderAppTS() throws IOException
+	public StringBuilder renderAppTS(Class<? extends INgApp<?>> appClass) throws IOException
 	{
 		StringBuilder sb = new StringBuilder();
-		//render the main.ts file
-		loadClassFilePaths(app);
+		ngApp = getAnnotations(app.getClass(), NgApp.class).get(0);
+		AppUtils.getAppPath(appClass);
 		
-		log.config("Loading resources from assets directory");
-		ScanResult assetsResults = new ClassGraph().acceptPaths("app/")
-		                                           .acceptPaths("src/")
-		                                           .scan();
-		for (Resource allResource : assetsResults.getAllResources())
-		{
-			//System.out.println("Resource Found : " + allResource.getPath());
-			String assetLocation = allResource.getPathRelativeToClasspathElement();
-			File assetFile = new File(appBaseDirectory.getCanonicalPath() + "/" + assetLocation);
-			FileUtils.forceMkdirParent(assetFile);
-			IOUtils.copy(allResource.getURL(), assetFile);
-		}
-		
+		INgApp<?> app = GuiceContext.get(appClass);
 		
 		ScanResult scan = GuiceContext.instance()
 		                              .getScanResult();
@@ -262,14 +193,15 @@ public class JWebMPTypeScriptCompiler
 		
 		GuiceContext.get(EnvironmentModule.class)
 		            .getEnvironmentOptions()
-		            .setAppClass(app.getClass()
-		                            .getCanonicalName());
+		            .setAppClass(appClass.getCanonicalName());
+		
 		GuiceContext.get(EnvironmentModule.class)
 		            .getEnvironmentOptions()
 		            .setProduction(app.getRunningEnvironment()
 		                              .equals(DevelopmentEnvironments.Production));
 		
-		File packageJsonFile = new File(appBaseDirectory.getCanonicalPath() + "/package.json");
+		File packageJsonFile = AppUtils.getAppPackageJsonPath(appClass, true);// new File(appBaseDirectory.getCanonicalPath() + "/package.json");
+		
 		String packageTemplate = IOUtils.toString(Objects.requireNonNull(ResourceLocator.class.getResourceAsStream("package.json")), UTF_8);
 		
 		Map<String, String> dependencies = new HashMap<>();
@@ -343,7 +275,8 @@ public class JWebMPTypeScriptCompiler
 		
 		
 		ObjectMapper om = GuiceContext.get(DefaultObjectMapper);
-		packageTemplate = packageTemplate.replace("/*appName*/", app.name());
+		String appName = AppUtils.getAppName(appClass);
+		packageTemplate = packageTemplate.replace("/*appName*/", appName);
 		packageTemplate = packageTemplate.replace("/*dependencies*/", om.writerWithDefaultPrettyPrinter()
 		                                                                .writeValueAsString(dependencies));
 		packageTemplate = packageTemplate.replace("/*devDependencies*/", om.writerWithDefaultPrettyPrinter()
@@ -354,15 +287,16 @@ public class JWebMPTypeScriptCompiler
 		
 		FileUtils.writeStringToFile(packageJsonFile, packageTemplate, UTF_8, false);
 		
-		File tsConfigFile = new File(appBaseDirectory.getCanonicalPath() + "/tsconfig.app.json");
+		File tsConfigFile = AppUtils.getAppTsConfigAppPath(appClass, true);// new File( AppUtils.getFileReferenceAppFile(appClass,"/tsconfig.app.json"));
 		String tsConfigTemplate = IOUtils.toString(Objects.requireNonNull(ResourceLocator.class.getResourceAsStream("tsconfig.app.json")), UTF_8);
 		FileUtils.writeStringToFile(tsConfigFile, tsConfigTemplate, UTF_8, false);
 		
-		File tsConfigFileAbs = new File(appBaseDirectory.getCanonicalPath() + "/tsconfig.json");
+		File tsConfigFileAbs = AppUtils.getAppTsConfigPath(appClass, true); //new File(AppUtils.getFileReferenceAppFile(appClass,"/tsconfig.json"));
 		String tsConfigTemplateAbs = IOUtils.toString(Objects.requireNonNull(ResourceLocator.class.getResourceAsStream("tsconfig.json")), UTF_8);
 		FileUtils.writeStringToFile(tsConfigFileAbs, tsConfigTemplateAbs, UTF_8, false);
 		
-		File polyfillFile = new File(srcDirectory.getCanonicalPath() + "/polyfills.ts");
+		
+		File polyfillFile = AppUtils.getAppPolyfillsPath(appClass, true);// new File(srcDirectory.getCanonicalPath() + "/polyfills.ts");
 		StringBuilder polyfills = new StringBuilder();
 		for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgPolyfill.class))
 		{
@@ -372,8 +306,6 @@ public class JWebMPTypeScriptCompiler
 			polyfills.append("import \"" + newString + "\";\n");
 		}
 		FileUtils.writeStringToFile(polyfillFile, polyfills.toString(), UTF_8, false);
-		
-		File angularFile = new File(appBaseDirectory.getCanonicalPath() + "/angular.json");
 		
 		Map<String, String> namedAssets = new HashMap<>();
 		List<NgAsset> assets = AnnotationsMap.getAllAnnotations(NgAsset.class);
@@ -395,6 +327,16 @@ public class JWebMPTypeScriptCompiler
 				{
 					namedAssets.put(replace, ngAsset.value());
 				}
+			}
+		}
+		
+		System.out.println("Registering Assets...");
+		Set<RenderedAssets> renderedAssets = IDefaultService.loaderToSet(ServiceLoader.load(RenderedAssets.class));
+		for (RenderedAssets<?> renderedAsset : renderedAssets)
+		{
+			for (String asset : renderedAsset.assets())
+			{
+				namedAssets.put(asset, asset);
 			}
 		}
 		
@@ -499,9 +441,10 @@ public class JWebMPTypeScriptCompiler
 		angularTemplate = angularTemplate.replace("/*BuildScripts*/", om.writerWithDefaultPrettyPrinter()
 		                                                                .writeValueAsString(scripts));
 		angularTemplate = angularTemplate.replace("/*MainTSFile*/", om.writerWithDefaultPrettyPrinter()
-		                                                              .writeValueAsString("src/" + mainTsFile.getName()
-		                                                              )
+		                                                              .writeValueAsString("src/main.ts")
 		);
+		
+		File angularFile = AppUtils.getAngularJsonPath(appClass, true);// new File(appBaseDirectory.getCanonicalPath() + "/angular.json");
 		FileUtils.writeStringToFile(angularFile, angularTemplate, UTF_8, false);
 		sb.append(app.renderImports());
 		
@@ -512,16 +455,17 @@ public class JWebMPTypeScriptCompiler
 		  .append(".catch(err => console.error(err));\n");
 		
 		
-		System.out.println("Writing out angular boot file - " + mainTsFile.getCanonicalPath());
+		System.out.println("Writing out angular main.ts file - " + AppUtils.getAppMainTSPath(appClass, false));
 		try
 		{
-			FileUtils.writeStringToFile(mainTsFile, sb.toString(), UTF_8, false);
+			FileUtils.writeStringToFile(AppUtils.getAppMainTSPath(appClass, true), sb.toString(), UTF_8, false);
 		}
 		catch (IOException e)
 		{
 			e.printStackTrace();
 		}
-		File mainIndexHtmlTsFile = new File(srcDirectory.getCanonicalPath() + "/" + "index.html");
+		
+		File mainIndexHtmlTsFile = AppUtils.getIndexHtmlPath(appClass, true);//new File(srcDirectory.getCanonicalPath() + "/" + "index.html");
 		System.out.println("Writing out index.html - " + mainIndexHtmlTsFile.getCanonicalPath());
 		try
 		{
@@ -532,23 +476,24 @@ public class JWebMPTypeScriptCompiler
 			e.printStackTrace();
 		}
 		
-		for (Resource resource : scan.getResourcesMatchingWildcard("assets/*"))
+		System.out.println("Writing out src/assets/ resources...");
+		for (Resource resource : scan.getResourcesMatchingWildcard("src/assets/**"))
 		{
-			try
-			{
-				FileUtils.copyFile(new File(FilenameUtils.concat(resource.getClasspathElementFile()
-				                                                         .getPath(), resource.getPath())),
-						new File(FilenameUtils.concat(instance.srcDirectory.getPath(),
-								resource.getPath())));
-			}
-			catch (IOException e)
-			{
-				e.printStackTrace();
-			}
-			
+			AppUtils.saveAsset(appClass, resource.getURL()
+			                                     .openStream(), resource.getPath());
 		}
 		
-		File finalSrcDirectory = srcDirectory;
+		log.config("Loading resources from assets directory");
+		for (Resource allResource : scan.getResourcesMatchingWildcard("app/**"))
+		{
+			String assetLocation = allResource.getPathRelativeToClasspathElement();
+			InputStream fileStream = allResource.getURL()
+			                                    .openStream();
+			AppUtils.saveAppResourceFile(appClass, fileStream, assetLocation);
+		}
+		
+		
+		File finalSrcDirectory = AppUtils.getAppSrcPath(appClass);
 		
 		scan
 				.getClassesWithAnnotation(NgModule.class)
@@ -573,7 +518,7 @@ public class JWebMPTypeScriptCompiler
 					for (Class<?> aClass : classes)
 					{
 						File classFile = null;
-						classFile = getFile(aClass, ".ts");
+						classFile = getFile(appClass, aClass, ".ts");
 						try
 						{
 							FileUtils.forceMkdirParent(classFile);
@@ -613,7 +558,7 @@ public class JWebMPTypeScriptCompiler
 					{
 						
 						File classFile = null;
-						classFile = getFile(aClass, ".ts");
+						classFile = getFile(appClass, aClass, ".ts");
 						try
 						{
 							FileUtils.forceMkdirParent(classFile);
@@ -651,7 +596,7 @@ public class JWebMPTypeScriptCompiler
 			    for (Class<?> aClass : classes)
 			    {
 				    File classFile = null;
-				    classFile = getFile(aClass, ".ts");
+				    classFile = getFile(appClass, aClass, ".ts");
 				
 				    try
 				    {
@@ -691,7 +636,7 @@ public class JWebMPTypeScriptCompiler
 			    for (Class<?> aClass : classes)
 			    {
 				    File classFile = null;
-				    classFile = getFile(aClass, ".ts");
+				    classFile = getFile(appClass, aClass, ".ts");
 				    try
 				    {
 					    FileUtils.forceMkdirParent(classFile);
@@ -729,7 +674,7 @@ public class JWebMPTypeScriptCompiler
 			    for (Class<?> aClass : classes)
 			    {
 				    File classFile = null;
-				    classFile = getFile(aClass, ".ts");
+				    classFile = getFile(appClass, aClass, ".ts");
 				    try
 				    {
 					    FileUtils.forceMkdirParent(classFile);
@@ -766,7 +711,7 @@ public class JWebMPTypeScriptCompiler
 			    for (Class<?> aClass : classes)
 			    {
 				    File classFile = null;
-				    classFile = getFile(aClass, ".ts");
+				    classFile = getFile(appClass, aClass, ".ts");
 				    try
 				    {
 					    FileUtils.forceMkdirParent(classFile);
@@ -803,7 +748,7 @@ public class JWebMPTypeScriptCompiler
 			    for (Class<?> aClass : classes)
 			    {
 				    File classFile = null;
-				    classFile = getFile(aClass, ".ts");
+				    classFile = getFile(appClass, aClass, ".ts");
 				    try
 				    {
 					    FileUtils.forceMkdirParent(classFile);
@@ -817,52 +762,21 @@ public class JWebMPTypeScriptCompiler
 			    }
 		    });
 		
+		
 		if (buildApp)
 		{
 			System.out.println("Installing node-modules...");
-			installDependencies(appBaseDirectory);
+			installDependencies(AppUtils.getAppPath(appClass));
+		}
+		if (buildApp)
+		{
 			System.out.println("Building Angular Client App...");
-			installAngular(appBaseDirectory);
+			installAngular(AppUtils.getAppPath(appClass));
 		}
 		//System.out.println("Starting Local Angular Client...");
 		//serveAngular(appBaseDirectory);
 		return sb;
 	}
-	
-	private File buildFolderStructure(File appBaseDirectory) throws IOException
-	{
-		
-		srcDirectory = new File(appBaseDirectory.getCanonicalPath() + "/src");
-		if (!srcDirectory.exists())
-		{
-			FileUtils.forceMkdirParent(srcDirectory);
-			FileUtils.forceMkdir(srcDirectory);
-		}
-		
-		appDirectory = new File(srcDirectory.getCanonicalPath() + "/app");
-		if (!appDirectory.exists())
-		{
-			FileUtils.forceMkdirParent(appDirectory);
-			FileUtils.forceMkdir(appDirectory);
-		}
-		
-		
-		assetsDirectory = new File(srcDirectory.getCanonicalPath() + "/assets");
-		if (!assetsDirectory.exists())
-		{
-			FileUtils.forceMkdirParent(assetsDirectory);
-			FileUtils.forceMkdir(assetsDirectory);
-		}
-		
-		environmentDirectory = new File(srcDirectory.getCanonicalPath() + "/environment");
-		if (!environmentDirectory.exists())
-		{
-			FileUtils.forceMkdirParent(environmentDirectory);
-			FileUtils.forceMkdir(environmentDirectory);
-		}
-		return srcDirectory;
-	}
-	
 	
 	public StringBuilder renderBootIndexHtml(INgApp<?> app, AngularAppBootModule appBootModule)
 	{
@@ -915,7 +829,7 @@ public class JWebMPTypeScriptCompiler
 		{
 			try
 			{
-				ProcessBuilder processBuilder = new ProcessBuilder("npm install");
+				ProcessBuilder processBuilder = new ProcessBuilder("npm","install");
 				processBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
 				processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
 				processBuilder
@@ -924,6 +838,7 @@ public class JWebMPTypeScriptCompiler
 				processBuilder = processBuilder.directory(appBaseDirectory);
 				Process p = processBuilder.start();
 				p.waitFor();
+				p.destroyForcibly();
 			}
 			catch (IOException e)
 			{
@@ -943,11 +858,10 @@ public class JWebMPTypeScriptCompiler
 			try
 			{
 				ProcessBuilder processBuilder =
-						new ProcessBuilder("cmd.exe", "/c", FileUtils.getUserDirectory() +
-						                                    "/AppData/Roaming/npm/ng.cmd build " +
-						                                    (GuiceContext.get(EnvironmentModule.class)
-						                                                 .getEnvironmentOptions()
-						                                                 .isProduction() ? "--configuration production" : ""));
+						new ProcessBuilder("npm", "run","build" + (GuiceContext.get(EnvironmentModule.class)
+						                                                       .getEnvironmentOptions()
+						                                                       .isProduction() ? "-prod" : "")
+								);
 				processBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
 				processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
 				processBuilder
@@ -955,13 +869,17 @@ public class JWebMPTypeScriptCompiler
 						.putAll(System.getenv());
 				processBuilder = processBuilder.directory(appBaseDirectory);
 				Process p = processBuilder.start();
-				p.waitFor(15, TimeUnit.SECONDS);
+				/*try
+				{
+					p.waitFor();
+					p.destroyForcibly();
+				}
+				catch (InterruptedException e)
+				{
+					e.printStackTrace();
+				}*/
 			}
 			catch (IOException e)
-			{
-				e.printStackTrace();
-			}
-			catch (InterruptedException e)
 			{
 				e.printStackTrace();
 			}
@@ -970,7 +888,10 @@ public class JWebMPTypeScriptCompiler
 		{
 			try
 			{
-				ProcessBuilder processBuilder = new ProcessBuilder("ng build");
+				ProcessBuilder processBuilder = 	new ProcessBuilder("npm", "run","build" + (GuiceContext.get(EnvironmentModule.class)
+				                                                                                          .getEnvironmentOptions()
+				                                                                                          .isProduction() ? "-prod" : "")
+				);
 				processBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
 				processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
 				processBuilder
@@ -978,17 +899,13 @@ public class JWebMPTypeScriptCompiler
 						.putAll(System.getenv());
 				processBuilder = processBuilder.directory(appBaseDirectory);
 				Process p = processBuilder.start();
-				p.waitFor();
 			}
 			catch (IOException e)
 			{
 				e.printStackTrace();
 			}
-			catch (InterruptedException e)
-			{
-				e.printStackTrace();
-			}
 		}
+		
 	}
 	
 	private static final Map<String, TsDependency> namedDependencies = new HashMap<>();

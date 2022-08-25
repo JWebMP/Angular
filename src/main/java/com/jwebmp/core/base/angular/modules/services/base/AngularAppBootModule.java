@@ -26,22 +26,20 @@ import java.util.logging.*;
 import static com.jwebmp.core.base.angular.client.services.AnnotationsMap.*;
 import static com.jwebmp.core.base.angular.client.services.interfaces.AnnotationUtils.*;
 
-@TsDependency(value = "@angular/platform-browser", version = "^13.3.4", overrides = true)
+@TsDependency(value = "@angular/platform-browser", version = "^13.3.6", overrides = true)
 @NgImportReference(value = "BrowserModule", reference = "@angular/platform-browser")
 @NgBootModuleImport("BrowserModule")
 
-@TsDependency(value = "@angular/forms", version = "^13.3.4", overrides = true)
 @NgImportReference(value = "FormsModule, ReactiveFormsModule", reference = "@angular/forms")
 @NgBootModuleImport("FormsModule")
 @NgBootModuleImport("ReactiveFormsModule")
 
-@TsDependency(value = "@angular/common", version = "^13.3.4", overrides = true)
 @NgImportReference(value = "CommonModule", reference = "@angular/common")
 @NgBootModuleImport("CommonModule")
 
 @NgPolyfill("zone.js")
 
-@TsDependency(value = "@angular/platform-browser-dynamic", version = "^13.3.4")
+@TsDependency(value = "@angular/platform-browser-dynamic", version = "^13.3.6")
 @NgComponentReference(SocketClientService.class)
 public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implements INgModule<AngularAppBootModule>
 {
