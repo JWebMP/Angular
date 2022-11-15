@@ -27,7 +27,7 @@ import static com.jwebmp.core.base.angular.client.services.interfaces.Annotation
 @NgImportReference(value = "Routes", reference = "@angular/router")
 
 @NgBootModuleImport("RoutingModule")
-@TsDependency(value = "@angular/router", version = "^13.3.6")
+@TsDependency(value = "@angular/router", version = "^13.3.0")
 
 @NgModule
 public class RoutingModule implements INgModule<RoutingModule>

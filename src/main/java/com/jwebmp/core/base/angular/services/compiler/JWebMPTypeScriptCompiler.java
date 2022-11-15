@@ -809,7 +809,7 @@ public class JWebMPTypeScriptCompiler
 		{
 			try
 			{
-				ProcessBuilder processBuilder = new ProcessBuilder("cmd.exe", "/c", FileUtils.getUserDirectory() + "/AppData/Roaming/npm/npm.cmd install");
+				ProcessBuilder processBuilder = new ProcessBuilder("cmd.exe", "/c", FileUtils.getUserDirectory() + "/AppData/Roaming/npm/npm.cmd install --force");
 				//processBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
 				//processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
 				processBuilder.inheritIO();
@@ -829,7 +829,7 @@ public class JWebMPTypeScriptCompiler
 		{
 			try
 			{
-				ProcessBuilder processBuilder = new ProcessBuilder("npm","install");
+				ProcessBuilder processBuilder = new ProcessBuilder("npm","install","--force");
 				processBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
 				processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
 				processBuilder

@@ -16,6 +16,7 @@ import com.jwebmp.core.databind.*;
 import java.lang.annotation.*;
 import java.util.*;
 import java.util.List;
+import java.util.Map;
 
 public class OnComponentAdded implements IOnComponentAdded<OnComponentAdded>
 {
@@ -33,7 +34,6 @@ public class OnComponentAdded implements IOnComponentAdded<OnComponentAdded>
 				DivSimple<?> displayDiv = new DivSimple<>().setTag(annotation.value())
 				                                           .setRenderIDAttribute(false);
 				
-				
 				List<NgInput> inputs = AnnotationsMap.getAnnotations(component.getClass(), NgInput.class);
 				Set<NgInput> uniqueValues = new HashSet<>();
 				for (NgInput a : inputs)
@@ -47,6 +47,19 @@ public class OnComponentAdded implements IOnComponentAdded<OnComponentAdded>
 						}
 					}
 				}
+				
+				List<NgComponentTagAttribute> tagAttributes = AnnotationsMap.getAnnotations(component.getClass(), NgComponentTagAttribute.class);
+				Set<NgComponentTagAttribute> uniqueTagValues = new HashSet<>();
+				for (NgComponentTagAttribute a : tagAttributes)
+				{
+					if (uniqueTagValues.add(a))
+					{
+						displayDiv.getAttributes()
+						          .put(a.key() , a.value());
+					}
+				}
+				
+				
 				if (component.readChildrenPropertyFirstResult("renderAttributes", false))
 				{
 					Set<String> removables = new HashSet<>();
@@ -63,6 +76,17 @@ public class OnComponentAdded implements IOnComponentAdded<OnComponentAdded>
 					displayDiv.getClasses()
 					          .addAll(component.getClasses());
 				}
+				
+				for (Map.Entry<String, String> entry : component.getOverrideAttributes()
+				                                                .entrySet())
+				{
+					String key = entry.getKey();
+					String value = entry.getValue();
+					displayDiv.getAttributes()
+					          .put(key, value);
+				}
+				
+				
 				parent.add(displayDiv);
 				
 				component.setRenderChildren(false);

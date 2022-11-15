@@ -37,6 +37,7 @@ public abstract class WebSocketAbstractCallReceiver
 	}
 	
 	public abstract String getMessageDirector();
+	
 	public abstract AjaxResponse<?> action(AjaxCall<?> call, AjaxResponse<?> response);
 	
 	@Override
@@ -75,9 +76,11 @@ public abstract class WebSocketAbstractCallReceiver
 			{
 				ajaxCallIntercepter.intercept(ajaxCall, ajaxResponse);
 			}
-			AjaxResponse<?> response = GuiceContext.get(AjaxResponse.class);
-			response = action(ajaxCall, response);
-			GuicedWebSocket.broadcastMessage(message.getBroadcastGroup(), response.toString());
+			ajaxResponse = action(ajaxCall, ajaxResponse);
+			if (ajaxResponse != null)
+			{
+				GuicedWebSocket.broadcastMessage(message.getBroadcastGroup(), ajaxResponse.toString());
+			}
 		}
 		catch (Exception T)
 		{

@@ -26,7 +26,7 @@ import java.util.logging.*;
 import static com.jwebmp.core.base.angular.client.services.AnnotationsMap.*;
 import static com.jwebmp.core.base.angular.client.services.interfaces.AnnotationUtils.*;
 
-@TsDependency(value = "@angular/platform-browser", version = "^13.3.6", overrides = true)
+@TsDependency(value = "@angular/platform-browser", version = "^13.3.0", overrides = true)
 @NgImportReference(value = "BrowserModule", reference = "@angular/platform-browser")
 @NgBootModuleImport("BrowserModule")
 
@@ -39,7 +39,7 @@ import static com.jwebmp.core.base.angular.client.services.interfaces.Annotation
 
 @NgPolyfill("zone.js")
 
-@TsDependency(value = "@angular/platform-browser-dynamic", version = "^13.3.6")
+@TsDependency(value = "@angular/platform-browser-dynamic", version = "^13.3.0")
 @NgComponentReference(SocketClientService.class)
 public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implements INgModule<AngularAppBootModule>
 {
@@ -111,7 +111,7 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 	@Override
 	public List<NgConstructorParameter> getAllConstructorParameters()
 	{
-		List<NgConstructorParameter> out =  INgModule.super.getAllConstructorParameters();
+		List<NgConstructorParameter> out = INgModule.super.getAllConstructorParameters();
 		List<NgBootConstructorParameter> params = AnnotationsMap.getAllAnnotations(NgBootConstructorParameter.class);
 		for (NgBootConstructorParameter param : params)
 		{
@@ -123,7 +123,7 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 	@Override
 	public List<NgConstructorBody> getAllConstructorBodies()
 	{
-		List<NgConstructorBody> out =  INgModule.super.getAllConstructorBodies();
+		List<NgConstructorBody> out = INgModule.super.getAllConstructorBodies();
 		List<NgBootConstructorBody> params = AnnotationsMap.getAllAnnotations(NgBootConstructorBody.class);
 		for (NgBootConstructorBody param : params)
 		{
@@ -131,7 +131,6 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 		}
 		return out;
 	}
-	
 	
 	
 	private List<NgImportReference> listAllBootImportReferences()
@@ -164,7 +163,7 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 		List<NgImportReference> out = new ArrayList<>();
 		var scan = GuiceContext.instance()
 		                       .getScanResult();
-		for (ClassInfo classInfo :scan.getClassesWithAnnotation(NgModule.class))
+		for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgModule.class))
 		{
 			Set<Class<? extends IComponent<?>>> classes = new HashSet<>();
 			var a = classInfo;
@@ -209,7 +208,7 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 		List<NgImportReference> out = new ArrayList<>();
 		var scan = GuiceContext.instance()
 		                       .getScanResult();
-		for (ClassInfo classInfo :scan.getClassesWithAnnotation(NgProvider.class))
+		for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgProvider.class))
 		{
 			Set<Class<? extends IComponent<?>>> classes = new HashSet<>();
 			var a = classInfo;
@@ -247,7 +246,7 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 			}
 		}
 		
-		for (ClassInfo classInfo :scan.getClassesWithAnnotation(NgServiceProvider.class))
+		for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgServiceProvider.class))
 		{
 			Set<Class<? extends IComponent<?>>> classes = new HashSet<>();
 			var a = classInfo;
@@ -293,7 +292,7 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 		List<NgImportReference> out = new ArrayList<>();
 		var scan = GuiceContext.instance()
 		                       .getScanResult();
-		for (ClassInfo classInfo :scan.getClassesWithAnnotation(NgDirective.class))
+		for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgDirective.class))
 		{
 			Set<Class<? extends IComponent<?>>> classes = new HashSet<>();
 			var a = classInfo;
@@ -330,9 +329,10 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 							out.addAll(ngImportReferences);
 						}
 					}
-				}catch (Exception e)
+				}
+				catch (Exception e)
 				{
-					log.log(Level.WARNING,"Unable to render directive - " + aClass.getCanonicalName(),e);
+					log.log(Level.WARNING, "Unable to render directive - " + aClass.getCanonicalName(), e);
 				}
 			}
 		}
@@ -344,7 +344,7 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 		List<NgImportReference> out = new ArrayList<>();
 		var scan = GuiceContext.instance()
 		                       .getScanResult();
-		for (ClassInfo classInfo :scan.getClassesWithAnnotation(NgComponent.class))
+		for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgComponent.class))
 		{
 			Set<Class<? extends IComponent<?>>> classes = new HashSet<>();
 			var a = classInfo;
@@ -385,7 +385,6 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 	}
 	
 	
-	
 	public List<NgImportReference> renderImportsMap()
 	{
 		List<NgImportReference> out = new ArrayList<>();
@@ -408,9 +407,9 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 	{
 		List<String> out = INgModule.super.providers();
 		ScanResult scan = GuiceContext.instance()
-		                                    .getScanResult();
+		                              .getScanResult();
 		for (ClassInfo classInfo : scan
-		                                       .getClassesWithAnnotation(NgBootProvider.class))
+				.getClassesWithAnnotation(NgBootProvider.class))
 		{
 			if (classInfo.isInterface() || classInfo.isAbstract())
 			{
@@ -434,7 +433,7 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 				}
 			}
 		}
-		for (ClassInfo classInfo :scan.getClassesWithAnnotation(NgServiceProvider.class))
+		for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgServiceProvider.class))
 		{
 			Set<Class<? extends IComponent<?>>> classes = new HashSet<>();
 			var a = classInfo;
@@ -481,7 +480,7 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 		var scan = GuiceContext.instance()
 		                       .getScanResult();
 		
-		for (ClassInfo classInfo :scan.getClassesWithAnnotation(NgComponent.class))
+		for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgComponent.class))
 		{
 			Set<Class<? extends IComponent<?>>> classes = new HashSet<>();
 			var a = classInfo;
@@ -516,14 +515,15 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 							out.add(aClass.getSimpleName());
 						}
 					}
-				}catch (Exception e)
+				}
+				catch (Exception e)
 				{
-					log.log(Level.WARNING,"Unable to render directive - " + aClass.getCanonicalName(),e);
+					log.log(Level.WARNING, "Unable to render directive - " + aClass.getCanonicalName(), e);
 				}
 			}
 		}
 		
-		for (ClassInfo classInfo :scan.getClassesWithAnnotation(NgDirective.class))
+		for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgDirective.class))
 		{
 			Set<Class<? extends IComponent<?>>> classes = new HashSet<>();
 			var a = classInfo;
@@ -558,9 +558,10 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 							out.add(aClass.getSimpleName());
 						}
 					}
-				}catch (Exception e)
+				}
+				catch (Exception e)
 				{
-					log.log(Level.WARNING,"Unable to render directive - " + aClass.getCanonicalName(),e);
+					log.log(Level.WARNING, "Unable to render directive - " + aClass.getCanonicalName(), e);
 				}
 			}
 		}
@@ -583,6 +584,19 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
 			}
 		}
 		gf.addAll(INgModule.super.globalFields());
+		return gf;
+	}
+	
+	@Override
+	public List<String> schemas()
+	{
+		List<String> gf = new ArrayList<>();
+		List<NgBootModuleSchema> bootDy = getAllAnnotations(NgBootModuleSchema.class);
+		for (NgBootModuleSchema globalFields : bootDy)
+		{
+			gf.add(globalFields.value());
+		}
+		gf.addAll(INgModule.super.schemas());
 		return gf;
 	}
 }
