@@ -16,16 +16,19 @@
  */
 package com.jwebmp.core.base.angular;
 
-import com.guicedee.logger.*;
-import com.jwebmp.core.*;
-import com.jwebmp.core.base.angular.services.*;
-import com.jwebmp.core.base.angular.services.compiler.*;
-import com.jwebmp.core.plugins.*;
-import com.jwebmp.core.services.*;
-import jakarta.validation.constraints.*;
 
-import java.util.*;
-import java.util.logging.*;
+import com.jwebmp.core.Page;
+import com.jwebmp.core.base.angular.services.compiler.JWebMPTypeScriptCompiler;
+import com.jwebmp.core.plugins.PluginInformation;
+import com.jwebmp.core.plugins.PluginStatus;
+import com.jwebmp.core.services.IPageConfigurator;
+import jakarta.validation.constraints.NotNull;
+import lombok.extern.java.Log;
+
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * @author GedMarc
@@ -52,10 +55,10 @@ import java.util.logging.*;
                    pluginModuleName = "com.jwebmp.core.angularts",
                    pluginSubtitle = "AngularTS lets you extend HTML vocabulary for your application. The resulting environment is extraordinarily expressive, readable, and quick to develop."
 )
+@Log
 public class TSPageConfigurator
 		implements IPageConfigurator<TSPageConfigurator>
 {
-	private static final Logger log = LogFactory.getLog("Angular Page Configurator");
 	/**
 	 * If this configurator is enabled
 	 */

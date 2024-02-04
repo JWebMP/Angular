@@ -1,46 +1,54 @@
 package com.jwebmp.core.base.angular.services.compiler;
 
-import com.fasterxml.jackson.databind.*;
-import com.google.common.base.*;
-import com.guicedee.guicedinjection.*;
-import com.guicedee.guicedinjection.interfaces.*;
-import com.guicedee.logger.*;
-import com.jwebmp.core.*;
-import com.jwebmp.core.base.*;
-import com.jwebmp.core.base.angular.client.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Strings;
+import com.guicedee.guicedinjection.GuiceContext;
+import com.jwebmp.core.Page;
+import com.jwebmp.core.base.ComponentHierarchyBase;
+import com.jwebmp.core.base.angular.client.AppUtils;
 import com.jwebmp.core.base.angular.client.annotations.angular.*;
-import com.jwebmp.core.base.angular.client.annotations.angularconfig.*;
-import com.jwebmp.core.base.angular.client.annotations.typescript.*;
-import com.jwebmp.core.base.angular.client.services.*;
+import com.jwebmp.core.base.angular.client.annotations.angularconfig.NgAsset;
+import com.jwebmp.core.base.angular.client.annotations.angularconfig.NgPolyfill;
+import com.jwebmp.core.base.angular.client.annotations.angularconfig.NgScript;
+import com.jwebmp.core.base.angular.client.annotations.angularconfig.NgStyleSheet;
+import com.jwebmp.core.base.angular.client.annotations.typescript.TsDependencies;
+import com.jwebmp.core.base.angular.client.annotations.typescript.TsDependency;
+import com.jwebmp.core.base.angular.client.annotations.typescript.TsDevDependencies;
+import com.jwebmp.core.base.angular.client.annotations.typescript.TsDevDependency;
+import com.jwebmp.core.base.angular.client.services.AnnotationsMap;
 import com.jwebmp.core.base.angular.client.services.interfaces.*;
-import com.jwebmp.core.base.angular.modules.services.base.*;
-import com.jwebmp.core.base.angular.services.*;
-import com.jwebmp.core.base.angular.typescript.JWebMP.*;
-import com.jwebmp.core.base.html.*;
-import com.jwebmp.core.base.servlets.enumarations.*;
-import io.github.classgraph.*;
-import org.apache.commons.io.*;
-import org.apache.commons.lang3.*;
+import com.jwebmp.core.base.angular.modules.services.base.AngularAppBootModule;
+import com.jwebmp.core.base.angular.modules.services.base.EnvironmentModule;
+import com.jwebmp.core.base.angular.services.RenderedAssets;
+import com.jwebmp.core.base.angular.typescript.JWebMP.ResourceLocator;
+import com.jwebmp.core.base.html.Body;
+import com.jwebmp.core.base.html.DivSimple;
+import com.jwebmp.core.base.servlets.enumarations.DevelopmentEnvironments;
+import io.github.classgraph.ClassInfo;
+import io.github.classgraph.Resource;
+import io.github.classgraph.ScanResult;
+import lombok.extern.java.Log;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.SystemUtils;
 
-import java.io.*;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
-import java.util.concurrent.*;
-import java.util.logging.*;
 
-import static com.guicedee.guicedinjection.interfaces.ObjectBinderKeys.*;
-import static com.jwebmp.core.base.angular.client.AppUtils.*;
-import static com.jwebmp.core.base.angular.client.services.AnnotationsMap.*;
-import static com.jwebmp.core.base.angular.client.services.interfaces.AnnotationUtils.*;
-import static com.jwebmp.core.base.angular.client.services.interfaces.IComponent.*;
-import static com.jwebmp.core.base.angular.implementations.AngularTSPostStartup.*;
-import static java.nio.charset.StandardCharsets.*;
-
+import static com.guicedee.guicedinjection.interfaces.ObjectBinderKeys.DefaultObjectMapper;
+import static com.jwebmp.core.base.angular.client.AppUtils.getFile;
+import static com.jwebmp.core.base.angular.client.services.AnnotationsMap.getAllAnnotations;
+import static com.jwebmp.core.base.angular.client.services.AnnotationsMap.getAnnotations;
+import static com.jwebmp.core.base.angular.client.services.interfaces.AnnotationUtils.getTsFilename;
+import static com.jwebmp.core.base.angular.client.services.interfaces.IComponent.currentAppFile;
+import static com.jwebmp.core.base.angular.client.services.interfaces.IComponent.getClassDirectory;
+import static com.jwebmp.core.base.angular.implementations.AngularTSPostStartup.buildApp;
+import static java.nio.charset.StandardCharsets.UTF_8;
+@Log
 public class JWebMPTypeScriptCompiler
 {
-	private static final Logger log = LogFactory.getLog(JWebMPTypeScriptCompiler.class);
 	private static JWebMPTypeScriptCompiler instance;
 	
 	
@@ -331,7 +339,7 @@ public class JWebMPTypeScriptCompiler
 		}
 		
 		System.out.println("Registering Assets...");
-		Set<RenderedAssets> renderedAssets = IDefaultService.loaderToSet(ServiceLoader.load(RenderedAssets.class));
+		Set<RenderedAssets> renderedAssets = GuiceContext.instance().loaderToSet(ServiceLoader.load(RenderedAssets.class));
 		for (RenderedAssets<?> renderedAsset : renderedAssets)
 		{
 			for (String asset : renderedAsset.assets())

@@ -1,19 +1,14 @@
 package com.jwebmp.core.base.angular.implementations;
 
-import com.guicedee.guicedinjection.interfaces.*;
-import com.guicedee.logger.*;
-import com.jwebmp.core.base.angular.client.services.*;
-import com.jwebmp.core.base.angular.services.compiler.*;
+import com.guicedee.guicedinjection.interfaces.IGuicePreStartup;
+import com.jwebmp.core.base.angular.client.services.AnnotationsMap;
+import lombok.extern.java.Log;
 
-import java.util.logging.*;
+import static com.jwebmp.core.base.angular.implementations.AngularTSPostStartup.loadTSOnStartup;
 
-import static com.jwebmp.core.base.angular.implementations.AngularTSPostStartup.*;
-
-
+@Log
 public class AngularTSPreStartup implements IGuicePreStartup<AngularTSPreStartup>
 {
-	private static final Logger log = LogFactory.getLog(AngularTSPreStartup.class);
-	
 	@Override
 	public void onStartup()
 	{

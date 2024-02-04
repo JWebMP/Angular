@@ -1,12 +1,12 @@
 package com.jwebmp.core.base.angular.implementations;
 
-import com.guicedee.guicedinjection.*;
-import com.guicedee.guicedinjection.interfaces.*;
+import com.guicedee.guicedinjection.interfaces.IGuiceConfig;
+import com.guicedee.guicedinjection.interfaces.IGuiceConfigurator;
 
 public class SearchPathConfigurator implements IGuiceConfigurator
 {
 	@Override
-	public GuiceConfig configure(GuiceConfig config)
+	public IGuiceConfig<?> configure(IGuiceConfig<?> config)
 	{
 		config.setAnnotationScanning(true);
 		config.setClasspathScanning(true);

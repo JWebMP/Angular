@@ -1,23 +1,21 @@
 package com.jwebmp.core.base.angular.implementations;
 
-import com.guicedee.guicedinjection.interfaces.*;
-import com.guicedee.guicedservlets.undertow.*;
-import com.guicedee.logger.*;
-import com.jwebmp.core.base.angular.client.services.interfaces.*;
-import com.jwebmp.core.base.angular.services.compiler.*;
-import io.undertow.server.handlers.resource.*;
+import com.guicedee.guicedinjection.interfaces.IGuicePostStartup;
+import com.guicedee.guicedservlets.undertow.GuicedUndertowResourceManager;
+import com.jwebmp.core.base.angular.client.services.interfaces.INgApp;
+import com.jwebmp.core.base.angular.services.compiler.JWebMPTypeScriptCompiler;
+import io.undertow.server.handlers.resource.PathResourceManager;
+import lombok.extern.java.Log;
 
-import java.io.*;
-import java.nio.file.*;
-import java.util.logging.*;
+import java.io.IOException;
+import java.nio.file.Path;
 
-import static com.jwebmp.core.base.angular.client.services.interfaces.AnnotationUtils.*;
-import static com.jwebmp.core.base.angular.client.services.interfaces.IComponent.*;
+import static com.jwebmp.core.base.angular.client.services.interfaces.AnnotationUtils.getTsFilename;
+import static com.jwebmp.core.base.angular.client.services.interfaces.IComponent.getClassDirectory;
 
-
+@Log
 public class AngularTSPostStartup implements IGuicePostStartup<AngularTSPostStartup>
 {
-	private static final Logger log = LogFactory.getLog(AngularTSPostStartup.class);
 	public static Path basePath;
 	public static boolean loadTSOnStartup = true;
 	public static boolean buildApp = true;

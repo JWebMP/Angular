@@ -16,50 +16,46 @@
  */
 package com.jwebmp.core.base.angular.implementations;
 
-import com.guicedee.guicedinjection.*;
-import com.guicedee.guicedinjection.properties.*;
-import com.guicedee.guicedservlets.*;
-import com.guicedee.guicedservlets.services.*;
-import com.guicedee.guicedservlets.undertow.*;
-import com.guicedee.logger.*;
-import com.jwebmp.core.annotations.*;
-import com.jwebmp.core.base.angular.client.annotations.angular.*;
-import com.jwebmp.core.base.angular.client.services.*;
-import com.jwebmp.core.base.angular.modules.services.angular.*;
-import com.jwebmp.core.base.angular.modules.services.base.*;
-import com.jwebmp.core.base.angular.services.*;
+import com.google.inject.servlet.ServletModule;
+import com.guicedee.guicedinjection.GuiceContext;
+import com.guicedee.guicedinjection.interfaces.IGuiceModule;
+import com.guicedee.guicedinjection.properties.GlobalProperties;
+import com.guicedee.guicedservlets.FileSystemResourceServlet;
+import com.guicedee.guicedservlets.undertow.GuicedUndertowResourceManager;
+import com.jwebmp.core.annotations.PageConfiguration;
+import com.jwebmp.core.base.angular.client.annotations.angular.NgApp;
+import com.jwebmp.core.base.angular.client.services.AnnotationsMap;
+import com.jwebmp.core.base.angular.modules.services.angular.RoutingModule;
+import com.jwebmp.core.base.angular.modules.services.base.EnvironmentModule;
+import com.jwebmp.core.base.angular.services.DefinedRoute;
+import com.jwebmp.core.implementations.JWebMPJavaScriptDynamicScriptRenderer;
+import com.jwebmp.core.implementations.JWebMPSiteBinder;
+import io.github.classgraph.ClassInfo;
+import io.undertow.server.handlers.resource.PathResourceManager;
+import lombok.extern.java.Log;
+import org.apache.commons.io.FileUtils;
 
-import com.jwebmp.core.base.angular.services.compiler.*;
-import com.jwebmp.core.implementations.*;
-import io.github.classgraph.*;
-import io.undertow.server.handlers.resource.*;
-import org.apache.commons.io.*;
-
-import java.io.*;
-import java.util.logging.*;
+import java.io.File;
+import java.io.IOException;
+import java.util.logging.Level;
 
 /**
  * @author GedMarc
  * @version 1.0
  * @since 20 Dec 2016
  */
+@Log
 public class AngularTSSiteBinder
-		implements IGuiceSiteBinder<GuiceSiteInjectorModule>
+	extends ServletModule
+		implements IGuiceModule<AngularTSSiteBinder>
 {
 	/**
-	 * Field log
-	 */
-	private static final java.util.logging.Logger log = LogFactory.getLog("AngularTSSiteBinder");
-	
-	/**
 	 * Method onBind ...
-	 *
-	 * @param module of type GuiceSiteInjectorModule
 	 */
 	@Override
-	public void onBind(GuiceSiteInjectorModule module)
+	public void configureServlets()
 	{
-		module.bind(EnvironmentModule.class)
+		bind(EnvironmentModule.class)
 		      .toInstance(new EnvironmentModule());
 		
 		for (ClassInfo classInfo : GuiceContext.instance()
@@ -86,7 +82,7 @@ public class AngularTSSiteBinder
 				                          .substring(0, pc.url()
 				                                          .length() - 1) + "/");
 				
-				module.serveRegex$(url.toString())
+				serveRegex(url.toString())
 				      .with(new FileSystemResourceServlet().setFolder(file));
 				
 				GuicedUndertowResourceManager.setPathManager(new PathResourceManager(file.toPath()));
@@ -97,7 +93,7 @@ public class AngularTSSiteBinder
 				String path = "";
 				for (DefinedRoute<?> route : RoutingModule.getRoutes())
 				{
-					bindRouteToPath(path, module, file, route);
+					bindRouteToPath(path,  file, route);
 				}
 			}
 		}
@@ -106,7 +102,7 @@ public class AngularTSSiteBinder
 		
 	}
 	
-	private String bindRouteToPath(String path, GuiceSiteInjectorModule module, File file, DefinedRoute<?> route)
+	private String bindRouteToPath(String path, File file, DefinedRoute<?> route)
 	{
 		String newPath = route.getPath();
 		if (!newPath.startsWith("/"))
@@ -119,14 +115,14 @@ public class AngularTSSiteBinder
 			newPath = newPath.replace("/**", "/*");
 		}
 		log.config("Configuring route - " + newPath);
-		module.serveRegex$(newPath)
+		serveRegex(newPath)
 		      .with(new FileSystemResourceServlet().setFolder(file));
 		if (route.getChildren() != null && !route.getChildren()
 		                                         .isEmpty())
 		{
 			for (DefinedRoute<?> child : route.getChildren())
 			{
-				bindRouteToPath(newPath, module, file, child);
+				bindRouteToPath(newPath, file, child);
 			}
 		}
 		return newPath;

@@ -1,8 +1,8 @@
 package com.jwebmp.core.base.angular;
 
-import com.guicedee.guicedinjection.representations.*;
-import com.jwebmp.core.base.*;
-import com.jwebmp.core.base.interfaces.*;
+import com.guicedee.services.jsonrepresentation.IJsonRepresentation;
+import com.jwebmp.core.base.ComponentHierarchyBase;
+import com.jwebmp.core.base.interfaces.IComponentHierarchyBase;
 
 public class AngularWebSocket
 {

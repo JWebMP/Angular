@@ -1,26 +1,28 @@
 package com.jwebmp.core.base.angular.implementations;
 
-import com.guicedee.guicedservlets.websockets.*;
-import com.guicedee.guicedservlets.websockets.services.*;
-import com.guicedee.logger.*;
-import com.jwebmp.core.annotations.*;
-import com.jwebmp.core.implementations.*;
-import com.jwebmp.core.services.*;
-import io.undertow.server.*;
-import io.undertow.servlet.*;
-import io.undertow.servlet.api.*;
-import io.undertow.websockets.jsr.*;
-import org.xnio.*;
+import com.guicedee.guicedservlets.websockets.GuicedWebSocket;
+import com.guicedee.guicedservlets.websockets.services.IWebSocketPreConfiguration;
+import com.jwebmp.core.annotations.PageConfiguration;
+import com.jwebmp.core.implementations.JWebMPSiteBinder;
+import com.jwebmp.core.services.IPage;
+import io.undertow.server.HttpHandler;
+import io.undertow.servlet.Servlets;
+import io.undertow.servlet.api.DeploymentInfo;
+import io.undertow.servlet.api.DeploymentManager;
+import io.undertow.websockets.jsr.WebSocketDeploymentInfo;
+import lombok.extern.java.Log;
+import org.xnio.OptionMap;
+import org.xnio.Xnio;
+import org.xnio.XnioWorker;
 
-import java.util.*;
-import java.util.logging.*;
+import java.util.Map;
+import java.util.logging.Level;
 
-import static io.undertow.servlet.Servlets.*;
-import static io.undertow.websockets.jsr.WebSocketDeploymentInfo.*;
-
+import static io.undertow.servlet.Servlets.deployment;
+import static io.undertow.websockets.jsr.WebSocketDeploymentInfo.ATTRIBUTE_NAME;
+@Log
 public class JWebMPGuicedUndertowWebSocketConfiguration implements IWebSocketPreConfiguration<JWebMPGuicedUndertowWebSocketConfiguration>
 {
-	private static final Logger log = LogFactory.getLog("UndertowWebSockets");
 	private static WebSocketDeploymentInfo webSocketDeploymentInfo;
 	private static HttpHandler webSocketHandler;
 	

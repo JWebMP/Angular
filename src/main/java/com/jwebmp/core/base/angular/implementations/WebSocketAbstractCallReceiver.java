@@ -1,32 +1,30 @@
 package com.jwebmp.core.base.angular.implementations;
 
-import com.fasterxml.jackson.databind.*;
-import com.google.common.base.*;
-import com.google.inject.*;
-import com.google.inject.name.*;
-import com.guicedee.guicedinjection.*;
-import com.guicedee.guicedservlets.services.scopes.*;
-import com.guicedee.guicedservlets.websockets.*;
-import com.guicedee.guicedservlets.websockets.options.*;
-import com.guicedee.guicedservlets.websockets.services.*;
-import com.guicedee.logger.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Strings;
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
+import com.guicedee.guicedinjection.GuiceContext;
+import com.guicedee.guicedservlets.services.scopes.CallScoper;
+import com.guicedee.guicedservlets.websockets.GuicedWebSocket;
+import com.guicedee.guicedservlets.websockets.options.WebSocketMessageReceiver;
+import com.guicedee.guicedservlets.websockets.services.IWebSocketMessageReceiver;
 import com.jwebmp.core.base.ajax.*;
-import com.jwebmp.core.utilities.*;
-import com.jwebmp.interception.services.*;
+import com.jwebmp.core.utilities.TextUtilities;
+import com.jwebmp.interception.services.AjaxCallIntercepter;
+import lombok.extern.java.Log;
 
-import java.util.*;
-import java.util.logging.*;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.logging.Level;
 
-import static com.guicedee.guicedinjection.GuiceContext.*;
-import static com.guicedee.guicedinjection.interfaces.ObjectBinderKeys.*;
-import static com.jwebmp.interception.JWebMPInterceptionBinder.*;
-
+import static com.guicedee.guicedinjection.GuiceContext.get;
+import static com.guicedee.guicedinjection.interfaces.ObjectBinderKeys.DefaultObjectMapper;
+import static com.jwebmp.interception.JWebMPInterceptionBinder.AjaxCallInterceptorKey;
+@Log
 public abstract class WebSocketAbstractCallReceiver
 		implements IWebSocketMessageReceiver
 {
-	private static final Logger log = LogFactory.getInstance()
-	                                            .getLogger("WebSocketAbstractCallReceiver");
-	
 	@Inject
 	@Named("callScope")
 	private CallScoper scope;

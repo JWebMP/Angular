@@ -1,18 +1,18 @@
 package com.jwebmp.core.base.angular.implementations;
 
-import com.guicedee.guicedservlets.websockets.*;
-import com.guicedee.guicedservlets.websockets.options.*;
-import com.guicedee.guicedservlets.websockets.services.*;
-import com.guicedee.logger.*;
+import com.guicedee.guicedservlets.websockets.GuicedWebSocket;
+import com.guicedee.guicedservlets.websockets.options.WebSocketMessageReceiver;
+import com.guicedee.guicedservlets.websockets.services.IWebSocketMessageReceiver;
+import lombok.extern.java.Log;
 
-import java.util.*;
-import java.util.logging.*;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.logging.Level;
 
+@Log
 public class WSAddToGroupMessageReceiver
 		implements IWebSocketMessageReceiver
 {
-	private static final Logger log = LogFactory.getLog("WSAddToGroupMessageReceiver");
-	
 	@Override
 	public void receiveMessage(WebSocketMessageReceiver<?> message) throws SecurityException
 	{

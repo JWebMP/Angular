@@ -1,29 +1,28 @@
 package com.jwebmp.core.base.angular.modules.services.base;
 
-import com.google.common.base.*;
-import com.guicedee.guicedinjection.*;
-import com.guicedee.logger.*;
+import com.guicedee.guicedinjection.GuiceContext;
 import com.jwebmp.core.base.angular.client.annotations.angular.*;
-import com.jwebmp.core.base.angular.client.annotations.angularconfig.*;
+import com.jwebmp.core.base.angular.client.annotations.angularconfig.NgPolyfill;
 import com.jwebmp.core.base.angular.client.annotations.boot.*;
-import com.jwebmp.core.base.angular.client.annotations.components.*;
-import com.jwebmp.core.base.angular.client.annotations.constructors.*;
-import com.jwebmp.core.base.angular.client.annotations.references.*;
-import com.jwebmp.core.base.angular.client.annotations.typescript.*;
-
-import com.jwebmp.core.base.angular.client.services.*;
+import com.jwebmp.core.base.angular.client.annotations.constructors.NgConstructorBody;
+import com.jwebmp.core.base.angular.client.annotations.constructors.NgConstructorParameter;
+import com.jwebmp.core.base.angular.client.annotations.references.NgComponentReference;
+import com.jwebmp.core.base.angular.client.annotations.references.NgImportReference;
+import com.jwebmp.core.base.angular.client.annotations.typescript.TsDependency;
+import com.jwebmp.core.base.angular.client.services.AnnotationsMap;
+import com.jwebmp.core.base.angular.client.services.SocketClientService;
 import com.jwebmp.core.base.angular.client.services.interfaces.*;
-import com.jwebmp.core.base.angular.services.interfaces.*;
-import com.jwebmp.core.base.html.*;
-import com.jwebmp.core.databind.*;
-import io.github.classgraph.*;
+import com.jwebmp.core.base.html.DivSimple;
+import com.jwebmp.core.databind.IConfiguration;
+import io.github.classgraph.ClassInfo;
+import io.github.classgraph.ScanResult;
+import lombok.extern.java.Log;
 
-import java.util.List;
-import java.util.Map;
 import java.util.*;
-import java.util.logging.*;
+import java.util.logging.Level;
 
-import static com.jwebmp.core.base.angular.client.services.AnnotationsMap.*;
+import static com.jwebmp.core.base.angular.client.services.AnnotationsMap.getAllAnnotations;
+import static com.jwebmp.core.base.angular.client.services.AnnotationsMap.getAnnotations;
 import static com.jwebmp.core.base.angular.client.services.interfaces.AnnotationUtils.*;
 
 @TsDependency(value = "@angular/platform-browser", version = "^13.3.0", overrides = true)
@@ -41,9 +40,9 @@ import static com.jwebmp.core.base.angular.client.services.interfaces.Annotation
 
 @TsDependency(value = "@angular/platform-browser-dynamic", version = "^13.3.0")
 @NgComponentReference(SocketClientService.class)
+@Log
 public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implements INgModule<AngularAppBootModule>
 {
-	private static final Logger log = LogFactory.getLog(AngularAppBootModule.class);
 	private Class<? extends INgComponent<?>> bootModule;
 	private INgApp<?> app;
 	

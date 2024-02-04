@@ -1,7 +1,7 @@
 package com.jwebmp.core.base.angular.services;
 
 import com.fasterxml.jackson.annotation.*;
-import com.guicedee.guicedinjection.representations.IJsonRepresentation;
+import com.guicedee.services.jsonrepresentation.IJsonRepresentation;
 import com.jwebmp.core.base.angular.client.services.interfaces.*;
 import com.jwebmp.core.base.angular.services.interfaces.*;
 
