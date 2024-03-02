@@ -1,13 +1,14 @@
 package com.jwebmp.core.base.angular.services.interfaces;
 
 import com.jwebmp.core.base.*;
+import com.jwebmp.core.base.interfaces.IComponentHierarchyBase;
 import com.jwebmp.core.databind.*;
 
 public class OnComponentRenderApplyAngular implements IOnComponentHtmlRender<OnComponentRenderApplyAngular>
 {
-	@Override
-	public boolean onHtmlRender(ComponentHierarchyBase<?, ?, ?, ?, ?> component)
-	{
+    @Override
+    public boolean onHtmlRender(IComponentHierarchyBase<?, ?> component)
+    {
 		/*if (!component.getConfigurations(IComponent.class)
 		              .isEmpty())
 		{
@@ -18,7 +19,7 @@ public class OnComponentRenderApplyAngular implements IOnComponentHtmlRender<OnC
 				                                                             .getCanonicalName());
 			}
 		}*/
-		return true;
-	}
+        return true;
+    }
 }
 

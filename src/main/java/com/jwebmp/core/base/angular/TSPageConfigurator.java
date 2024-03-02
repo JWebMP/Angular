@@ -21,6 +21,7 @@ import com.jwebmp.core.Page;
 import com.jwebmp.core.base.angular.services.compiler.JWebMPTypeScriptCompiler;
 import com.jwebmp.core.plugins.PluginInformation;
 import com.jwebmp.core.plugins.PluginStatus;
+import com.jwebmp.core.services.IPage;
 import com.jwebmp.core.services.IPageConfigurator;
 import jakarta.validation.constraints.NotNull;
 import lombok.extern.java.Log;
@@ -36,110 +37,110 @@ import java.util.Set;
  */
 @SuppressWarnings({"WeakerAccess", "UnusedReturnValue", "unused"})
 @PluginInformation(pluginName = "AngularTS",
-                   pluginDescription = "AngularTS renders TypeScript files and compiles them for Angular rendering",
-                   pluginUniqueName = "angular",
-                   pluginVersion = "1.8.2",
-                   pluginDependancyUniqueIDs = "jquery",
-                   pluginCategories = "jquery, angular, data-binding, ng, google",
-                   pluginGitUrl = "https://github.com/GedMarc/JWebMP-AngularJS",
-                   pluginSourceUrl = "https://angularjs.org",
-                   pluginWikiUrl = "https://github.com/GedMarc/JWebMP-AngularJS/wiki",
-                   pluginOriginalHomepage = "https://angularjs.org",
-                   pluginDownloadUrl = "https://angularjs.org/",
-                   pluginIconImageUrl = "https://angularjs.org/img/AngularJS-large.png",
-                   pluginIconUrl = "https://angularjs.org/img/AngularJS-large.png",
-                   pluginLastUpdatedDate = "2020/12/14",
-                   pluginStatus = PluginStatus.Released,
-                   pluginGroupId = "com.jwebmp.plugins.angular",
-                   pluginArtifactId = "jwebmp-plugins-angularts",
-                   pluginModuleName = "com.jwebmp.core.angularts",
-                   pluginSubtitle = "AngularTS lets you extend HTML vocabulary for your application. The resulting environment is extraordinarily expressive, readable, and quick to develop."
+        pluginDescription = "AngularTS renders TypeScript files and compiles them for Angular rendering",
+        pluginUniqueName = "angular",
+        pluginVersion = "1.8.2",
+        pluginDependancyUniqueIDs = "jquery",
+        pluginCategories = "jquery, angular, data-binding, ng, google",
+        pluginGitUrl = "https://github.com/GedMarc/JWebMP-AngularJS",
+        pluginSourceUrl = "https://angularjs.org",
+        pluginWikiUrl = "https://github.com/GedMarc/JWebMP-AngularJS/wiki",
+        pluginOriginalHomepage = "https://angularjs.org",
+        pluginDownloadUrl = "https://angularjs.org/",
+        pluginIconImageUrl = "https://angularjs.org/img/AngularJS-large.png",
+        pluginIconUrl = "https://angularjs.org/img/AngularJS-large.png",
+        pluginLastUpdatedDate = "2020/12/14",
+        pluginStatus = PluginStatus.Released,
+        pluginGroupId = "com.jwebmp.plugins.angular",
+        pluginArtifactId = "jwebmp-plugins-angularts",
+        pluginModuleName = "com.jwebmp.core.angularts",
+        pluginSubtitle = "AngularTS lets you extend HTML vocabulary for your application. The resulting environment is extraordinarily expressive, readable, and quick to develop."
 )
 @Log
 public class TSPageConfigurator
-		implements IPageConfigurator<TSPageConfigurator>
+        implements IPageConfigurator<TSPageConfigurator>
 {
-	/**
-	 * If this configurator is enabled
-	 */
-	private static boolean enabled = true;
-	/**
-	 * If the angular functionality is requires or not
-	 */
-	private static boolean required;
-	
-	private Map<Page<?>, JWebMPTypeScriptCompiler> pageCompilers = new HashMap<>();
-	private Set<String> assetLocations = new LinkedHashSet<>();
-	
-	/**
-	 * Configures the angular page
-	 */
-	public TSPageConfigurator()
-	{
-		//No config required
-	}
-	
-	/**
-	 * Method isEnabled returns the enabled of this AngularAnimatedChangePageConfigurator object.
-	 * <p>
-	 * If this configurator is enabled
-	 *
-	 * @return the enabled (type boolean) of this AngularAnimatedChangePageConfigurator object.
-	 */
-	public static boolean isEnabled()
-	{
-		return TSPageConfigurator.enabled;
-	}
-	
-	/**
-	 * Method setEnabled sets the enabled of this AngularAnimatedChangePageConfigurator object.
-	 * <p>
-	 * If this configurator is enabled
-	 *
-	 * @param mustEnable the enabled of this AngularAnimatedChangePageConfigurator object.
-	 */
-	public static void setEnabled(boolean mustEnable)
-	{
-		TSPageConfigurator.enabled = mustEnable;
-	}
-	
-	/**
-	 * If the configurator is required
-	 *
-	 * @return If it is required to render
-	 */
-	public static boolean isRequired()
-	{
-		return TSPageConfigurator.required;
-	}
-	
-	/**
-	 * Sets angular as a required component
-	 *
-	 * @param required If it is required to render
-	 */
-	public static void setRequired(boolean required)
-	{
-		TSPageConfigurator.required = required;
-	}
-	
-	@NotNull
-	@Override
-	public Page<?> configure(Page<?> page)
-	{
-		return page;
-	}
-	
-	@Override
-	public boolean enabled()
-	{
-		return TSPageConfigurator.enabled;
-	}
-	
-	@Override
-	public Integer sortOrder()
-	{
-		return Integer.MAX_VALUE - 100;
-	}
-	
+    /**
+     * If this configurator is enabled
+     */
+    private static boolean enabled = true;
+    /**
+     * If the angular functionality is requires or not
+     */
+    private static boolean required;
+
+    private Map<Page<?>, JWebMPTypeScriptCompiler> pageCompilers = new HashMap<>();
+    private Set<String> assetLocations = new LinkedHashSet<>();
+
+    /**
+     * Configures the angular page
+     */
+    public TSPageConfigurator()
+    {
+        //No config required
+    }
+
+    /**
+     * Method isEnabled returns the enabled of this AngularAnimatedChangePageConfigurator object.
+     * <p>
+     * If this configurator is enabled
+     *
+     * @return the enabled (type boolean) of this AngularAnimatedChangePageConfigurator object.
+     */
+    public static boolean isEnabled()
+    {
+        return TSPageConfigurator.enabled;
+    }
+
+    /**
+     * Method setEnabled sets the enabled of this AngularAnimatedChangePageConfigurator object.
+     * <p>
+     * If this configurator is enabled
+     *
+     * @param mustEnable the enabled of this AngularAnimatedChangePageConfigurator object.
+     */
+    public static void setEnabled(boolean mustEnable)
+    {
+        TSPageConfigurator.enabled = mustEnable;
+    }
+
+    /**
+     * If the configurator is required
+     *
+     * @return If it is required to render
+     */
+    public static boolean isRequired()
+    {
+        return TSPageConfigurator.required;
+    }
+
+    /**
+     * Sets angular as a required component
+     *
+     * @param required If it is required to render
+     */
+    public static void setRequired(boolean required)
+    {
+        TSPageConfigurator.required = required;
+    }
+
+    @NotNull
+    @Override
+    public IPage<?> configure(IPage<?> page)
+    {
+        return page;
+    }
+
+    @Override
+    public boolean enabled()
+    {
+        return TSPageConfigurator.enabled;
+    }
+
+    @Override
+    public Integer sortOrder()
+    {
+        return Integer.MAX_VALUE - 100;
+    }
+
 }

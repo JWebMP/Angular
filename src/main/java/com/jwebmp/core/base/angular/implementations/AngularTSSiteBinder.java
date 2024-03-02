@@ -17,7 +17,7 @@
 package com.jwebmp.core.base.angular.implementations;
 
 import com.google.inject.servlet.ServletModule;
-import com.guicedee.guicedinjection.GuiceContext;
+import com.guicedee.client.IGuiceContext;
 import com.guicedee.guicedinjection.interfaces.IGuiceModule;
 import com.guicedee.guicedinjection.properties.GlobalProperties;
 import com.guicedee.guicedservlets.FileSystemResourceServlet;
@@ -46,91 +46,92 @@ import java.util.logging.Level;
  */
 @Log
 public class AngularTSSiteBinder
-	extends ServletModule
-		implements IGuiceModule<AngularTSSiteBinder>
+        extends ServletModule
+        implements IGuiceModule<AngularTSSiteBinder>
 {
-	/**
-	 * Method onBind ...
-	 */
-	@Override
-	public void configureServlets()
-	{
-		bind(EnvironmentModule.class)
-		      .toInstance(new EnvironmentModule());
-		
-		for (ClassInfo classInfo : GuiceContext.instance()
-		                                       .getScanResult()
-		                                       .getClassesWithAnnotation(NgApp.class))
-		{
-			Class<?> loadClass = classInfo.loadClass();
-			for (NgApp app : AnnotationsMap.getAnnotations(loadClass, NgApp.class))
-			{
-				PageConfiguration pc = loadClass.getAnnotation(PageConfiguration.class);
-				String userDir = GlobalProperties.getSystemPropertyOrEnvironment("JWEBMP_ROOT_PATH", FileUtils.getUserDirectory().getPath());
-				File file = new File(userDir + "/jwebmp/" + app.name() + "/dist/jwebmp/");
-				try
-				{
-					FileUtils.forceMkdirParent(file);
-					FileUtils.forceMkdir(file);
-				}
-				catch (IOException e)
-				{
-					throw new RuntimeException(e);
-				}
-				StringBuilder url;
-				url = new StringBuilder(pc.url()
-				                          .substring(0, pc.url()
-				                                          .length() - 1) + "/");
-				
-				serveRegex(url.toString())
-				      .with(new FileSystemResourceServlet().setFolder(file));
-				
-				GuicedUndertowResourceManager.setPathManager(new PathResourceManager(file.toPath()));
-				
-				AngularTSPostStartup.basePath = file.toPath();
-				AngularTSSiteBinder.log.log(Level.FINE, "Serving Angular TS for defined @NgApp " + app.name() + " at  " + file.getPath());
-				
-				String path = "";
-				for (DefinedRoute<?> route : RoutingModule.getRoutes())
-				{
-					bindRouteToPath(path,  file, route);
-				}
-			}
-		}
-		JWebMPSiteBinder.bindSites = false;
-		JWebMPJavaScriptDynamicScriptRenderer.renderJavascript = false;
-		
-	}
-	
-	private String bindRouteToPath(String path, File file, DefinedRoute<?> route)
-	{
-		String newPath = route.getPath();
-		if (!newPath.startsWith("/"))
-		{
-			newPath = "/" + newPath;
-		}
-		newPath = path + newPath;
-		if (newPath.endsWith("/**"))
-		{
-			newPath = newPath.replace("/**", "/*");
-		}
-		log.config("Configuring route - " + newPath);
-		serveRegex(newPath)
-		      .with(new FileSystemResourceServlet().setFolder(file));
-		if (route.getChildren() != null && !route.getChildren()
-		                                         .isEmpty())
-		{
-			for (DefinedRoute<?> child : route.getChildren())
-			{
-				bindRouteToPath(newPath, file, child);
-			}
-		}
-		return newPath;
-	}
-	
-	@Override
-	public Integer sortOrder()
-	{
-		return Integer.MIN_VALUE + 100;
-	}
+    /**
+     * Method onBind ...
+     */
+    @Override
+    public void configureServlets()
+    {
+        bind(EnvironmentModule.class)
+                .toInstance(new EnvironmentModule());
+
+        for (ClassInfo classInfo : IGuiceContext.instance()
+                                                .getScanResult()
+                                                .getClassesWithAnnotation(NgApp.class))
+        {
+            Class<?> loadClass = classInfo.loadClass();
+            for (NgApp app : AnnotationsMap.getAnnotations(loadClass, NgApp.class))
+            {
+                PageConfiguration pc = loadClass.getAnnotation(PageConfiguration.class);
+                String userDir = GlobalProperties.getSystemPropertyOrEnvironment("JWEBMP_ROOT_PATH", FileUtils.getUserDirectory()
+                                                                                                              .getPath());
+                File file = new File(userDir + "/jwebmp/" + app.name() + "/dist/jwebmp/");
+                try
+                {
+                    FileUtils.forceMkdirParent(file);
+                    FileUtils.forceMkdir(file);
+                }
+                catch (IOException e)
+                {
+                    throw new RuntimeException(e);
+                }
+                StringBuilder url;
+                url = new StringBuilder(pc.url()
+                                          .substring(0, pc.url()
+                                                          .length() - 1) + "/");
+
+                serveRegex(url.toString())
+                        .with(new FileSystemResourceServlet().setFolder(file));
+
+                GuicedUndertowResourceManager.setPathManager(new PathResourceManager(file.toPath()));
+
+                AngularTSPostStartup.basePath = file.toPath();
+                AngularTSSiteBinder.log.log(Level.FINE, "Serving Angular TS for defined @NgApp " + app.name() + " at  " + file.getPath());
+
+                String path = "";
+                for (DefinedRoute<?> route : RoutingModule.getRoutes())
+                {
+                    bindRouteToPath(path, file, route);
+                }
+            }
+        }
+        JWebMPSiteBinder.bindSites = false;
+        JWebMPJavaScriptDynamicScriptRenderer.renderJavascript = false;
+
+    }
+
+    private String bindRouteToPath(String path, File file, DefinedRoute<?> route)
+    {
+        String newPath = route.getPath();
+        if (!newPath.startsWith("/"))
+        {
+            newPath = "/" + newPath;
+        }
+        newPath = path + newPath;
+        if (newPath.endsWith("/**"))
+        {
+            newPath = newPath.replace("/**", "/*");
+        }
+        log.config("Configuring route - " + newPath);
+        serveRegex(newPath)
+                .with(new FileSystemResourceServlet().setFolder(file));
+        if (route.getChildren() != null && !route.getChildren()
+                                                 .isEmpty())
+        {
+            for (DefinedRoute<?> child : route.getChildren())
+            {
+                bindRouteToPath(newPath, file, child);
+            }
+        }
+        return newPath;
+    }
+
+    @Override
+    public Integer sortOrder()
+    {
+        return Integer.MIN_VALUE + 100;
+    }
 }
