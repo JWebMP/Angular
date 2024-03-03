@@ -24,7 +24,6 @@ import com.guicedee.guicedservlets.FileSystemResourceServlet;
 import com.guicedee.guicedservlets.undertow.GuicedUndertowResourceManager;
 import com.jwebmp.core.annotations.PageConfiguration;
 import com.jwebmp.core.base.angular.client.annotations.angular.NgApp;
-import com.jwebmp.core.base.angular.client.services.AnnotationsMap;
 import com.jwebmp.core.base.angular.modules.services.angular.RoutingModule;
 import com.jwebmp.core.base.angular.modules.services.base.EnvironmentModule;
 import com.jwebmp.core.base.angular.services.DefinedRoute;
@@ -63,41 +62,43 @@ public class AngularTSSiteBinder
                                                 .getClassesWithAnnotation(NgApp.class))
         {
             Class<?> loadClass = classInfo.loadClass();
-            for (NgApp app : AnnotationsMap.getAnnotations(loadClass, NgApp.class))
+            NgApp app = loadClass.getAnnotation(NgApp.class);
+            //  for (NgApp app : IGuiceContext.get(AnnotationHelper.class)
+            //                                .getAnnotationFromClass(loadClass, NgApp.class))
+            //   {
+            PageConfiguration pc = loadClass.getAnnotation(PageConfiguration.class);
+            String userDir = GlobalProperties.getSystemPropertyOrEnvironment("JWEBMP_ROOT_PATH", FileUtils.getUserDirectory()
+                                                                                                          .getPath());
+            File file = new File(userDir + "/jwebmp/" + app.value() + "/dist/jwebmp/");
+            try
             {
-                PageConfiguration pc = loadClass.getAnnotation(PageConfiguration.class);
-                String userDir = GlobalProperties.getSystemPropertyOrEnvironment("JWEBMP_ROOT_PATH", FileUtils.getUserDirectory()
-                                                                                                              .getPath());
-                File file = new File(userDir + "/jwebmp/" + app.name() + "/dist/jwebmp/");
-                try
-                {
-                    FileUtils.forceMkdirParent(file);
-                    FileUtils.forceMkdir(file);
-                }
-                catch (IOException e)
-                {
-                    throw new RuntimeException(e);
-                }
-                StringBuilder url;
-                url = new StringBuilder(pc.url()
-                                          .substring(0, pc.url()
-                                                          .length() - 1) + "/");
+                FileUtils.forceMkdirParent(file);
+                FileUtils.forceMkdir(file);
+            }
+            catch (IOException e)
+            {
+                throw new RuntimeException(e);
+            }
+            StringBuilder url;
+            url = new StringBuilder(pc.url()
+                                      .substring(0, pc.url()
+                                                      .length() - 1) + "/");
 
-                serveRegex(url.toString())
-                        .with(new FileSystemResourceServlet().setFolder(file));
+            serveRegex(url.toString())
+                    .with(new FileSystemResourceServlet().setFolder(file));
 
-                GuicedUndertowResourceManager.setPathManager(new PathResourceManager(file.toPath()));
+            GuicedUndertowResourceManager.setPathManager(new PathResourceManager(file.toPath()));
 
-                AngularTSPostStartup.basePath = file.toPath();
-                AngularTSSiteBinder.log.log(Level.FINE, "Serving Angular TS for defined @NgApp " + app.name() + " at  " + file.getPath());
+            AngularTSPostStartup.basePath = file.toPath();
+            AngularTSSiteBinder.log.log(Level.FINE, "Serving Angular TS for defined @NgApp " + app.value() + " at  " + file.getPath());
 
-                String path = "";
-                for (DefinedRoute<?> route : RoutingModule.getRoutes())
-                {
-                    bindRouteToPath(path, file, route);
-                }
+            String path = "";
+            for (DefinedRoute<?> route : RoutingModule.getRoutes())
+            {
+                bindRouteToPath(path, file, route);
             }
         }
+        //}
         JWebMPSiteBinder.bindSites = false;
         JWebMPJavaScriptDynamicScriptRenderer.renderJavascript = false;
 

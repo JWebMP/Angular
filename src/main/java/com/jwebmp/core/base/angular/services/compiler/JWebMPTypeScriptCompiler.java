@@ -15,7 +15,7 @@ import com.jwebmp.core.base.angular.client.annotations.typescript.TsDependencies
 import com.jwebmp.core.base.angular.client.annotations.typescript.TsDependency;
 import com.jwebmp.core.base.angular.client.annotations.typescript.TsDevDependencies;
 import com.jwebmp.core.base.angular.client.annotations.typescript.TsDevDependency;
-import com.jwebmp.core.base.angular.client.services.AnnotationsMap;
+import com.jwebmp.core.base.angular.client.services.AnnotationHelper;
 import com.jwebmp.core.base.angular.client.services.interfaces.*;
 import com.jwebmp.core.base.angular.modules.services.base.AngularAppBootModule;
 import com.jwebmp.core.base.angular.modules.services.base.EnvironmentModule;
@@ -39,8 +39,6 @@ import java.util.*;
 
 import static com.guicedee.guicedinjection.interfaces.ObjectBinderKeys.DefaultObjectMapper;
 import static com.jwebmp.core.base.angular.client.AppUtils.getFile;
-import static com.jwebmp.core.base.angular.client.services.AnnotationsMap.getAllAnnotations;
-import static com.jwebmp.core.base.angular.client.services.AnnotationsMap.getAnnotations;
 import static com.jwebmp.core.base.angular.client.services.interfaces.AnnotationUtils.getTsFilename;
 import static com.jwebmp.core.base.angular.client.services.interfaces.IComponent.currentAppFile;
 import static com.jwebmp.core.base.angular.client.services.interfaces.IComponent.getClassDirectory;
@@ -70,10 +68,11 @@ public class JWebMPTypeScriptCompiler
     {
         instance = this;
         this.app = app;
-        this.ngApp = getAnnotations(app.getClass(), NgApp.class).get(0);
+        this.ngApp = app.getClass()
+                        .getAnnotation(NgApp.class);
         File appPath = AppUtils.getAppPath((Class<? extends INgApp<?>>) app.getClass());
         currentAppFile.set(appPath);
-        log.info("Application [" + ngApp.name() + "] is compiling to " + appPath.getPath() + ". Change with env property \"jwebmp\"");
+        log.info("Application [" + ngApp.value() + "] is compiling to " + appPath.getPath() + ". Change with env property \"jwebmp\"");
     }
 
     public static Set<INgApp<?>> getAllApps()
@@ -189,7 +188,8 @@ public class JWebMPTypeScriptCompiler
     public StringBuilder renderAppTS(Class<? extends INgApp<?>> appClass) throws IOException
     {
         StringBuilder sb = new StringBuilder();
-        ngApp = getAnnotations(app.getClass(), NgApp.class).get(0);
+        ngApp = app.getClass()
+                   .getAnnotation(NgApp.class);
         AppUtils.getAppPath(appClass);
 
         INgApp<?> app = IGuiceContext.get(appClass);
@@ -304,20 +304,25 @@ public class JWebMPTypeScriptCompiler
         String tsConfigTemplateAbs = IOUtils.toString(Objects.requireNonNull(ResourceLocator.class.getResourceAsStream("tsconfig.json")), UTF_8);
         FileUtils.writeStringToFile(tsConfigFileAbs, tsConfigTemplateAbs, UTF_8, false);
 
+        File packageLockFile = new File(AppUtils.getAppPath(appClass)
+                                                .getCanonicalPath() + "/package-lock.json");
+        if (packageLockFile.exists() && packageLockFile.isFile())
+        {
+            packageLockFile.delete();
+        }
 
         File polyfillFile = AppUtils.getAppPolyfillsPath(appClass, true);// new File(srcDirectory.getCanonicalPath() + "/polyfills.ts");
         StringBuilder polyfills = new StringBuilder();
-        for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgPolyfill.class))
+        for (NgPolyfill globalAnnotation : IGuiceContext.get(AnnotationHelper.class)
+                                                        .getGlobalAnnotations(NgPolyfill.class))
         {
-            Class<?> aClass = classInfo.loadClass();
-            NgPolyfill fill = aClass.getAnnotation(NgPolyfill.class);
-            String newString = fill.value();
+            String newString = globalAnnotation.value();
             polyfills.append("import \"" + newString + "\";\n");
         }
         FileUtils.writeStringToFile(polyfillFile, polyfills.toString(), UTF_8, false);
-
         Map<String, String> namedAssets = new HashMap<>();
-        List<NgAsset> assets = AnnotationsMap.getAllAnnotations(NgAsset.class);
+        List<NgAsset> assets = IGuiceContext.get(AnnotationHelper.class)
+                                            .getGlobalAnnotations(NgAsset.class);
         for (NgAsset ngAsset : assets)
         {
             String name = ngAsset.name();
@@ -360,7 +365,8 @@ public class JWebMPTypeScriptCompiler
         }
 
         Map<String, String> namedStylesheets = new LinkedHashMap<>();
-        List<NgStyleSheet> ngStyleSheets = getAllAnnotations(NgStyleSheet.class);
+        List<NgStyleSheet> ngStyleSheets = IGuiceContext.get(AnnotationHelper.class)
+                                                        .getGlobalAnnotations(NgStyleSheet.class);
         ngStyleSheets.sort(new Comparator<NgStyleSheet>()
         {
             @Override
@@ -402,7 +408,8 @@ public class JWebMPTypeScriptCompiler
 
         Map<String, String> namedScripts = new LinkedHashMap<>();
 
-        List<NgScript> allAnnotations = getAllAnnotations(NgScript.class);
+        List<NgScript> allAnnotations = IGuiceContext.get(AnnotationHelper.class)
+                                                     .getGlobalAnnotations(NgScript.class);
         allAnnotations.sort(new Comparator<NgScript>()
         {
             @Override
@@ -796,7 +803,8 @@ public class JWebMPTypeScriptCompiler
 
         body.getChildren()
             .clear();
-        List<NgComponent> annotations = getAnnotations(appBootModule.getBootModule(), NgComponent.class);
+        List<NgComponent> annotations = IGuiceContext.get(AnnotationHelper.class)
+                                                     .getAnnotationFromClass(appBootModule.getBootModule(), NgComponent.class);
         if (annotations.isEmpty())
         {
             throw new RuntimeException("No components found to render for boot index, the boot module specified does not have a @NgComponent");

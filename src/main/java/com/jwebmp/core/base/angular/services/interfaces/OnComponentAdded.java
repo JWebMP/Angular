@@ -1,9 +1,11 @@
 package com.jwebmp.core.base.angular.services.interfaces;
 
 import com.google.common.base.Strings;
+import com.guicedee.client.IGuiceContext;
 import com.jwebmp.core.base.angular.client.annotations.angular.NgComponent;
 import com.jwebmp.core.base.angular.client.annotations.components.NgComponentTagAttribute;
 import com.jwebmp.core.base.angular.client.annotations.components.NgInput;
+import com.jwebmp.core.base.angular.client.services.AnnotationHelper;
 import com.jwebmp.core.base.angular.client.services.AnnotationsMap;
 import com.jwebmp.core.base.angular.client.services.interfaces.INgComponent;
 import com.jwebmp.core.base.angular.implementations.AngularTSPostStartup;
@@ -34,7 +36,8 @@ public class OnComponentAdded implements IOnComponentAdded<OnComponentAdded>
                 DivSimple<?> displayDiv = new DivSimple<>().setTag(annotation.value())
                                                            .setRenderIDAttribute(false);
 
-                List<NgInput> inputs = AnnotationsMap.getAnnotations(component.getClass(), NgInput.class);
+                List<NgInput> inputs = IGuiceContext.get(AnnotationHelper.class)
+                                                    .getAnnotationFromClass(component.getClass(), NgInput.class);
                 Set<NgInput> uniqueValues = new HashSet<>();
                 for (NgInput a : inputs)
                 {
@@ -48,7 +51,8 @@ public class OnComponentAdded implements IOnComponentAdded<OnComponentAdded>
                     }
                 }
 
-                List<NgComponentTagAttribute> tagAttributes = AnnotationsMap.getAnnotations(component.getClass(), NgComponentTagAttribute.class);
+                List<NgComponentTagAttribute> tagAttributes = IGuiceContext.get(AnnotationHelper.class)
+                                                                           .getAnnotationFromClass(component.getClass(), NgComponentTagAttribute.class);
                 Set<NgComponentTagAttribute> uniqueTagValues = new HashSet<>();
                 for (NgComponentTagAttribute a : tagAttributes)
                 {

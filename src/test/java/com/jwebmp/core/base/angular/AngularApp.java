@@ -6,23 +6,23 @@ import com.jwebmp.core.base.angular.services.*;
 
 import java.util.*;
 
-@NgApp(name = "main", bootComponent = AngularTestComponent.class)
+@NgApp(value = "main", bootComponent = AngularTestComponent.class)
 public class AngularApp extends NGApplication<AngularApp>
 {
-	public AngularApp()
-	{
-		getOptions().setTitle("JWebMPAngularTest");
-	}
-	
-	@Override
-	public List<String> assets()
-	{
-		return List.of("testasset.css");
-	}
-	
-	@Override
-	public List<String> stylesheets()
-	{
-		return List.of("testasset.css");
-	}
+    public AngularApp()
+    {
+        getOptions().setTitle("JWebMPAngularTest");
+    }
+
+    @Override
+    public List<String> assets()
+    {
+        return List.of("testasset.css");
+    }
+
+    @Override
+    public List<String> stylesheets()
+    {
+        return List.of("testasset.css");
+    }
 }

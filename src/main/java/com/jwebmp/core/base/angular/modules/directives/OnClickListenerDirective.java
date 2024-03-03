@@ -9,7 +9,7 @@ import com.jwebmp.core.base.angular.client.services.interfaces.*;
 
 import java.util.*;
 
-@NgDirective(selector = "[clickClassName]")
+@NgDirective(value = "[clickClassName]")
 @NgInput("clickClassName")
 @NgImportReference(value = "HostListener", reference = "@angular/core")
 @NgComponentReference(SocketClientService.class)
@@ -18,33 +18,33 @@ import java.util.*;
 @NgField("@Input(\"confirmMessage\") confirmMessage : string = 'Are you sure?';")
 public class OnClickListenerDirective implements INgDirective<OnClickListenerDirective>
 {
-	public OnClickListenerDirective()
-	{
-	}
-	
-	@Override
-	public List<String> methods()
-	{
-		List<String> out = INgDirective.super.methods();
-		out.add(
-				//"ngOnInit() {}\n",
-				"@HostListener('click', ['$event'])\n" +
-				"    onClick(event: PointerEvent) {\n" +
-				"        if(this.confirm)\n" +
-				"        {\n" +
-				"            if(confirm(this.confirmMessage))\n" +
-				"            {\n" +
-				"                let elementId: string = (event.target as Element).id;\n" +
-				"                this.socketClientService.send('ajax', {eventClass: this.clickClassName}, 'onClick', event, this.elementRef);\n" +
-				"            }\n" +
-				"        }\n" +
-				"        else {\n" +
-				"            let elementId: string = (event.target as Element).id;\n" +
-				"            this.socketClientService.send('ajax', {eventClass: this.clickClassName}, 'onClick', event, this.elementRef);\n" +
-				"        }\n" +
-				"    }\n");
-		
-		return out;
-	}
-	
+    public OnClickListenerDirective()
+    {
+    }
+
+    @Override
+    public List<String> methods()
+    {
+        List<String> out = INgDirective.super.methods();
+        out.add(
+                //"ngOnInit() {}\n",
+                "@HostListener('click', ['$event'])\n" +
+                        "    onClick(event: PointerEvent) {\n" +
+                        "        if(this.confirm)\n" +
+                        "        {\n" +
+                        "            if(confirm(this.confirmMessage))\n" +
+                        "            {\n" +
+                        "                let elementId: string = (event.target as Element).id;\n" +
+                        "                this.socketClientService.send('ajax', {eventClass: this.clickClassName}, 'onClick', event, this.elementRef);\n" +
+                        "            }\n" +
+                        "        }\n" +
+                        "        else {\n" +
+                        "            let elementId: string = (event.target as Element).id;\n" +
+                        "            this.socketClientService.send('ajax', {eventClass: this.clickClassName}, 'onClick', event, this.elementRef);\n" +
+                        "        }\n" +
+                        "    }\n");
+
+        return out;
+    }
+
 }

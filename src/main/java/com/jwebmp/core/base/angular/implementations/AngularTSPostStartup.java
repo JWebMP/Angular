@@ -16,31 +16,40 @@ import static com.jwebmp.core.base.angular.client.services.interfaces.IComponent
 @Log
 public class AngularTSPostStartup implements IGuicePostStartup<AngularTSPostStartup>
 {
-	public static Path basePath;
-	public static boolean loadTSOnStartup = true;
-	public static boolean buildApp = true;
-	@Override
-	public void postLoad()
-	{
-		if (basePath != null)
+    public static Path basePath;
+    public static boolean loadTSOnStartup = true;
+    public static boolean buildApp = true;
+
+    @Override
+    public void postLoad()
+    {
+        if (basePath != null)
+        {
+            GuicedUndertowResourceManager.setPathManager(new PathResourceManager(basePath));
+        }
+		if (loadTSOnStartup)
 		{
-			GuicedUndertowResourceManager.setPathManager(new PathResourceManager(basePath));
-		}
-		if(loadTSOnStartup)
-		for (INgApp<?> app : JWebMPTypeScriptCompiler.getAllApps())
-		{
-			JWebMPTypeScriptCompiler compiler = new JWebMPTypeScriptCompiler(app);
-			log.info("Post Startup - Generating @NgApp (" + getTsFilename(app.getClass()) + ") " +
-			         "in folder " + getClassDirectory(app.getClass()));
-			
-			try
+			for (INgApp<?> app : JWebMPTypeScriptCompiler.getAllApps())
 			{
-				compiler.renderAppTS((Class<? extends INgApp<?>>) app.getClass());
-			}
-			catch (IOException e)
-			{
-				e.printStackTrace();
+				JWebMPTypeScriptCompiler compiler = new JWebMPTypeScriptCompiler(app);
+				log.info("Post Startup - Generating @NgApp (" + getTsFilename(app.getClass()) + ") " +
+						"in folder " + getClassDirectory(app.getClass()));
+
+				try
+				{
+					compiler.renderAppTS((Class<? extends INgApp<?>>) app.getClass());
+				}
+				catch (IOException e)
+				{
+					e.printStackTrace();
+				}
 			}
 		}
-	}
+    }
+
+    @Override
+    public Integer sortOrder()
+    {
+        return Integer.MAX_VALUE - 500;
+    }
 }

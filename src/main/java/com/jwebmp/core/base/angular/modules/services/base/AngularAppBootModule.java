@@ -9,9 +9,10 @@ import com.jwebmp.core.base.angular.client.annotations.constructors.NgConstructo
 import com.jwebmp.core.base.angular.client.annotations.references.NgComponentReference;
 import com.jwebmp.core.base.angular.client.annotations.references.NgImportReference;
 import com.jwebmp.core.base.angular.client.annotations.typescript.TsDependency;
-import com.jwebmp.core.base.angular.client.services.AnnotationsMap;
+import com.jwebmp.core.base.angular.client.services.AnnotationHelper;
 import com.jwebmp.core.base.angular.client.services.SocketClientService;
 import com.jwebmp.core.base.angular.client.services.interfaces.*;
+import com.jwebmp.core.base.angular.modules.services.angular.RoutingModule;
 import com.jwebmp.core.base.html.DivSimple;
 import com.jwebmp.core.databind.IConfiguration;
 import io.github.classgraph.ClassInfo;
@@ -21,17 +22,15 @@ import lombok.extern.java.Log;
 import java.util.*;
 import java.util.logging.Level;
 
-import static com.jwebmp.core.base.angular.client.services.AnnotationsMap.getAllAnnotations;
-import static com.jwebmp.core.base.angular.client.services.AnnotationsMap.getAnnotations;
 import static com.jwebmp.core.base.angular.client.services.interfaces.AnnotationUtils.*;
 
 @TsDependency(value = "@angular/platform-browser", version = "^17.2.0", overrides = true)
 @NgImportReference(value = "BrowserModule", reference = "@angular/platform-browser")
 @NgBootModuleImport("BrowserModule")
 
-@NgImportReference(value = "FormsModule, ReactiveFormsModule", reference = "@angular/forms")
+@NgImportReference(value = "FormsModule", reference = "@angular/forms")
 @NgBootModuleImport("FormsModule")
-@NgBootModuleImport("ReactiveFormsModule")
+//@NgBootModuleImport("ReactiveFormsModule")
 
 @NgImportReference(value = "CommonModule", reference = "@angular/common")
 @NgBootModuleImport("CommonModule")
@@ -40,6 +39,7 @@ import static com.jwebmp.core.base.angular.client.services.interfaces.Annotation
 
 @TsDependency(value = "@angular/platform-browser-dynamic", version = "^17.2.0")
 @NgComponentReference(SocketClientService.class)
+@NgComponentReference(RoutingModule.class)
 @Log
 public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implements INgModule<AngularAppBootModule>
 {
@@ -80,7 +80,8 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
     public List<String> moduleImports()
     {
         List<String> out = new ArrayList<>();
-        for (NgBootModuleImport allAnnotation : getAllAnnotations(NgBootModuleImport.class))
+        for (NgBootModuleImport allAnnotation : IGuiceContext.get(AnnotationHelper.class)
+                                                             .getGlobalAnnotations(NgBootModuleImport.class))
         {
             out.add(allAnnotation.value());
         }
@@ -111,7 +112,8 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
     public List<NgConstructorParameter> getAllConstructorParameters()
     {
         List<NgConstructorParameter> out = INgModule.super.getAllConstructorParameters();
-        List<NgBootConstructorParameter> params = AnnotationsMap.getAllAnnotations(NgBootConstructorParameter.class);
+        List<NgBootConstructorParameter> params = IGuiceContext.get(AnnotationHelper.class)
+                                                               .getGlobalAnnotations(NgBootConstructorParameter.class);
         for (NgBootConstructorParameter param : params)
         {
             out.add(getNgConstructorParameter(param.value()));
@@ -123,7 +125,8 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
     public List<NgConstructorBody> getAllConstructorBodies()
     {
         List<NgConstructorBody> out = INgModule.super.getAllConstructorBodies();
-        List<NgBootConstructorBody> params = AnnotationsMap.getAllAnnotations(NgBootConstructorBody.class);
+        List<NgBootConstructorBody> params = IGuiceContext.get(AnnotationHelper.class)
+                                                          .getGlobalAnnotations(NgBootConstructorBody.class);
         for (NgBootConstructorBody param : params)
         {
             out.add(getNgConstructorBody(param.value()));
@@ -135,25 +138,23 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
     private List<NgImportReference> listAllBootImportReferences()
     {
         List<NgImportReference> out = new ArrayList<>();
-        for (ClassInfo classInfo : IGuiceContext.instance()
-                                                .getScanResult()
-                                                .getClassesWithAnnotation(NgBootImportReference.class))
+        List<NgBootImportReference> refs = IGuiceContext.get(AnnotationHelper.class)
+                                                        .getGlobalAnnotations(NgBootImportReference.class);
+        for (NgBootImportReference ref : refs)
         {
-            List<NgBootImportReference> refs = AnnotationsMap.getAnnotations(classInfo.loadClass(), NgBootImportReference.class);
-            for (NgBootImportReference ref : refs)
+            if (ref.overrides())
             {
-                if (ref.overrides())
-                {
-                    out.removeIf(a -> a.value()
-                                       .equals(ref.name()));
-                    out.add(AnnotationUtils.getNgImportReference(ref.name(), ref.reference()));
-                }
-                else
-                {
-                    out.add(AnnotationUtils.getNgImportReference(ref.name(), ref.reference()));
-                }
+                out.removeIf(a -> a.value()
+                                   .equals(ref.value()));
+                out.add(AnnotationUtils.getNgImportReference(ref.value(), ref.reference()));
             }
+            else
+            {
+                out.add(AnnotationUtils.getNgImportReference(ref.value(), ref.reference()));
+            }
+
         }
+
         return out;
     }
 
@@ -187,7 +188,8 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
                 {
                     continue;
                 }
-                var annos = getAnnotations(aClass, NgModule.class);
+                var annos = IGuiceContext.get(AnnotationHelper.class)
+                                         .getAnnotationFromClass(aClass, NgModule.class);
                 for (NgModule anno : annos)
                 {
                     if (anno != null)
@@ -232,7 +234,8 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
                 {
                     continue;
                 }
-                var annos = getAnnotations(aClass, NgProvider.class);
+                var annos = IGuiceContext.get(AnnotationHelper.class)
+                                         .getAnnotationFromClass(aClass, NgProvider.class);
                 for (NgProvider anno : annos)
                 {
                     if (anno != null)
@@ -270,7 +273,8 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
                 {
                     continue;
                 }
-                var annos = getAnnotations(aClass, NgServiceProvider.class);
+                var annos = IGuiceContext.get(AnnotationHelper.class)
+                                         .getAnnotationFromClass(aClass, NgServiceProvider.class);
                 for (NgServiceProvider anno : annos)
                 {
                     if (anno != null && anno.singleton())
@@ -318,7 +322,8 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
                 }
                 try
                 {
-                    var annos = getAnnotations(aClass, NgDirective.class);
+                    var annos = IGuiceContext.get(AnnotationHelper.class)
+                                             .getAnnotationFromClass(aClass, NgDirective.class);
                     for (NgDirective anno : annos)
                     {
                         if (anno != null)
@@ -368,7 +373,8 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
                 {
                     continue;
                 }
-                var annos = getAnnotations(aClass, NgComponent.class);
+                var annos = IGuiceContext.get(AnnotationHelper.class)
+                                         .getAnnotationFromClass(aClass, NgComponent.class);
                 for (NgComponent anno : annos)
                 {
                     if (anno != null)
@@ -416,7 +422,8 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
             }
             Class<? extends INgProvider<?>> aClass = (Class<? extends INgProvider<?>>) classInfo.loadClass();
             INgProvider<?> component = IGuiceContext.get(aClass);
-            var annos = getAnnotations(aClass, NgBootProvider.class);
+            var annos = IGuiceContext.get(AnnotationHelper.class)
+                                     .getGlobalAnnotations(NgBootProvider.class);
             for (NgBootProvider anno : annos)
             {
                 if (anno != null)
@@ -457,7 +464,8 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
                 {
                     continue;
                 }
-                var annos = getAnnotations(aClass, NgServiceProvider.class);
+                var annos = IGuiceContext.get(AnnotationHelper.class)
+                                         .getAnnotationFromClass(aClass, NgServiceProvider.class);
                 for (NgServiceProvider anno : annos)
                 {
                     if (anno != null && anno.singleton())
@@ -506,7 +514,8 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
                 }
                 try
                 {
-                    var annos = getAnnotations(aClass, NgComponent.class);
+                    var annos = IGuiceContext.get(AnnotationHelper.class)
+                                             .getAnnotationFromClass(aClass, NgComponent.class);
                     for (NgComponent anno : annos)
                     {
                         if (anno != null)
@@ -549,7 +558,8 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
                 }
                 try
                 {
-                    var annos = getAnnotations(aClass, NgDirective.class);
+                    var annos = IGuiceContext.get(AnnotationHelper.class)
+                                             .getAnnotationFromClass(aClass, NgDirective.class);
                     for (NgDirective anno : annos)
                     {
                         if (anno != null)
@@ -574,7 +584,8 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
     public List<String> globalFields()
     {
         List<String> gf = new ArrayList<>();
-        List<NgBootGlobalField> bootDy = getAllAnnotations(NgBootGlobalField.class);
+        List<NgBootGlobalField> bootDy = IGuiceContext.get(AnnotationHelper.class)
+                                                      .getGlobalAnnotations(NgBootGlobalField.class);
         for (NgBootGlobalField globalFields : bootDy)
         {
             if (globalFields.onSelf())
@@ -590,7 +601,8 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
     public List<String> schemas()
     {
         List<String> gf = new ArrayList<>();
-        List<NgBootModuleSchema> bootDy = getAllAnnotations(NgBootModuleSchema.class);
+        List<NgBootModuleSchema> bootDy = IGuiceContext.get(AnnotationHelper.class)
+                                                       .getGlobalAnnotations(NgBootModuleSchema.class);
         for (NgBootModuleSchema globalFields : bootDy)
         {
             gf.add(globalFields.value());

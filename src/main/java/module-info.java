@@ -71,7 +71,7 @@ module com.jwebmp.core.angular {
 
     //provides com.guicedee.guicedservlets.undertow.services.UndertowPathHandler with AngularTSPathHandler;
     provides com.jwebmp.core.databind.IOnDataBind with AngularTSOnBind;
-    provides IGuicePreStartup with AngularTSPreStartup;
+    // provides IGuicePreStartup with AngularTSPreStartup;
     provides IOnClickService with OnClickListener;
 
     provides IWebSocketMessageReceiver with WebSocketAjaxCallReceiver, WebSocketDataRequestCallReceiver, WebSocketDataSendCallReceiver,

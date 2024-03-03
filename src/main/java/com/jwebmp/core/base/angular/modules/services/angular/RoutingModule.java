@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.base.Strings;
 import com.guicedee.client.IGuiceContext;
 import com.jwebmp.core.base.angular.client.annotations.angular.NgModule;
+import com.jwebmp.core.base.angular.client.annotations.boot.NgBootImportReference;
 import com.jwebmp.core.base.angular.client.annotations.boot.NgBootModuleImport;
 import com.jwebmp.core.base.angular.client.annotations.references.NgComponentReference;
 import com.jwebmp.core.base.angular.client.annotations.references.NgImportReference;

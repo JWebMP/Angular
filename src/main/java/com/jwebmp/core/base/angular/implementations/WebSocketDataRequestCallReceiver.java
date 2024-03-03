@@ -5,9 +5,8 @@ import com.guicedee.guicedservlets.websockets.services.IWebSocketMessageReceiver
 import com.jwebmp.core.base.ajax.AjaxCall;
 import com.jwebmp.core.base.ajax.AjaxResponse;
 import com.jwebmp.core.base.angular.client.annotations.angular.NgDataService;
+import com.jwebmp.core.base.angular.client.services.AnnotationHelper;
 import com.jwebmp.core.base.angular.client.services.interfaces.INgDataService;
-
-import static com.jwebmp.core.base.angular.client.services.AnnotationsMap.getAnnotations;
 
 public class WebSocketDataRequestCallReceiver
         extends WebSocketAbstractCallReceiver
@@ -35,7 +34,9 @@ public class WebSocketDataRequestCallReceiver
         var returned = dataService.getData(call, response);
         if (returned != null)
         {
-            NgDataService dService = getAnnotations(clazzy, NgDataService.class).get(0);
+            NgDataService dService = IGuiceContext.get(AnnotationHelper.class)
+                                                  .getAnnotationFromClass(clazzy, NgDataService.class)
+                                                  .get(0);
             response.addDataResponse(dService.value(), returned);
         }
         return response;

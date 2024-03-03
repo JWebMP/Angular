@@ -7,16 +7,16 @@ import com.jwebmp.core.base.angular.client.annotations.references.*;
 import com.jwebmp.core.base.angular.client.services.*;
 import com.jwebmp.core.base.angular.client.services.interfaces.*;
 
-@NgDirective(selector = "[wsgroup]")
+@NgDirective(value = "[wsgroup]")
 @NgInput("wsgroup")
 @NgOnInit(
-		"this.socketClientService.send('AddToWebSocketGroup',{groupName : this.wsgroup},'onClick',{},this.elementRef);"
-		)
+        "this.socketClientService.send('AddToWebSocketGroup',{groupName : this.wsgroup},'onClick',{},this.elementRef);"
+)
 @NgOnDestroy("this.socketClientService.send('RemoveFromWebSocketGroup',{groupName : this.wsgroup},'onClick',{},this.elementRef);")
 @NgComponentReference(SocketClientService.class)
 public class WebSocketGroupsDirective implements INgDirective<WebSocketGroupsDirective>
 {
-	public WebSocketGroupsDirective()
-	{
-	}
+    public WebSocketGroupsDirective()
+    {
+    }
 }
