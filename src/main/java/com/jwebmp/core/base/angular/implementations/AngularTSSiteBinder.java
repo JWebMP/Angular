@@ -69,7 +69,7 @@ public class AngularTSSiteBinder
             PageConfiguration pc = loadClass.getAnnotation(PageConfiguration.class);
             String userDir = GlobalProperties.getSystemPropertyOrEnvironment("JWEBMP_ROOT_PATH", FileUtils.getUserDirectory()
                                                                                                           .getPath());
-            File file = new File(userDir + "/jwebmp/" + app.value() + "/dist/jwebmp/");
+            File file = new File(userDir + "/jwebmp/" + app.value() + "/dist/jwebmp/browser/");
             try
             {
                 FileUtils.forceMkdirParent(file);
