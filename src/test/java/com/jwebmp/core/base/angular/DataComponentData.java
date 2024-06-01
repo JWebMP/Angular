@@ -6,12 +6,13 @@ import com.jwebmp.core.base.angular.client.services.interfaces.INgDataType;
 
 @NgDataType
 public class DataComponentData
-		implements INgDataType<DataComponentData>, IJsonRepresentation<DataComponentData>
+        implements INgDataType<DataComponentData>, IJsonRepresentation<DataComponentData>
 {
-	private String name = "";
-	public DataComponentData setName(String name)
-	{
-		this.name = name;
-		return this;
-	}
+    private String name = "";
+
+    public DataComponentData setName(String name)
+    {
+        this.name = name;
+        return this;
+    }
 }

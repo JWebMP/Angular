@@ -1,10 +1,9 @@
 package com.jwebmp.core.base.angular;
 
-import com.jwebmp.core.base.angular.client.annotations.angular.*;
-import com.jwebmp.core.base.angular.services.*;
+import com.jwebmp.core.base.angular.client.annotations.angular.NgApp;
+import com.jwebmp.core.base.angular.services.NGApplication;
 
-
-import java.util.*;
+import java.util.List;
 
 @NgApp(value = "main", bootComponent = AngularTestComponent.class)
 public class AngularApp extends NGApplication<AngularApp>
@@ -14,11 +13,6 @@ public class AngularApp extends NGApplication<AngularApp>
         getOptions().setTitle("JWebMPAngularTest");
     }
 
-    @Override
-    public List<String> assets()
-    {
-        return List.of("testasset.css");
-    }
 
     @Override
     public List<String> stylesheets()

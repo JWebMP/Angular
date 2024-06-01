@@ -34,32 +34,12 @@
 
         <dependency>
             <groupId>com.guicedee.servlets</groupId>
-            <artifactId>guiced-websockets</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.guicedee.servlets</groupId>
-            <artifactId>guiced-undertow</artifactId>
+            <artifactId>guiced-vertx-sockets</artifactId>
         </dependency>
 
         <dependency>
             <groupId>com.guicedee</groupId>
             <artifactId>guice-injection</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.guicedee.services</groupId>
-            <artifactId>undertow-websockets-jsr</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.guicedee.services</groupId>
-            <artifactId>guice-servlet</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.guicedee.services</groupId>
-            <artifactId>undertow-core</artifactId>
         </dependency>
 
         <dependency>

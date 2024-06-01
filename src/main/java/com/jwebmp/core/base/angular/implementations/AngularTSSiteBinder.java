@@ -16,21 +16,25 @@
  */
 package com.jwebmp.core.base.angular.implementations;
 
-import com.google.inject.servlet.ServletModule;
+import com.google.inject.AbstractModule;
+import com.google.inject.Inject;
 import com.guicedee.client.IGuiceContext;
 import com.guicedee.guicedinjection.interfaces.IGuiceModule;
 import com.guicedee.guicedinjection.properties.GlobalProperties;
-import com.guicedee.guicedservlets.FileSystemResourceServlet;
-import com.guicedee.guicedservlets.undertow.GuicedUndertowResourceManager;
+import com.guicedee.vertx.spi.VertxRouterConfigurator;
 import com.jwebmp.core.annotations.PageConfiguration;
+import com.jwebmp.core.base.angular.client.AppUtils;
 import com.jwebmp.core.base.angular.client.annotations.angular.NgApp;
+import com.jwebmp.core.base.angular.client.services.interfaces.INgApp;
 import com.jwebmp.core.base.angular.modules.services.angular.RoutingModule;
 import com.jwebmp.core.base.angular.modules.services.base.EnvironmentModule;
 import com.jwebmp.core.base.angular.services.DefinedRoute;
-import com.jwebmp.core.implementations.JWebMPJavaScriptDynamicScriptRenderer;
-import com.jwebmp.core.implementations.JWebMPSiteBinder;
+import com.jwebmp.core.base.angular.services.compiler.JWebMPTypeScriptCompiler;
 import io.github.classgraph.ClassInfo;
-import io.undertow.server.handlers.resource.PathResourceManager;
+import io.vertx.core.Vertx;
+import io.vertx.ext.web.Router;
+import io.vertx.ext.web.handler.FileSystemAccess;
+import io.vertx.ext.web.handler.StaticHandler;
 import lombok.extern.java.Log;
 import org.apache.commons.io.FileUtils;
 
@@ -45,14 +49,19 @@ import java.util.logging.Level;
  */
 @Log
 public class AngularTSSiteBinder
-        extends ServletModule
-        implements IGuiceModule<AngularTSSiteBinder>
+        extends AbstractModule
+        implements IGuiceModule<AngularTSSiteBinder>, VertxRouterConfigurator
 {
+    @Inject
+    private Vertx vertx;
+
+    private File siteHostingLocation;
+
     /**
      * Method onBind ...
      */
     @Override
-    public void configureServlets()
+    public void configure()
     {
         bind(EnvironmentModule.class)
                 .toInstance(new EnvironmentModule());
@@ -61,50 +70,49 @@ public class AngularTSSiteBinder
                                                 .getScanResult()
                                                 .getClassesWithAnnotation(NgApp.class))
         {
+            if (classInfo.isAbstract() || classInfo.isInterface())
+            {
+                continue;
+            }
+
             Class<?> loadClass = classInfo.loadClass();
             NgApp app = loadClass.getAnnotation(NgApp.class);
             //  for (NgApp app : IGuiceContext.get(AnnotationHelper.class)
             //                                .getAnnotationFromClass(loadClass, NgApp.class))
             //   {
             PageConfiguration pc = loadClass.getAnnotation(PageConfiguration.class);
-            String userDir = GlobalProperties.getSystemPropertyOrEnvironment("JWEBMP_ROOT_PATH", FileUtils.getUserDirectory()
-                                                                                                          .getPath());
-            File file = new File(userDir + "/jwebmp/" + app.value() + "/dist/jwebmp/browser/");
+            String userDir = GlobalProperties.getSystemPropertyOrEnvironment("JWEBMP_ROOT_PATH", new File(System.getProperty("user.dir"))
+                    .getPath());
+
+            siteHostingLocation = new File(userDir + "/webroot/");
             try
             {
-                FileUtils.forceMkdirParent(file);
-                FileUtils.forceMkdir(file);
+                FileUtils.forceMkdirParent(siteHostingLocation);
+                FileUtils.forceMkdir(siteHostingLocation);
             }
             catch (IOException e)
             {
                 throw new RuntimeException(e);
             }
-            StringBuilder url;
-            url = new StringBuilder(pc.url()
-                                      .substring(0, pc.url()
-                                                      .length() - 1) + "/");
-
-            serveRegex(url.toString())
-                    .with(new FileSystemResourceServlet().setFolder(file));
-
-            GuicedUndertowResourceManager.setPathManager(new PathResourceManager(file.toPath()));
-
-            AngularTSPostStartup.basePath = file.toPath();
-            AngularTSSiteBinder.log.log(Level.FINE, "Serving Angular TS for defined @NgApp " + app.value() + " at  " + file.getPath());
+            AngularTSPostStartup.basePath = siteHostingLocation.toPath();
+            AngularTSSiteBinder.log.log(Level.CONFIG, "Serving Angular TS for defined @NgApp " + app.value() + " at  " + siteHostingLocation.getPath());
 
             String path = "";
-            for (DefinedRoute<?> route : RoutingModule.getRoutes())
+           /* for (DefinedRoute<?> route : RoutingModule.getRoutes())
             {
-                bindRouteToPath(path, file, route);
-            }
+                bindRouteToPath(path, siteHostingLocation, route);
+            }*/
         }
         //}
-        JWebMPSiteBinder.bindSites = false;
-        JWebMPJavaScriptDynamicScriptRenderer.renderJavascript = false;
+
+
+        //JWebMPSiteBinder.bindSites = false;
+        //JWebMPJavaScriptDynamicScriptRenderer.renderJavascript = false;
 
     }
 
-    private String bindRouteToPath(String path, File file, DefinedRoute<?> route)
+
+    private String bindRouteToPath(Router router, String path, String staticFileLocationPath, File file, DefinedRoute<?> route)
     {
         String newPath = route.getPath();
         if (!newPath.startsWith("/"))
@@ -117,22 +125,64 @@ public class AngularTSSiteBinder
             newPath = newPath.replace("/**", "/*");
         }
         log.config("Configuring route - " + newPath);
-        serveRegex(newPath)
-                .with(new FileSystemResourceServlet().setFolder(file));
+
+        router.route(newPath)
+              .handler(StaticHandler.create(FileSystemAccess.ROOT, staticFileLocationPath)
+                                    .setCachingEnabled(false));
+
         if (route.getChildren() != null && !route.getChildren()
                                                  .isEmpty())
         {
             for (DefinedRoute<?> child : route.getChildren())
             {
-                bindRouteToPath(newPath, file, child);
+                bindRouteToPath(router, newPath, staticFileLocationPath, file, child);
             }
         }
         return newPath;
     }
 
+
     @Override
     public Integer sortOrder()
     {
         return Integer.MIN_VALUE + 100;
+    }
+
+
+    @Override
+    public Router builder(Router router)
+    {
+        System.setProperty("vertx.disableFileCPResolving", "true");
+        for (INgApp<?> app : JWebMPTypeScriptCompiler.getAllApps())
+        {
+            try
+            {
+                String staticFileLocationPath = AppUtils.getDistPath((Class<? extends INgApp<?>>) app.getClass())
+                                                        .getCanonicalPath();
+                router.route("/*")
+                      .handler(StaticHandler.create(FileSystemAccess.ROOT, staticFileLocationPath)
+                                            .setCachingEnabled(false));
+                router.route("/*.js")
+                      .handler(StaticHandler.create(FileSystemAccess.ROOT, staticFileLocationPath)
+                                            .setCachingEnabled(false));
+                router.route("/*.css")
+                      .handler(StaticHandler.create(FileSystemAccess.ROOT, staticFileLocationPath)
+                                            .setCachingEnabled(false));
+                router.route("/*.map")
+                      .handler(StaticHandler.create(FileSystemAccess.ROOT, staticFileLocationPath)
+                                            .setCachingEnabled(false));
+
+                String path = "";
+                for (DefinedRoute<?> route : RoutingModule.getRoutes())
+                {
+                    bindRouteToPath(router, path, staticFileLocationPath, siteHostingLocation, route);
+                }
+            }
+            catch (IOException e)
+            {
+                throw new RuntimeException(e);
+            }
+        }
+        return router;
     }
 }

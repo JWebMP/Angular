@@ -1,8 +1,8 @@
 import com.guicedee.guicedinjection.interfaces.IGuiceConfigurator;
 import com.guicedee.guicedinjection.interfaces.IGuiceModule;
-import com.guicedee.guicedinjection.interfaces.IGuicePreStartup;
 import com.guicedee.guicedservlets.websockets.services.IWebSocketAuthDataProvider;
 import com.guicedee.guicedservlets.websockets.services.IWebSocketMessageReceiver;
+import com.guicedee.vertx.spi.VertxRouterConfigurator;
 import com.jwebmp.core.base.angular.client.services.spi.*;
 import com.jwebmp.core.base.angular.implementations.*;
 import com.jwebmp.core.base.angular.modules.listeners.OnClickListener;
@@ -34,20 +34,13 @@ module com.jwebmp.core.angular {
     requires org.apache.commons.io;
     requires org.apache.commons.lang3;
 
-    requires com.guicedee.guicedservlets.websockets;
+    requires guiced.vertx.sockets;
 
-    requires transitive undertow.core;
-    requires transitive undertow.servlet;
-
-    requires undertow.websockets.jsr;
-    requires jakarta.websocket;
-    requires jakarta.websocket.client;
     requires org.apache.commons.text;
 
     requires com.guicedee.jsonrepresentation;
-
-
-    requires com.guicedee.guicedservlets.undertow;
+    requires io.vertx;
+    requires guiced.vertx;
 
     provides OnGetAllConstructorParameters with OnFetchAllConstructorParameters;
     provides OnGetAllConstructorBodies with OnFetchAllConstructorBodies;
@@ -57,13 +50,14 @@ module com.jwebmp.core.angular {
 
 
     provides com.guicedee.guicedinjection.interfaces.IGuiceScanModuleInclusions with AngularScanModuleInclusion;
-    provides com.guicedee.guicedservlets.websockets.services.IWebSocketPreConfiguration with JWebMPGuicedUndertowWebSocketConfiguration;
+    //provides com.guicedee.guicedservlets.websockets.services.IWebSocketPreConfiguration with JWebMPGuicedUndertowWebSocketConfiguration;
     provides IOnComponentHtmlRender with OnComponentRenderApplyAngular;
     provides IGuiceConfigurator with SearchPathConfigurator;
     provides IOnComponentAdded with OnComponentAdded;
 
 
     provides IGuiceModule with AngularTSSiteBinder;
+    provides VertxRouterConfigurator with AngularTSSiteBinder;
 
     //provides com.guicedee.guicedservlets.services.IGuiceSiteBinder with AngularTSSiteBinder;
     provides com.guicedee.guicedinjection.interfaces.IGuicePostStartup with AngularTSPostStartup;

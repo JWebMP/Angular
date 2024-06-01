@@ -100,21 +100,24 @@ public class JWebMPTypeScriptCompiler
         return out;
     }
 
-    public StringBuilder renderDataTypeTS(NgApp ngApp, AngularAppBootModule appBootModule, File srcDirectory, INgDataType<?> component, Class<?> requestingClass) throws IOException
+    public StringBuilder renderDataTypeTS(NgApp ngApp, AngularAppBootModule appBootModule, File srcDirectory, INgDataType<?> component, Class<?> requestingClass) throws
+                                                                                                                                                                  IOException
     {
         StringBuilder sb = new StringBuilder();
         sb.append(component.renderClassTs());
         return sb;
     }
 
-    public StringBuilder renderServiceProviderTS(NgApp ngApp, AngularAppBootModule appBootModule, File srcDirectory, INgServiceProvider<?> component, Class<?> requestingClass) throws IOException
+    public StringBuilder renderServiceProviderTS(NgApp ngApp, AngularAppBootModule appBootModule, File srcDirectory, INgServiceProvider<?> component, Class<?> requestingClass) throws
+                                                                                                                                                                                IOException
     {
         StringBuilder sb = new StringBuilder();
         sb.append(component.renderClassTs());
         return sb;
     }
 
-    public StringBuilder renderProviderTS(NgApp ngApp, AngularAppBootModule appBootModule, File srcDirectory, INgProvider<?> component, Class<?> requestingClass) throws IOException
+    public StringBuilder renderProviderTS(NgApp ngApp, AngularAppBootModule appBootModule, File srcDirectory, INgProvider<?> component, Class<?> requestingClass) throws
+                                                                                                                                                                  IOException
     {
         StringBuilder sb = new StringBuilder();
         sb.append(component.renderClassTs());
@@ -122,21 +125,24 @@ public class JWebMPTypeScriptCompiler
     }
 
 
-    public StringBuilder renderServiceTS(NgApp ngApp, AngularAppBootModule appBootModule, File srcDirectory, INgDataService<?> component, Class<?> requestingClass) throws IOException
+    public StringBuilder renderServiceTS(NgApp ngApp, AngularAppBootModule appBootModule, File srcDirectory, INgDataService<?> component, Class<?> requestingClass) throws
+                                                                                                                                                                    IOException
     {
         StringBuilder sb = new StringBuilder();
         sb.append(component.renderClassTs());
         return sb;
     }
 
-    public StringBuilder renderDirectiveTS(NgApp ngApp, AngularAppBootModule appBootModule, File srcDirectory, INgDirective<?> component, Class<?> requestingClass) throws IOException
+    public StringBuilder renderDirectiveTS(NgApp ngApp, AngularAppBootModule appBootModule, File srcDirectory, INgDirective<?> component, Class<?> requestingClass) throws
+                                                                                                                                                                    IOException
     {
         StringBuilder sb = new StringBuilder();
         sb.append(component.renderClassTs());
         return sb;
     }
 
-    public StringBuilder renderComponentTS(NgApp ngApp, AngularAppBootModule appBootModule, File srcDirectory, INgComponent<?> component, Class<?> requestingClass) throws IOException
+    public StringBuilder renderComponentTS(NgApp ngApp, AngularAppBootModule appBootModule, File srcDirectory, INgComponent<?> component, Class<?> requestingClass) throws
+                                                                                                                                                                    IOException
     {
         StringBuilder sb = new StringBuilder();
         sb.append(component.renderClassTs());
@@ -173,7 +179,8 @@ public class JWebMPTypeScriptCompiler
 		                + (extension.length > 0 ? extension[0] : ""));
 	}*/
 
-    public StringBuilder renderModuleTS(NgApp ngApp, AngularAppBootModule appBootModule, File srcDirectory, INgModule<?> component, Class<?> requestingClass) throws IOException
+    public StringBuilder renderModuleTS(NgApp ngApp, AngularAppBootModule appBootModule, File srcDirectory, INgModule<?> component, Class<?> requestingClass) throws
+                                                                                                                                                              IOException
     {
         StringBuilder sb = new StringBuilder();
         if (component instanceof AngularAppBootModule)
@@ -221,65 +228,65 @@ public class JWebMPTypeScriptCompiler
                 .getClassesWithAnnotation(TsDependency.class)
                 .stream()
                 .forEach(a -> {
-                            TsDependency annotation = a.loadClass()
-                                                       .getAnnotation(TsDependency.class);
-                            if (annotation != null)
-                            {
-                                var annotation1 = getNamedTSDependency(annotation);
-                                dependencies.putIfAbsent(annotation1.value(), annotation1.version());
-                                if (annotation1.overrides())
-                                {
-                                    overrideDependencies.put(annotation1.value(), annotation1.version());
-                                }
-                            }
-                        }
+                             TsDependency annotation = a.loadClass()
+                                                        .getAnnotation(TsDependency.class);
+                             if (annotation != null)
+                             {
+                                 var annotation1 = getNamedTSDependency(annotation);
+                                 dependencies.putIfAbsent(annotation1.value(), annotation1.version());
+                                 if (annotation1.overrides())
+                                 {
+                                     overrideDependencies.put(annotation1.value(), annotation1.version());
+                                 }
+                             }
+                         }
                 );
         scan
                 .getClassesWithAnnotation(TsDevDependency.class)
                 .stream()
                 .forEach(a -> {
-                            TsDevDependency annotation = a.loadClass()
-                                                          .getAnnotation(TsDevDependency.class);
-                            if (annotation != null)
-                            {
-                                devDependencies.put(annotation.value(), annotation.version());
-                            }
-                        }
+                             TsDevDependency annotation = a.loadClass()
+                                                           .getAnnotation(TsDevDependency.class);
+                             if (annotation != null)
+                             {
+                                 devDependencies.put(annotation.value(), annotation.version());
+                             }
+                         }
                 );
         scan
                 .getClassesWithAnnotation(TsDependencies.class)
                 .stream()
                 .forEach(a -> {
-                            TsDependencies annotations = a.loadClass()
-                                                          .getAnnotation(TsDependencies.class);
-                            if (annotations != null)
-                            {
-                                for (TsDependency annotation : annotations.value())
-                                {
-                                    var annotation1 = getNamedTSDependency(annotation);
-                                    dependencies.putIfAbsent(annotation1.value(), annotation1.version());
-                                    if (annotation1.overrides())
-                                    {
-                                        overrideDependencies.put(annotation1.value(), annotation1.version());
-                                    }
-                                }
-                            }
-                        }
+                             TsDependencies annotations = a.loadClass()
+                                                           .getAnnotation(TsDependencies.class);
+                             if (annotations != null)
+                             {
+                                 for (TsDependency annotation : annotations.value())
+                                 {
+                                     var annotation1 = getNamedTSDependency(annotation);
+                                     dependencies.putIfAbsent(annotation1.value(), annotation1.version());
+                                     if (annotation1.overrides())
+                                     {
+                                         overrideDependencies.put(annotation1.value(), annotation1.version());
+                                     }
+                                 }
+                             }
+                         }
                 );
         scan
                 .getClassesWithAnnotation(TsDevDependencies.class)
                 .stream()
                 .forEach(a -> {
-                            TsDevDependencies annotations = a.loadClass()
-                                                             .getAnnotation(TsDevDependencies.class);
-                            if (annotations != null)
-                            {
-                                for (TsDevDependency annotation : annotations.value())
-                                {
-                                    devDependencies.put(annotation.value(), annotation.version());
-                                }
-                            }
-                        }
+                             TsDevDependencies annotations = a.loadClass()
+                                                              .getAnnotation(TsDevDependencies.class);
+                             if (annotations != null)
+                             {
+                                 for (TsDevDependency annotation : annotations.value())
+                                 {
+                                     devDependencies.put(annotation.value(), annotation.version());
+                                 }
+                             }
+                         }
                 );
 
 
@@ -344,26 +351,6 @@ public class JWebMPTypeScriptCompiler
             }
         }
 
-        System.out.println("Registering Assets...");
-        Set<RenderedAssets> renderedAssets = IGuiceContext.loaderToSet(ServiceLoader.load(RenderedAssets.class));
-        for (RenderedAssets<?> renderedAsset : renderedAssets)
-        {
-            for (String asset : renderedAsset.assets())
-            {
-                namedAssets.put(asset, asset);
-            }
-        }
-
-        for (String value : namedAssets.values())
-        {
-            assetStringBuilder.add(value);
-        }
-
-        for (String asset : app.assets())
-        {
-            assetStringBuilder.add("src/assets/" + asset);
-        }
-
         Map<String, String> namedStylesheets = new LinkedHashMap<>();
         List<NgStyleSheet> ngStyleSheets = IGuiceContext.get(AnnotationHelper.class)
                                                         .getGlobalAnnotations(NgStyleSheet.class);
@@ -418,6 +405,7 @@ public class JWebMPTypeScriptCompiler
                 return Integer.compare(o1.sortOrder(), o2.sortOrder());
             }
         });
+
         for (NgScript ngAsset : allAnnotations)
         {
             String name = ngAsset.name();
@@ -449,19 +437,6 @@ public class JWebMPTypeScriptCompiler
             scripts.add("src/assets/" + stylesheet);
         }
 
-        String angularTemplate = IOUtils.toString(Objects.requireNonNull(ResourceLocator.class.getResourceAsStream("angular.json")), UTF_8);
-        angularTemplate = angularTemplate.replace("/*BuildAssets*/", om.writerWithDefaultPrettyPrinter()
-                                                                       .writeValueAsString(assetStringBuilder));
-        angularTemplate = angularTemplate.replace("/*BuildStylesSCSS*/", om.writerWithDefaultPrettyPrinter()
-                                                                           .writeValueAsString(stylesGlobal));
-        angularTemplate = angularTemplate.replace("/*BuildScripts*/", om.writerWithDefaultPrettyPrinter()
-                                                                        .writeValueAsString(scripts));
-        angularTemplate = angularTemplate.replace("/*MainTSFile*/", om.writerWithDefaultPrettyPrinter()
-                                                                      .writeValueAsString("src/main.ts")
-        );
-
-        File angularFile = AppUtils.getAngularJsonPath(appClass, true);// new File(appBaseDirectory.getCanonicalPath() + "/angular.json");
-        FileUtils.writeStringToFile(angularFile, angularTemplate, UTF_8, false);
         sb.append(app.renderImports());
 
         sb.append("if(EnvironmentModule.production) {\n" + " enableProdMode();\n" + "}\n" + "" + "platformBrowserDynamic().bootstrapModule(")
@@ -493,7 +468,7 @@ public class JWebMPTypeScriptCompiler
         }
 
         System.out.println("Writing out src/assets/ resources...");
-        for (Resource resource : scan.getResourcesMatchingWildcard("src/assets/**"))
+        for (Resource resource : scan.getResourcesMatchingWildcard("assets/**"))
         {
             AppUtils.saveAsset(appClass, resource.getURL()
                                                  .openStream(), resource.getPath());
@@ -779,6 +754,50 @@ public class JWebMPTypeScriptCompiler
             });
 
 
+        System.out.println("Registering Assets...");
+        List<String> assetList = AppUtils.getAssetList(appClass);
+        assetStringBuilder.addAll(assetList);
+
+
+        Set<RenderedAssets> renderedAssets = IGuiceContext.loaderToSet(ServiceLoader.load(RenderedAssets.class));
+        for (RenderedAssets<?> renderedAsset : renderedAssets)
+        {
+            for (String asset : renderedAsset.assets())
+            {
+                namedAssets.put(asset, asset);
+            }
+        }
+
+        for (String value : namedAssets.values())
+        {
+            assetStringBuilder.add(value);
+        }
+
+        for (String asset : app.assets())
+        {
+            assetStringBuilder.add("src/assets/" + asset);
+        }
+
+        assetStringBuilder.removeIf(a -> stylesGlobal.contains(a));
+
+        String angularTemplate = IOUtils.toString(Objects.requireNonNull(ResourceLocator.class.getResourceAsStream("angular.json")), UTF_8);
+
+        angularTemplate = angularTemplate.replace("/*BuildAssets*/", om.writerWithDefaultPrettyPrinter()
+                                                                       .writeValueAsString(assetStringBuilder));
+
+
+        angularTemplate = angularTemplate.replace("/*BuildStylesSCSS*/", om.writerWithDefaultPrettyPrinter()
+                                                                           .writeValueAsString(stylesGlobal));
+        angularTemplate = angularTemplate.replace("/*BuildScripts*/", om.writerWithDefaultPrettyPrinter()
+                                                                        .writeValueAsString(scripts));
+        angularTemplate = angularTemplate.replace("/*MainTSFile*/", om.writerWithDefaultPrettyPrinter()
+                                                                      .writeValueAsString("src/main.ts")
+        );
+
+        File angularFile = AppUtils.getAngularJsonPath(appClass, true);// new File(appBaseDirectory.getCanonicalPath() + "/angular.json");
+        FileUtils.writeStringToFile(angularFile, angularTemplate, UTF_8, false);
+
+
         if (buildApp)
         {
             System.out.println("Installing node-modules...");
@@ -789,7 +808,7 @@ public class JWebMPTypeScriptCompiler
             System.out.println("Building Angular Client App...");
             installAngular(AppUtils.getAppPath(appClass));
         }
-        //System.out.println("Starting Local Angular Client...");
+        System.out.println("App Ready");
         //serveAngular(appBaseDirectory);
         return sb;
     }

@@ -1,8 +1,6 @@
 package com.jwebmp.core.base.angular.typescript;
 
 import com.guicedee.client.IGuiceContext;
-import com.guicedee.guicedinjection.GuiceContext;
-import com.guicedee.guicedservlets.undertow.GuicedUndertow;
 import com.jwebmp.core.base.angular.client.services.interfaces.INgApp;
 import com.jwebmp.core.base.angular.services.compiler.JWebMPTypeScriptCompiler;
 import org.junit.jupiter.api.Test;
@@ -16,7 +14,8 @@ public class JWebMPTypeScriptCompilerTest
 {
     public static void main(String[] args) throws Exception
     {
-        GuicedUndertow.boot("localhost", 6523);
+        IGuiceContext.instance()
+                     .inject();
     }
 
     @Test
@@ -29,9 +28,9 @@ public class JWebMPTypeScriptCompilerTest
             JWebMPTypeScriptCompiler compiler = new JWebMPTypeScriptCompiler(app);
             compiler.renderAppTS((Class<? extends INgApp<?>>) app.getClass());
             System.out.println("Generating @NgApp (" + getTsFilename(app.getClass()) + ") " +
-                    "in folder " + getClassDirectory(app.getClass()));
+                                       "in folder " + getClassDirectory(app.getClass()));
             System.out.println("================");
-            //	compiler.renderAppTS(app);
+            //compiler.renderAppTS(app);
             System.out.println("================");
         }
     }

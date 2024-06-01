@@ -1,6 +1,6 @@
 package com.jwebmp.core.base.angular.implementations;
 
-import com.guicedee.guicedservlets.websockets.GuicedWebSocket;
+
 import com.guicedee.guicedservlets.websockets.options.WebSocketMessageReceiver;
 import com.guicedee.guicedservlets.websockets.services.IWebSocketMessageReceiver;
 import lombok.extern.java.Log;
@@ -8,6 +8,8 @@ import lombok.extern.java.Log;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
+
+import static com.guicedee.client.IGuiceContext.get;
 
 @Log
 public class WSAddToGroupMessageReceiver
@@ -20,7 +22,8 @@ public class WSAddToGroupMessageReceiver
 		{
 			String group = message.getData()
 			                      .get("groupName").toString();
-			GuicedWebSocket.addToGroup(group, message.getSession());
+			com.guicedee.vertx.websockets.GuicedWebSocket socket = get(com.guicedee.vertx.websockets.GuicedWebSocket.class);
+			socket.addToGroup(group);
 		}
 		catch (Exception e)
 		{

@@ -1,10 +1,7 @@
 package com.jwebmp.core.base.angular.implementations;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.inject.Inject;
-import com.google.inject.name.Named;
-import com.guicedee.guicedservlets.services.scopes.CallScoper;
-import com.guicedee.guicedservlets.websockets.GuicedWebSocket;
+import com.guicedee.guicedservlets.websockets.options.IGuicedWebSocket;
 import com.guicedee.guicedservlets.websockets.options.WebSocketMessageReceiver;
 import com.guicedee.guicedservlets.websockets.services.IWebSocketMessageReceiver;
 import com.jwebmp.core.Event;
@@ -22,16 +19,12 @@ import static com.guicedee.client.IGuiceContext.get;
 import static com.guicedee.guicedinjection.interfaces.ObjectBinderKeys.DefaultObjectMapper;
 import static com.guicedee.services.jsonrepresentation.json.StaticStrings.CHAR_DOT;
 import static com.guicedee.services.jsonrepresentation.json.StaticStrings.CHAR_UNDERSCORE;
-import static com.jwebmp.interception.JWebMPInterceptionBinder.AjaxCallInterceptorKey;
+import static com.jwebmp.interception.services.JWebMPInterceptionBinder.AjaxCallInterceptorKey;
 
 @Log
 public class WebSocketAjaxCallReceiver
         implements IWebSocketMessageReceiver
 {
-    @Inject
-    @Named("callScope")
-    CallScoper scope;
-
     @Override
     public Set<String> messageNames()
     {
@@ -44,14 +37,6 @@ public class WebSocketAjaxCallReceiver
     public void receiveMessage(WebSocketMessageReceiver message) throws SecurityException
     {
         String output;
-        try
-        {
-            scope.enter();
-        }
-        catch (Throwable T)
-        {
-            log.log(Level.WARNING, "Check scope entries and exits, enter called twice", T);
-        }
         AjaxResponse<?> ajaxResponse = get(AjaxResponse.class);
         try
         {
@@ -62,8 +47,9 @@ public class WebSocketAjaxCallReceiver
             om.readerForUpdating(ajaxCall)
               .readValue(originalValues, AjaxCall.class);
 
-            ajaxCall.setWebSocketCall(true);
-            ajaxCall.setWebsocketSession(message.getSession());
+         //   ajaxCall.setWebSocketCall(true);
+         //   ajaxCall.setWebsocketSession(message.getSession());
+
             Event<?, ?> triggerEvent = processEvent(ajaxCall);
             for (AjaxCallIntercepter<?> ajaxCallIntercepter : get(AjaxCallInterceptorKey))
             {
@@ -107,11 +93,8 @@ public class WebSocketAjaxCallReceiver
             output = ajaxResponse.toString();
             WebSocketAjaxCallReceiver.log.log(Level.SEVERE, "Unknown in ajax reply\n", T);
         }
-        finally
-        {
-            scope.exit();
-        }
-        GuicedWebSocket.broadcastMessage(message.getBroadcastGroup(), output);
+
+        get(IGuicedWebSocket.class).broadcastMessage(message.getBroadcastGroup(), output);
     }
 
     protected Event<?, ?> processEvent(AjaxCall<?> call) throws InvalidRequestException
