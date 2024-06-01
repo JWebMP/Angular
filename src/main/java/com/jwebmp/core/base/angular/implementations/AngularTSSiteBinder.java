@@ -128,7 +128,16 @@ public class AngularTSSiteBinder
 
         router.route(newPath)
               .handler(StaticHandler.create(FileSystemAccess.ROOT, staticFileLocationPath)
-                                    .setCachingEnabled(false));
+                                    .setAlwaysAsyncFS(true)
+                                    .setCacheEntryTimeout(604800)
+                                    .setCachingEnabled(true)
+                                    .setDefaultContentEncoding("UTF-8")
+                                    .setDirectoryListing(false)
+                                    .setEnableFSTuning(true)
+                                    .setIncludeHidden(false)
+                                    .setMaxAgeSeconds(604800)
+                                    .setSendVaryHeader(true)
+              );
 
         if (route.getChildren() != null && !route.getChildren()
                                                  .isEmpty())
@@ -161,16 +170,49 @@ public class AngularTSSiteBinder
                                                         .getCanonicalPath();
                 router.route("/*")
                       .handler(StaticHandler.create(FileSystemAccess.ROOT, staticFileLocationPath)
-                                            .setCachingEnabled(false));
+                                            .setAlwaysAsyncFS(true)
+                                            .setCacheEntryTimeout(604800)
+                                            .setCachingEnabled(true)
+                                            .setDefaultContentEncoding("UTF-8")
+                                            .setDirectoryListing(false)
+                                            .setEnableFSTuning(true)
+                                            .setIncludeHidden(false)
+                                            .setMaxAgeSeconds(604800)
+                                            .setSendVaryHeader(true)
+                      );
                 router.route("/*.js")
                       .handler(StaticHandler.create(FileSystemAccess.ROOT, staticFileLocationPath)
-                                            .setCachingEnabled(false));
+                                            .setAlwaysAsyncFS(true)
+                                            .setCacheEntryTimeout(604800)
+                                            .setCachingEnabled(true)
+                                            .setDefaultContentEncoding("UTF-8")
+                                            .setDirectoryListing(false)
+                                            .setEnableFSTuning(true)
+                                            .setIncludeHidden(false)
+                                            .setMaxAgeSeconds(604800)
+                                            .setSendVaryHeader(true));
                 router.route("/*.css")
                       .handler(StaticHandler.create(FileSystemAccess.ROOT, staticFileLocationPath)
-                                            .setCachingEnabled(false));
+                                            .setAlwaysAsyncFS(true)
+                                            .setCacheEntryTimeout(604800)
+                                            .setCachingEnabled(true)
+                                            .setDefaultContentEncoding("UTF-8")
+                                            .setDirectoryListing(false)
+                                            .setEnableFSTuning(true)
+                                            .setIncludeHidden(false)
+                                            .setMaxAgeSeconds(604800)
+                                            .setSendVaryHeader(true));
                 router.route("/*.map")
                       .handler(StaticHandler.create(FileSystemAccess.ROOT, staticFileLocationPath)
-                                            .setCachingEnabled(false));
+                                            .setAlwaysAsyncFS(true)
+                                            .setCacheEntryTimeout(604800)
+                                            .setCachingEnabled(true)
+                                            .setDefaultContentEncoding("UTF-8")
+                                            .setDirectoryListing(false)
+                                            .setEnableFSTuning(true)
+                                            .setIncludeHidden(false)
+                                            .setMaxAgeSeconds(604800)
+                                            .setSendVaryHeader(true));
 
                 String path = "";
                 for (DefinedRoute<?> route : RoutingModule.getRoutes())

@@ -17,30 +17,27 @@ module com.jwebmp.core.angular {
 
     exports com.jwebmp.core.base.angular;
     exports com.jwebmp.core.base.angular.implementations;
-    exports com.jwebmp.core.base.angular.forms;
-    exports com.jwebmp.core.base.angular.forms.enumerations;
+
     exports com.jwebmp.core.base.angular.services.compiler;
     exports com.jwebmp.core.base.angular.services;
 
-    requires com.guicedee.client;
-    requires com.jwebmp.client;
-    requires com.jwebmp.core;
+    requires transitive com.guicedee.client;
+    requires transitive com.jwebmp.client;
     requires transitive com.jwebmp.core.base.angular.client;
+    requires org.apache.commons.lang3;
 
 
     requires static lombok;
 
     requires com.fasterxml.jackson.databind;
     requires org.apache.commons.io;
-    requires org.apache.commons.lang3;
 
     requires guiced.vertx.sockets;
-
-    requires org.apache.commons.text;
 
     requires com.guicedee.jsonrepresentation;
     requires io.vertx;
     requires guiced.vertx;
+    requires com.jwebmp.core;
 
     provides OnGetAllConstructorParameters with OnFetchAllConstructorParameters;
     provides OnGetAllConstructorBodies with OnFetchAllConstructorBodies;
@@ -50,7 +47,6 @@ module com.jwebmp.core.angular {
 
 
     provides com.guicedee.guicedinjection.interfaces.IGuiceScanModuleInclusions with AngularScanModuleInclusion;
-    //provides com.guicedee.guicedservlets.websockets.services.IWebSocketPreConfiguration with JWebMPGuicedUndertowWebSocketConfiguration;
     provides IOnComponentHtmlRender with OnComponentRenderApplyAngular;
     provides IGuiceConfigurator with SearchPathConfigurator;
     provides IOnComponentAdded with OnComponentAdded;
@@ -59,13 +55,8 @@ module com.jwebmp.core.angular {
     provides IGuiceModule with AngularTSSiteBinder;
     provides VertxRouterConfigurator with AngularTSSiteBinder;
 
-    //provides com.guicedee.guicedservlets.services.IGuiceSiteBinder with AngularTSSiteBinder;
     provides com.guicedee.guicedinjection.interfaces.IGuicePostStartup with AngularTSPostStartup;
 
-
-    //provides com.guicedee.guicedservlets.undertow.services.UndertowPathHandler with AngularTSPathHandler;
-    provides com.jwebmp.core.databind.IOnDataBind with AngularTSOnBind;
-    // provides IGuicePreStartup with AngularTSPreStartup;
     provides IOnClickService with OnClickListener;
 
     provides IWebSocketMessageReceiver with WebSocketAjaxCallReceiver, WebSocketDataRequestCallReceiver, WebSocketDataSendCallReceiver,
@@ -74,7 +65,6 @@ module com.jwebmp.core.angular {
     uses IWebSocketAuthDataProvider;
     uses RenderedAssets;
 
-    //opens com.jwebmp.core.base.angular.modules to com.google.guice, com.fasterxml.jackson.databind, com.jwebmp.core;
     opens com.jwebmp.core.base.angular.typescript.JWebMP to com.google.guice, com.fasterxml.jackson.databind, com.jwebmp.core;
     opens com.jwebmp.core.base.angular.services to com.google.guice, com.fasterxml.jackson.databind, com.jwebmp.core;
 

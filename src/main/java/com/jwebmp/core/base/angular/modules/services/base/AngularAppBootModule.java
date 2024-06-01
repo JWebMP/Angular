@@ -24,7 +24,7 @@ import java.util.logging.Level;
 
 import static com.jwebmp.core.base.angular.client.services.interfaces.AnnotationUtils.*;
 
-@TsDependency(value = "@angular/platform-browser", version = "^17.2.0", overrides = true)
+@TsDependency(value = "@angular/platform-browser", version = "^18.0.1", overrides = true)
 @NgImportReference(value = "BrowserModule", reference = "@angular/platform-browser")
 @NgBootModuleImport("BrowserModule")
 
@@ -37,7 +37,7 @@ import static com.jwebmp.core.base.angular.client.services.interfaces.Annotation
 
 @NgPolyfill("zone.js")
 
-@TsDependency(value = "@angular/platform-browser-dynamic", version = "^17.2.0")
+@TsDependency(value = "@angular/platform-browser-dynamic", version = "^18.0.1")
 @NgComponentReference(SocketClientService.class)
 @NgComponentReference(RoutingModule.class)
 @Log

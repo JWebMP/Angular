@@ -5,9 +5,10 @@ import com.guicedee.guicedservlets.websockets.options.WebSocketMessageReceiver;
 import com.guicedee.guicedservlets.websockets.services.IWebSocketMessageReceiver;
 import com.guicedee.vertx.websockets.GuicedWebSocket;
 import com.jwebmp.core.base.ajax.*;
-import com.jwebmp.core.utilities.TextUtilities;
+import com.jwebmp.core.utilities.EscapeChars;
 import com.jwebmp.interception.services.AjaxCallIntercepter;
 import lombok.extern.java.Log;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -45,42 +46,40 @@ public abstract class WebSocketAbstractCallReceiver
             String originalValues = om.writeValueAsString(message.getData());
             AjaxCall<?> call = om.readValue(originalValues, AjaxCall.class);
             ajaxCall.fromCall(call);
-
-            //      ajaxCall.setWebSocketCall(true);
-            //   ajaxCall.setWebsocketSession(message.getSession());
-
             for (AjaxCallIntercepter<?> ajaxCallIntercepter : get(AjaxCallInterceptorKey))
             {
                 ajaxCallIntercepter.intercept(ajaxCall, ajaxResponse);
             }
             ajaxResponse = action(ajaxCall, ajaxResponse);
-            if (ajaxResponse != null)
-            {
-                GuicedWebSocket socket = get(GuicedWebSocket.class);
-                socket.broadcastMessage(message.getBroadcastGroup(), ajaxResponse.toJson());
-            }
+
         }
         catch (Exception T)
         {
             ajaxResponse.setSuccess(false);
             AjaxResponseReaction<?> arr = new AjaxResponseReaction<>("Unknown Error",
-                                                                     "An AJAX call resulted in an unknown server error<br>" + T.getMessage() + "<br>" + TextUtilities.stackTraceToString(
-                                                                             T), ReactionType.DialogDisplay);
+                                                                     "An AJAX call resulted in an unknown server error<br>" + T.getMessage() + "<br>" +
+
+                                                                             EscapeChars.forHTML(ExceptionUtils.getStackTrace(T)), ReactionType.DialogDisplay);
             arr.setResponseType(AjaxResponseType.Danger);
             ajaxResponse.addReaction(arr);
-            output = ajaxResponse.toString();
+            //  output = ajaxResponse.toString();
             WebSocketAbstractCallReceiver.log.log(Level.SEVERE, "Unknown in ajax reply\n", T);
         }
         catch (Throwable T)
         {
             ajaxResponse.setSuccess(false);
             AjaxResponseReaction<?> arr = new AjaxResponseReaction<>("Unknown Error",
-                                                                     "An AJAX call resulted in an internal server error<br>" + T.getMessage() + "<br>" + TextUtilities.stackTraceToString(
-                                                                             T), ReactionType.DialogDisplay);
+                                                                     "An AJAX call resulted in an internal server error<br>" + T.getMessage() + "<br>" +
+                                                                             EscapeChars.forHTML(ExceptionUtils.getStackTrace(T)), ReactionType.DialogDisplay);
             arr.setResponseType(AjaxResponseType.Danger);
             ajaxResponse.addReaction(arr);
-            output = ajaxResponse.toString();
+            //  output = ajaxResponse.toString();
             WebSocketAbstractCallReceiver.log.log(Level.SEVERE, "Unknown in ajax reply\n", T);
+        }
+        if (ajaxResponse != null)
+        {
+            GuicedWebSocket socket = get(GuicedWebSocket.class);
+            socket.broadcastMessage(message.getBroadcastGroup(), ajaxResponse.toJson());
         }
     }
 }

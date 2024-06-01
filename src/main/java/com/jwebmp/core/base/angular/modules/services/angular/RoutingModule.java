@@ -8,7 +8,6 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.base.Strings;
 import com.guicedee.client.IGuiceContext;
 import com.jwebmp.core.base.angular.client.annotations.angular.NgModule;
-import com.jwebmp.core.base.angular.client.annotations.boot.NgBootImportReference;
 import com.jwebmp.core.base.angular.client.annotations.boot.NgBootModuleImport;
 import com.jwebmp.core.base.angular.client.annotations.references.NgComponentReference;
 import com.jwebmp.core.base.angular.client.annotations.references.NgImportReference;
@@ -36,7 +35,7 @@ import static com.jwebmp.core.base.angular.client.services.interfaces.Annotation
 @NgImportReference(value = "Routes", reference = "@angular/router")
 
 @NgBootModuleImport("RoutingModule")
-@TsDependency(value = "@angular/router", version = "^17.2.0")
+@TsDependency(value = "@angular/router", version = "^18.0.1")
 
 @NgModule
 public class RoutingModule implements INgModule<RoutingModule>
@@ -151,16 +150,16 @@ public class RoutingModule implements INgModule<RoutingModule>
                                                       .getAnnotation(NgRoutable.class)
                                                       .sortOrder()))
                 .forEach(a -> {
-                            Class<? extends INgComponent<?>> aClass = (Class<? extends INgComponent<?>>) a.loadClass();
-                            NgRoutable annotation = aClass.getAnnotation(NgRoutable.class);
-                            if (annotation != null)
-                            {
-                                if (annotation.parent().length == 0)
-                                {
-                                    baseRoutes.put(aClass, annotation.path());
-                                }
-                            }
-                        }
+                             Class<? extends INgComponent<?>> aClass = (Class<? extends INgComponent<?>>) a.loadClass();
+                             NgRoutable annotation = aClass.getAnnotation(NgRoutable.class);
+                             if (annotation != null)
+                             {
+                                 if (annotation.parent().length == 0)
+                                 {
+                                     baseRoutes.put(aClass, annotation.path());
+                                 }
+                             }
+                         }
                 );
         baseRoutes.forEach((aClass, aName) -> {
             DefinedRoute<?> dr = getDefinedRoute(aClass);

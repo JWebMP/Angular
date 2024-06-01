@@ -4,12 +4,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.guicedee.guicedservlets.websockets.options.IGuicedWebSocket;
 import com.guicedee.guicedservlets.websockets.options.WebSocketMessageReceiver;
 import com.guicedee.guicedservlets.websockets.services.IWebSocketMessageReceiver;
-import com.jwebmp.core.Event;
 import com.jwebmp.core.base.ajax.*;
 import com.jwebmp.core.exceptions.InvalidRequestException;
-import com.jwebmp.core.utilities.TextUtilities;
+import com.jwebmp.core.htmlbuilder.javascript.events.interfaces.IEvent;
+import com.jwebmp.core.utilities.EscapeChars;
 import com.jwebmp.interception.services.AjaxCallIntercepter;
 import lombok.extern.java.Log;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -47,10 +48,10 @@ public class WebSocketAjaxCallReceiver
             om.readerForUpdating(ajaxCall)
               .readValue(originalValues, AjaxCall.class);
 
-         //   ajaxCall.setWebSocketCall(true);
-         //   ajaxCall.setWebsocketSession(message.getSession());
+            //   ajaxCall.setWebSocketCall(true);
+            //   ajaxCall.setWebsocketSession(message.getSession());
 
-            Event<?, ?> triggerEvent = processEvent(ajaxCall);
+            IEvent<?, ?> triggerEvent = processEvent(ajaxCall);
             for (AjaxCallIntercepter<?> ajaxCallIntercepter : get(AjaxCallInterceptorKey))
             {
                 ajaxCallIntercepter.intercept(ajaxCall, ajaxResponse);
@@ -63,7 +64,7 @@ public class WebSocketAjaxCallReceiver
         {
             ajaxResponse.setSuccess(false);
             AjaxResponseReaction<?> arr = new AjaxResponseReaction<>("Invalid Request Value", "A value in the request was found to be incorrect.<br>" + ie.getMessage(),
-                    ReactionType.DialogDisplay);
+                                                                     ReactionType.DialogDisplay);
             arr.setResponseType(AjaxResponseType.Danger);
             ajaxResponse.addReaction(arr);
             output = ajaxResponse.toString();
@@ -75,8 +76,8 @@ public class WebSocketAjaxCallReceiver
         {
             ajaxResponse.setSuccess(false);
             AjaxResponseReaction<?> arr = new AjaxResponseReaction<>("Unknown Error",
-                    "An AJAX call resulted in an unknown server error<br>" + T.getMessage() + "<br>" + TextUtilities.stackTraceToString(
-                            T), ReactionType.DialogDisplay);
+                                                                     "An AJAX call resulted in an unknown server error<br>" + T.getMessage() + "<br>" +
+                                                                             EscapeChars.forHTML(ExceptionUtils.getStackTrace(T)), ReactionType.DialogDisplay);
             arr.setResponseType(AjaxResponseType.Danger);
             ajaxResponse.addReaction(arr);
             output = ajaxResponse.toString();
@@ -86,8 +87,8 @@ public class WebSocketAjaxCallReceiver
         {
             ajaxResponse.setSuccess(false);
             AjaxResponseReaction<?> arr = new AjaxResponseReaction<>("Unknown Error",
-                    "An AJAX call resulted in an internal server error<br>" + T.getMessage() + "<br>" + TextUtilities.stackTraceToString(
-                            T), ReactionType.DialogDisplay);
+                                                                     "An AJAX call resulted in an internal server error<br>" + T.getMessage() + "<br>" +
+                                                                             EscapeChars.forHTML(ExceptionUtils.getStackTrace(T)), ReactionType.DialogDisplay);
             arr.setResponseType(AjaxResponseType.Danger);
             ajaxResponse.addReaction(arr);
             output = ajaxResponse.toString();
@@ -97,14 +98,14 @@ public class WebSocketAjaxCallReceiver
         get(IGuicedWebSocket.class).broadcastMessage(message.getBroadcastGroup(), output);
     }
 
-    protected Event<?, ?> processEvent(AjaxCall<?> call) throws InvalidRequestException
+    protected IEvent<?, ?> processEvent(AjaxCall<?> call) throws InvalidRequestException
     {
-        Event<?, ?> triggerEvent = null;
+        IEvent<?, ?> triggerEvent = null;
         try
         {
             Class<?> eventClass = Class.forName(call.getClassName()
                                                     .replace(CHAR_UNDERSCORE, CHAR_DOT));
-            triggerEvent = (Event<?, ?>) get(eventClass);
+            triggerEvent = (IEvent<?, ?>) get(eventClass);
         }
         catch (ClassNotFoundException cnfe)
         {
