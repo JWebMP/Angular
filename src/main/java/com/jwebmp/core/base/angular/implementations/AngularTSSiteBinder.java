@@ -126,6 +126,10 @@ public class AngularTSSiteBinder
         }
         log.config("Configuring route - " + newPath);
 
+        if (newPath.equalsIgnoreCase("/"))
+        {
+            System.out.println("here");
+        }
         router.route(newPath)
               .handler(StaticHandler.create(FileSystemAccess.ROOT, staticFileLocationPath)
                                     .setAlwaysAsyncFS(true)
@@ -168,19 +172,9 @@ public class AngularTSSiteBinder
             {
                 String staticFileLocationPath = AppUtils.getDistPath((Class<? extends INgApp<?>>) app.getClass())
                                                         .getCanonicalPath();
-                router.route("/*")
-                      .handler(StaticHandler.create(FileSystemAccess.ROOT, staticFileLocationPath)
-                                            .setAlwaysAsyncFS(true)
-                                            .setCacheEntryTimeout(604800)
-                                            .setCachingEnabled(true)
-                                            .setDefaultContentEncoding("UTF-8")
-                                            .setDirectoryListing(false)
-                                            .setEnableFSTuning(true)
-                                            .setIncludeHidden(false)
-                                            .setMaxAgeSeconds(604800)
-                                            .setSendVaryHeader(true)
-                      );
-                router.route("/*.js")
+/*
+
+                router.get("/*.js")
                       .handler(StaticHandler.create(FileSystemAccess.ROOT, staticFileLocationPath)
                                             .setAlwaysAsyncFS(true)
                                             .setCacheEntryTimeout(604800)
@@ -191,7 +185,31 @@ public class AngularTSSiteBinder
                                             .setIncludeHidden(false)
                                             .setMaxAgeSeconds(604800)
                                             .setSendVaryHeader(true));
-                router.route("/*.css")
+                String assetsStaticDir = FilenameUtils.concat(staticFileLocationPath, "assets/");
+                router.get("/assets/*")
+                      .handler(StaticHandler.create(FileSystemAccess.ROOT, assetsStaticDir)
+                                            .setAlwaysAsyncFS(true)
+                                            .setCacheEntryTimeout(604800)
+                                            .setCachingEnabled(true)
+                                            .setDefaultContentEncoding("UTF-8")
+                                            .setDirectoryListing(false)
+                                            .setEnableFSTuning(true)
+                                            .setIncludeHidden(false)
+                                            .setMaxAgeSeconds(604800)
+                                            .setSendVaryHeader(true));
+                String mediaStaticDir = FilenameUtils.concat(staticFileLocationPath, "media/");
+                router.get("/media/*")
+                      .handler(StaticHandler.create(FileSystemAccess.ROOT, mediaStaticDir)
+                                            .setAlwaysAsyncFS(true)
+                                            .setCacheEntryTimeout(604800)
+                                            .setCachingEnabled(true)
+                                            .setDefaultContentEncoding("UTF-8")
+                                            .setDirectoryListing(false)
+                                            .setEnableFSTuning(true)
+                                            .setIncludeHidden(false)
+                                            .setMaxAgeSeconds(604800)
+                                            .setSendVaryHeader(true));
+                router.get("/*.css")
                       .handler(StaticHandler.create(FileSystemAccess.ROOT, staticFileLocationPath)
                                             .setAlwaysAsyncFS(true)
                                             .setCacheEntryTimeout(604800)
@@ -202,7 +220,7 @@ public class AngularTSSiteBinder
                                             .setIncludeHidden(false)
                                             .setMaxAgeSeconds(604800)
                                             .setSendVaryHeader(true));
-                router.route("/*.map")
+                router.get("/*.map")
                       .handler(StaticHandler.create(FileSystemAccess.ROOT, staticFileLocationPath)
                                             .setAlwaysAsyncFS(true)
                                             .setCacheEntryTimeout(604800)
@@ -214,11 +232,26 @@ public class AngularTSSiteBinder
                                             .setMaxAgeSeconds(604800)
                                             .setSendVaryHeader(true));
 
+*/
+
                 String path = "";
                 for (DefinedRoute<?> route : RoutingModule.getRoutes())
                 {
                     bindRouteToPath(router, path, staticFileLocationPath, siteHostingLocation, route);
                 }
+                log.config("Configuring parent route - " + staticFileLocationPath);
+                router.get("/*")
+                      .handler(StaticHandler.create(FileSystemAccess.ROOT, staticFileLocationPath)
+                                            .setAlwaysAsyncFS(false)
+                                            .setCacheEntryTimeout(604800)
+                                            .setCachingEnabled(false)
+                                            .setDefaultContentEncoding("UTF-8")
+                                            .setDirectoryListing(false)
+                                            .setEnableFSTuning(false)
+                                            .setIncludeHidden(false)
+                                            .setMaxAgeSeconds(604800)
+                                            .setSendVaryHeader(false)
+                      );
             }
             catch (IOException e)
             {

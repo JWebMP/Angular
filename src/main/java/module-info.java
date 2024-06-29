@@ -1,5 +1,6 @@
 import com.guicedee.guicedinjection.interfaces.IGuiceConfigurator;
 import com.guicedee.guicedinjection.interfaces.IGuiceModule;
+import com.guicedee.guicedinjection.interfaces.IGuicePreStartup;
 import com.guicedee.guicedservlets.websockets.services.IWebSocketAuthDataProvider;
 import com.guicedee.guicedservlets.websockets.services.IWebSocketMessageReceiver;
 import com.guicedee.vertx.spi.VertxRouterConfigurator;
@@ -51,7 +52,7 @@ module com.jwebmp.core.angular {
     provides IGuiceConfigurator with SearchPathConfigurator;
     provides IOnComponentAdded with OnComponentAdded;
 
-
+    provides IGuicePreStartup with AngularPreStartup;
     provides IGuiceModule with AngularTSSiteBinder;
     provides VertxRouterConfigurator with AngularTSSiteBinder;
 
@@ -64,6 +65,7 @@ module com.jwebmp.core.angular {
 
     uses IWebSocketAuthDataProvider;
     uses RenderedAssets;
+    uses NpmrcConfigurator;
 
     opens com.jwebmp.core.base.angular.typescript.JWebMP to com.google.guice, com.fasterxml.jackson.databind, com.jwebmp.core;
     opens com.jwebmp.core.base.angular.services to com.google.guice, com.fasterxml.jackson.databind, com.jwebmp.core;
