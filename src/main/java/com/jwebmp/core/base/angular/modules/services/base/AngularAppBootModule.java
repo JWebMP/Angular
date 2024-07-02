@@ -439,6 +439,25 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
                 }
             }
         }
+        for (ClassInfo classInfo : scan
+                .getClassesWithAnnotation(NgBootImportProvider.class))
+        {
+            if (classInfo.isInterface() || classInfo.isAbstract())
+            {
+                continue;
+            }
+            var annos = IGuiceContext.get(AnnotationHelper.class)
+                                     .getGlobalAnnotations(NgBootImportProvider.class);
+            for (NgBootImportProvider anno : annos)
+            {
+                if (anno != null)
+                {
+                    out.add(anno.value());
+                }
+            }
+        }
+
+
         for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgServiceProvider.class))
         {
             Set<Class<? extends IComponent<?>>> classes = new HashSet<>();
