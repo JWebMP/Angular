@@ -32,6 +32,9 @@ import static com.jwebmp.core.base.angular.client.services.interfaces.Annotation
 @NgBootModuleImport("FormsModule")
 //@NgBootModuleImport("ReactiveFormsModule")
 
+@NgImportReference(value = "RouterModule", reference = "@angular/router")
+@NgBootModuleImport("RouterModule")
+
 @NgImportReference(value = "CommonModule", reference = "@angular/common")
 @NgBootModuleImport("CommonModule")
 
@@ -80,10 +83,52 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
     public List<String> moduleImports()
     {
         List<String> out = new ArrayList<>();
+        ScanResult scan = IGuiceContext.instance()
+                                       .getScanResult();
         for (NgBootModuleImport allAnnotation : IGuiceContext.get(AnnotationHelper.class)
                                                              .getGlobalAnnotations(NgBootModuleImport.class))
         {
             out.add(allAnnotation.value());
+        }
+        for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgComponent.class))
+        {
+            Set<Class<? extends IComponent<?>>> classes = new HashSet<>();
+            loadClasses(classInfo, scan, classes);
+            for (Class<? extends IComponent<?>> aClass : classes)
+            {
+                if (aClass.equals(getClass()))
+                {
+                    continue;
+                }
+                var annos = IGuiceContext.get(AnnotationHelper.class)
+                                         .getAnnotationFromClass(aClass, NgComponent.class);
+                for (NgComponent anno : annos)
+                {
+                    if (anno != null)
+                    {
+                        boolean standaloneOverride = false;
+                        try
+                        {
+                            INgComponent<?> iComponent = (INgComponent<?>) aClass.newInstance();
+                            var ss = iComponent.standaloneOverride();
+                            if (ss != null)
+                            {
+                                standaloneOverride = iComponent.standaloneOverride();
+                            }
+                        }
+                        catch (Throwable T)
+                        {
+                            T.printStackTrace();
+                        }
+
+                        if (anno.standalone() && standaloneOverride)
+                        {
+                            out.add(getTsFilename(aClass));
+                        }
+                    }
+                }
+            }
+
         }
         return out.stream()
                   .distinct()
@@ -197,6 +242,95 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
                         NgComponentReference componentReference = getNgComponentReference(aClass);
                         List<NgImportReference> ngImportReferences = putRelativeLinkInMap(getClass(), componentReference);
                         out.addAll(ngImportReferences);
+                    }
+                }
+            }
+        }
+        for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgComponent.class))
+        {
+            Set<Class<? extends IComponent<?>>> classes = new HashSet<>();
+            loadClasses(classInfo, scan, classes);
+
+            for (Class<? extends IComponent<?>> aClass : classes)
+            {
+                if (aClass.equals(getClass()))
+                {
+                    continue;
+                }
+                var annos = IGuiceContext.get(AnnotationHelper.class)
+                                         .getAnnotationFromClass(aClass, NgComponent.class);
+                for (NgComponent anno : annos)
+                {
+                    if (anno != null)
+                    {
+                        boolean standaloneOverride = false;
+
+                        try
+                        {
+                            INgComponent<?> iComponent = (INgComponent<?>) aClass.newInstance();
+                            var ss = iComponent.standaloneOverride();
+                            if (ss != null)
+                            {
+                                standaloneOverride = iComponent.standaloneOverride();
+                            }
+                        }
+                        catch (Throwable T)
+                        {
+                            T.printStackTrace();
+                            ;
+                        }
+
+                        if (anno.standalone() || standaloneOverride)
+                        {
+                            NgComponentReference componentReference = getNgComponentReference(aClass);
+                            List<NgImportReference> ngImportReferences = putRelativeLinkInMap(getClass(), componentReference);
+                            out.addAll(ngImportReferences);
+                        }
+                    }
+                }
+            }
+
+        }
+        return out;
+    }
+
+    private List<String> listAllEntryComponents()
+    {
+        List<String> out = new ArrayList<>();
+        var scan = IGuiceContext.instance()
+                                .getScanResult();
+        for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgBootEntryComponent.class))
+        {
+            Set<Class<? extends IComponent<?>>> classes = new HashSet<>();
+            var a = classInfo;
+            if (a.isInterface() || a.isAbstract())
+            {
+                for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
+                {
+                    if (!subclass.isAbstract() && !subclass.isInterface())
+                    {
+                        classes.add((Class<? extends IComponent<?>>) subclass.loadClass());
+                    }
+                }
+            }
+            else
+            {
+                Class<?> aClass = a.loadClass();
+                classes.add((Class<? extends IComponent<?>>) aClass);
+            }
+            for (Class<? extends IComponent<?>> aClass : classes)
+            {
+                if (aClass.equals(getClass()))
+                {
+                    continue;
+                }
+                var annos = IGuiceContext.get(AnnotationHelper.class)
+                                         .getAnnotationFromClass(aClass, NgBootEntryComponent.class);
+                for (NgBootEntryComponent anno : annos)
+                {
+                    if (anno != null)
+                    {
+                        out.add(getTsFilename(aClass));
                     }
                 }
             }
@@ -413,8 +547,7 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
         List<String> out = INgModule.super.providers();
         ScanResult scan = IGuiceContext.instance()
                                        .getScanResult();
-        for (ClassInfo classInfo : scan
-                .getClassesWithAnnotation(NgBootProvider.class))
+        for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgBootProvider.class))
         {
             if (classInfo.isInterface() || classInfo.isAbstract())
             {
@@ -439,8 +572,7 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
                 }
             }
         }
-        for (ClassInfo classInfo : scan
-                .getClassesWithAnnotation(NgBootImportProvider.class))
+        for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgBootImportProvider.class))
         {
             if (classInfo.isInterface() || classInfo.isAbstract())
             {
@@ -494,8 +626,7 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
                 }
             }
         }
-
-        return out;
+        return new ArrayList<>(new HashSet<>(out));
     }
 
     @Override
@@ -510,21 +641,8 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
         {
             Set<Class<? extends IComponent<?>>> classes = new HashSet<>();
             var a = classInfo;
-            if (a.isInterface() || a.isAbstract())
-            {
-                for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
-                {
-                    if (!subclass.isAbstract() && !subclass.isInterface())
-                    {
-                        classes.add((Class<? extends IComponent<?>>) subclass.loadClass());
-                    }
-                }
-            }
-            else
-            {
-                Class<?> aClass = a.loadClass();
-                classes.add((Class<? extends IComponent<?>>) aClass);
-            }
+            loadClasses(a, scan, classes);
+
             for (Class<? extends IComponent<?>> aClass : classes)
             {
                 if (aClass.equals(getClass()))
@@ -539,7 +657,25 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
                     {
                         if (anno != null)
                         {
-                            out.add(aClass.getSimpleName());
+                            boolean standaloneOverride = false;
+                            try
+                            {
+                                INgComponent<?> iComponent = (INgComponent<?>) aClass.newInstance();
+                                var ss = iComponent.standaloneOverride();
+                                if (ss != null)
+                                {
+                                    standaloneOverride = iComponent.standaloneOverride();
+                                }
+                            }
+                            catch (Throwable T)
+                            {
+                                T.printStackTrace();
+                            }
+
+                            if (!anno.standalone() && !standaloneOverride)
+                            {
+                                out.add(aClass.getSimpleName());
+                            }
                         }
                     }
                 }
@@ -598,6 +734,25 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
         return new ArrayList<>(out);
     }
 
+    private static void loadClasses(ClassInfo a, ScanResult scan, Set<Class<? extends IComponent<?>>> classes)
+    {
+        if (a.isInterface() || a.isAbstract())
+        {
+            for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
+            {
+                if (!subclass.isAbstract() && !subclass.isInterface())
+                {
+                    classes.add((Class<? extends IComponent<?>>) subclass.loadClass());
+                }
+            }
+        }
+        else
+        {
+            Class<?> aClass = a.loadClass();
+            classes.add((Class<? extends IComponent<?>>) aClass);
+        }
+    }
+
 
     @Override
     public List<String> globalFields()
@@ -628,5 +783,16 @@ public class AngularAppBootModule extends DivSimple<AngularAppBootModule> implem
         }
         gf.addAll(INgModule.super.schemas());
         return gf;
+    }
+
+    @Override
+    public List<String> entryComponents()
+    {
+        List<String> comps = INgModule.super.entryComponents();
+        for (String listAllEntryComponent : listAllEntryComponents())
+        {
+            comps.add(listAllEntryComponent);
+        }
+        return comps;
     }
 }

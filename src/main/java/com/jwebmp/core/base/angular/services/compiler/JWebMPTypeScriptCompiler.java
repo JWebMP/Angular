@@ -238,70 +238,62 @@ public class JWebMPTypeScriptCompiler
             Map<String, String> devDependencies = new TreeMap<>();
             Map<String, String> overrideDependencies = new TreeMap<>();
 
-            scan
-                    .getClassesWithAnnotation(TsDependency.class)
-                    .stream()
-                    .forEach(a -> {
-                                 TsDependency annotation = a.loadClass()
-                                                            .getAnnotation(TsDependency.class);
-                                 if (annotation != null)
-                                 {
-                                     var annotation1 = getNamedTSDependency(annotation);
-                                     dependencies.putIfAbsent(annotation1.value(), annotation1.version());
-                                     if (annotation1.overrides())
-                                     {
-                                         overrideDependencies.put(annotation1.value(), annotation1.version());
-                                     }
-                                 }
-                             }
-                    );
-            scan
-                    .getClassesWithAnnotation(TsDevDependency.class)
-                    .stream()
-                    .forEach(a -> {
-                                 TsDevDependency annotation = a.loadClass()
-                                                               .getAnnotation(TsDevDependency.class);
-                                 if (annotation != null)
-                                 {
-                                     devDependencies.put(annotation.value(), annotation.version());
-                                 }
-                             }
-                    );
-            scan
-                    .getClassesWithAnnotation(TsDependencies.class)
-                    .stream()
-                    .forEach(a -> {
-                                 TsDependencies annotations = a.loadClass()
-                                                               .getAnnotation(TsDependencies.class);
-                                 if (annotations != null)
-                                 {
-                                     for (TsDependency annotation : annotations.value())
-                                     {
-                                         var annotation1 = getNamedTSDependency(annotation);
-                                         dependencies.putIfAbsent(annotation1.value(), annotation1.version());
-                                         if (annotation1.overrides())
-                                         {
-                                             overrideDependencies.put(annotation1.value(), annotation1.version());
-                                         }
-                                     }
-                                 }
-                             }
-                    );
-            scan
-                    .getClassesWithAnnotation(TsDevDependencies.class)
-                    .stream()
-                    .forEach(a -> {
-                                 TsDevDependencies annotations = a.loadClass()
-                                                                  .getAnnotation(TsDevDependencies.class);
-                                 if (annotations != null)
-                                 {
-                                     for (TsDevDependency annotation : annotations.value())
-                                     {
-                                         devDependencies.put(annotation.value(), annotation.version());
-                                     }
-                                 }
-                             }
-                    );
+            scan.getClassesWithAnnotation(TsDependency.class)
+                .stream()
+                .forEach(a -> {
+                    TsDependency annotation = a.loadClass()
+                                               .getAnnotation(TsDependency.class);
+                    if (annotation != null)
+                    {
+                        var annotation1 = getNamedTSDependency(annotation);
+                        dependencies.putIfAbsent(annotation1.value(), annotation1.version());
+                        if (annotation1.overrides())
+                        {
+                            overrideDependencies.put(annotation1.value(), annotation1.version());
+                        }
+                    }
+                });
+            scan.getClassesWithAnnotation(TsDevDependency.class)
+                .stream()
+                .forEach(a -> {
+                    TsDevDependency annotation = a.loadClass()
+                                                  .getAnnotation(TsDevDependency.class);
+                    if (annotation != null)
+                    {
+                        devDependencies.put(annotation.value(), annotation.version());
+                    }
+                });
+            scan.getClassesWithAnnotation(TsDependencies.class)
+                .stream()
+                .forEach(a -> {
+                    TsDependencies annotations = a.loadClass()
+                                                  .getAnnotation(TsDependencies.class);
+                    if (annotations != null)
+                    {
+                        for (TsDependency annotation : annotations.value())
+                        {
+                            var annotation1 = getNamedTSDependency(annotation);
+                            dependencies.putIfAbsent(annotation1.value(), annotation1.version());
+                            if (annotation1.overrides())
+                            {
+                                overrideDependencies.put(annotation1.value(), annotation1.version());
+                            }
+                        }
+                    }
+                });
+            scan.getClassesWithAnnotation(TsDevDependencies.class)
+                .stream()
+                .forEach(a -> {
+                    TsDevDependencies annotations = a.loadClass()
+                                                     .getAnnotation(TsDevDependencies.class);
+                    if (annotations != null)
+                    {
+                        for (TsDevDependency annotation : annotations.value())
+                        {
+                            devDependencies.put(annotation.value(), annotation.version());
+                        }
+                    }
+                });
 
 
             ObjectMapper om = IGuiceContext.get(DefaultObjectMapper);
@@ -506,83 +498,81 @@ public class JWebMPTypeScriptCompiler
 
             File finalSrcDirectory = AppUtils.getAppSrcPath(appClass);
 
-            scan
-                    .getClassesWithAnnotation(NgModule.class)
-                    .stream()
-                    .forEach(a -> {
-                        Set<Class<?>> classes = new HashSet<>();
-                        if (a.isInterface() || a.isAbstract())
+            scan.getClassesWithAnnotation(NgModule.class)
+                .stream()
+                .forEach(a -> {
+                    Set<Class<?>> classes = new HashSet<>();
+                    if (a.isInterface() || a.isAbstract())
+                    {
+                        for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
                         {
-                            for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
+                            if (!subclass.isAbstract() && !subclass.isInterface())
                             {
-                                if (!subclass.isAbstract() && !subclass.isInterface())
-                                {
-                                    classes.add(subclass.loadClass());
-                                }
+                                classes.add(subclass.loadClass());
                             }
                         }
-                        else
+                    }
+                    else
+                    {
+                        Class<?> aClass = a.loadClass();
+                        classes.add(aClass);
+                    }
+                    for (Class<?> aClass : classes)
+                    {
+                        File classFile = null;
+                        classFile = getFile(appClass, aClass, ".ts");
+                        try
                         {
-                            Class<?> aClass = a.loadClass();
-                            classes.add(aClass);
+                            FileUtils.forceMkdirParent(classFile);
+                            INgModule<?> modd = (INgModule<?>) IGuiceContext.get(aClass);
+                            modd.setApp(app);
+                            FileUtils.write(classFile, renderModuleTS(ngApp, appBootModule, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
                         }
-                        for (Class<?> aClass : classes)
+                        catch (IOException e)
                         {
-                            File classFile = null;
-                            classFile = getFile(appClass, aClass, ".ts");
-                            try
-                            {
-                                FileUtils.forceMkdirParent(classFile);
-                                INgModule<?> modd = (INgModule<?>) IGuiceContext.get(aClass);
-                                modd.setApp(app);
-                                FileUtils.write(classFile, renderModuleTS(ngApp, appBootModule, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
-                            }
-                            catch (IOException e)
-                            {
-                                e.printStackTrace();
-                            }
+                            e.printStackTrace();
                         }
-                    });
+                    }
+                });
 
-            scan
-                    .getClassesWithAnnotation(NgComponent.class)
-                    .stream()
-                    // .filter(a -> !(a.isInterface() || a.isAbstract()))
-                    .forEach(a -> {
-                        Set<Class<?>> classes = new HashSet<>();
-                        if (a.isInterface() || a.isAbstract())
+            scan.getClassesWithAnnotation(NgComponent.class)
+                .stream()
+                // .filter(a -> !(a.isInterface() || a.isAbstract()))
+                .forEach(a -> {
+                    Set<Class<?>> classes = new HashSet<>();
+                    if (a.isInterface() || a.isAbstract())
+                    {
+                        for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
                         {
-                            for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
+                            if (!subclass.isAbstract() && !subclass.isInterface())
                             {
-                                if (!subclass.isAbstract() && !subclass.isInterface())
-                                {
-                                    classes.add(subclass.loadClass());
-                                }
+                                classes.add(subclass.loadClass());
                             }
                         }
-                        else
-                        {
-                            Class<?> aClass = a.loadClass();
-                            classes.add(aClass);
-                        }
-                        for (Class<?> aClass : classes)
-                        {
+                    }
+                    else
+                    {
+                        Class<?> aClass = a.loadClass();
+                        classes.add(aClass);
+                    }
+                    for (Class<?> aClass : classes)
+                    {
 
-                            File classFile = null;
-                            classFile = getFile(appClass, aClass, ".ts");
-                            try
-                            {
-                                FileUtils.forceMkdirParent(classFile);
-                                INgComponent<?> modd = (INgComponent<?>) IGuiceContext.get(aClass);
-                                ComponentHierarchyBase chb2 = (ComponentHierarchyBase) modd;
-                                FileUtils.write(classFile, renderComponentTS(ngApp, appBootModule, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
-                            }
-                            catch (IOException e)
-                            {
-                                e.printStackTrace();
-                            }
+                        File classFile = null;
+                        classFile = getFile(appClass, aClass, ".ts");
+                        try
+                        {
+                            FileUtils.forceMkdirParent(classFile);
+                            INgComponent<?> modd = (INgComponent<?>) IGuiceContext.get(aClass);
+                            ComponentHierarchyBase chb2 = (ComponentHierarchyBase) modd;
+                            FileUtils.write(classFile, renderComponentTS(ngApp, appBootModule, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
                         }
-                    });
+                        catch (IOException e)
+                        {
+                            e.printStackTrace();
+                        }
+                    }
+                });
 
             scan.getClassesWithAnnotation(NgDirective.class)
                 .stream()
@@ -778,9 +768,11 @@ public class JWebMPTypeScriptCompiler
             List<String> assetList = AppUtils.getAssetList(appClass);
             if (assetList != null)
             {
-                assetStringBuilder.addAll(assetList);
+                for (String assetName : assetList)
+                {
+                    assetStringBuilder.add(assetName);
+                }
             }
-
 
             Set<RenderedAssets> renderedAssets = IGuiceContext.loaderToSet(ServiceLoader.load(RenderedAssets.class));
             for (RenderedAssets<?> renderedAsset : renderedAssets)
@@ -798,7 +790,7 @@ public class JWebMPTypeScriptCompiler
 
             for (String asset : app.assets())
             {
-                assetStringBuilder.add("src/assets/" + asset);
+                assetStringBuilder.add(asset);
             }
 
             assetStringBuilder.removeIf(a -> stylesGlobal.contains(a));
@@ -814,8 +806,7 @@ public class JWebMPTypeScriptCompiler
             angularTemplate = angularTemplate.replace("/*BuildScripts*/", om.writerWithDefaultPrettyPrinter()
                                                                             .writeValueAsString(scripts));
             angularTemplate = angularTemplate.replace("/*MainTSFile*/", om.writerWithDefaultPrettyPrinter()
-                                                                          .writeValueAsString("src/main.ts")
-            );
+                                                                          .writeValueAsString("src/main.ts"));
 
             File angularFile = AppUtils.getAngularJsonPath(appClass, true);// new File(appBaseDirectory.getCanonicalPath() + "/angular.json");
             FileUtils.writeStringToFile(angularFile, angularTemplate, UTF_8, false);
@@ -877,9 +868,8 @@ public class JWebMPTypeScriptCompiler
                 //processBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
                 //processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
                 processBuilder.inheritIO();
-                processBuilder
-                        .environment()
-                        .putAll(System.getenv());
+                processBuilder.environment()
+                              .putAll(System.getenv());
                 processBuilder = processBuilder.directory(appBaseDirectory);
                 Process p = processBuilder.start();
                 p.waitFor();
@@ -896,9 +886,8 @@ public class JWebMPTypeScriptCompiler
                 ProcessBuilder processBuilder = new ProcessBuilder("npm", "install", "--force");
                 processBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
                 processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
-                processBuilder
-                        .environment()
-                        .putAll(System.getenv());
+                processBuilder.environment()
+                              .putAll(System.getenv());
                 processBuilder = processBuilder.directory(appBaseDirectory);
                 Process p = processBuilder.start();
                 p.waitFor();
@@ -925,13 +914,11 @@ public class JWebMPTypeScriptCompiler
 
                         new ProcessBuilder("cmd.exe", "/c", FileUtils.getUserDirectory() + "/AppData/Roaming/npm/npm.cmd", "run", "build" + (IGuiceContext.get(EnvironmentModule.class)
                                                                                                                                                           .getEnvironmentOptions()
-                                                                                                                                                          .isProduction() ? "-prod" : "")
-                        );
+                                                                                                                                                          .isProduction() ? "-prod" : ""));
                 processBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
                 processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
-                processBuilder
-                        .environment()
-                        .putAll(System.getenv());
+                processBuilder.environment()
+                              .putAll(System.getenv());
                 processBuilder = processBuilder.directory(appBaseDirectory);
                 Process p = processBuilder.start();
 				/*try
@@ -955,13 +942,11 @@ public class JWebMPTypeScriptCompiler
             {
                 ProcessBuilder processBuilder = new ProcessBuilder("npm", "run", "build" + (IGuiceContext.get(EnvironmentModule.class)
                                                                                                          .getEnvironmentOptions()
-                                                                                                         .isProduction() ? "-prod" : "")
-                );
+                                                                                                         .isProduction() ? "-prod" : ""));
                 processBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
                 processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
-                processBuilder
-                        .environment()
-                        .putAll(System.getenv());
+                processBuilder.environment()
+                              .putAll(System.getenv());
                 processBuilder = processBuilder.directory(appBaseDirectory);
                 Process p = processBuilder.start();
             }

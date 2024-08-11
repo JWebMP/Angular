@@ -45,6 +45,7 @@ module com.jwebmp.core.angular {
     provides OnGetAllFields with OnFetchAllFields;
     provides OnGetAllImports with OnFetchAllImports;
     provides OnGetAllMethods with OnFetchAllMethods;
+    provides OnGetAllModuleImports with OnFetchAllModuleImports;
 
 
     provides com.guicedee.guicedinjection.interfaces.IGuiceScanModuleInclusions with AngularScanModuleInclusion;
