@@ -13,12 +13,10 @@ import com.jwebmp.core.base.angular.client.annotations.references.NgComponentRef
 import com.jwebmp.core.base.angular.client.annotations.references.NgImportReference;
 import com.jwebmp.core.base.angular.client.annotations.routing.NgRoutable;
 import com.jwebmp.core.base.angular.client.annotations.typescript.TsDependency;
-import com.jwebmp.core.base.angular.client.services.interfaces.IComponent;
-import com.jwebmp.core.base.angular.client.services.interfaces.INgApp;
-import com.jwebmp.core.base.angular.client.services.interfaces.INgComponent;
-import com.jwebmp.core.base.angular.client.services.interfaces.INgModule;
+import com.jwebmp.core.base.angular.client.services.interfaces.*;
 import com.jwebmp.core.base.angular.services.DefinedRoute;
 import com.jwebmp.core.base.interfaces.IComponentHTMLAttributeBase;
+import com.jwebmp.core.base.interfaces.IComponentHierarchyBase;
 import io.github.classgraph.ClassInfo;
 import io.github.classgraph.ScanResult;
 
@@ -55,13 +53,14 @@ public class RoutingModule implements INgModule<RoutingModule>
         return options;
     }
 
-    public static List<DefinedRoute<?>> getRoutes()
+    public static List<DefinedRoute<?>> getRoutes(INgApp<?> app)
     {
         if (routes.isEmpty())
         {
             try
             {
-                new RoutingModule().buildRoutes();
+                new RoutingModule().setApp(app)
+                                   .buildRoutes();
             }
             catch (Throwable T)
             {
@@ -73,17 +72,17 @@ public class RoutingModule implements INgModule<RoutingModule>
     }
 
     @Override
-    public List<String> moduleImports()
+    public Set<String> moduleImports()
     {
         if (options == null)
         {
-            return List.of("RouterModule.forRoot(routes)");
+            return Set.of("RouterModule.forRoot(routes)");
         }
         else
         {
             try
             {
-                return List.of("RouterModule.forRoot(routes," + new ObjectMapper()
+                return Set.of("RouterModule.forRoot(routes," + new ObjectMapper()
                         .disable(JsonGenerator.Feature.QUOTE_FIELD_NAMES)
                         .enable(DeserializationFeature.READ_ENUMS_USING_TO_STRING)
                         .enable(SerializationFeature.WRITE_ENUMS_USING_TO_STRING)
@@ -151,6 +150,9 @@ public class RoutingModule implements INgModule<RoutingModule>
                                                       .sortOrder()))
                 .forEach(a -> {
                              Class<? extends INgComponent<?>> aClass = (Class<? extends INgComponent<?>>) a.loadClass();
+                             var component = IGuiceContext.get(aClass);
+                             this.app.getRoutes()
+                                     .add((IComponentHierarchyBase<?, ?>) component);
                              NgRoutable annotation = aClass.getAnnotation(NgRoutable.class);
                              if (annotation != null)
                              {
@@ -284,7 +286,7 @@ public class RoutingModule implements INgModule<RoutingModule>
         {
             String routesOutput = om.writerWithDefaultPrettyPrinter()
                                     .writeValueAsString(definedRoutesList);
-            routesOutput = "const routes: Routes = " + routesOutput + ";\n";
+            routesOutput = "export const routes: Routes = " + routesOutput + ";\n";
             return routesOutput;
         }
         catch (JsonProcessingException e)
@@ -298,14 +300,43 @@ public class RoutingModule implements INgModule<RoutingModule>
                                   String pathRoute,
                                   String variablePath)
     {
-        component.addAttribute("[routerLink]", "['" + pathRoute + "'," +
-                variablePath + "]");
+        if (pathRoute.startsWith("'"))
+        {
+            pathRoute = pathRoute.substring(1);
+        }
+        if (pathRoute.endsWith("'"))
+        {
+            pathRoute = pathRoute.substring(0, pathRoute.length() - 1);
+        }
+
+
+        component.addAttribute("[routerLink]", "['" + pathRoute + "'" + (Strings.isNullOrEmpty(variablePath) ? "" : "," +
+                variablePath) + "]");
+
+        component.asHierarchyBase()
+                 .addConfiguration(AnnotationUtils.getNgImportReference("RouterLink", "@angular/router"));
+        component.asHierarchyBase()
+                 .addConfiguration(AnnotationUtils.getNgImportModule("RouterLink"));
+    }
+
+    public static void applyRequired(IComponentHierarchyBase<?, ?> component)
+    {
+
+        component.asHierarchyBase()
+                 .addConfiguration(AnnotationUtils.getNgImportReference("RouterLink", "@angular/router"));
+        component.asHierarchyBase()
+                 .addConfiguration(AnnotationUtils.getNgImportModule("RouterLink"));
     }
 
     public static void applyRoute(IComponentHTMLAttributeBase<?, ?> component,
                                   Class<? extends INgComponent<?>> pathRoute)
     {
         applyRoute(component, pathRoute, "");
+
+        component.asHierarchyBase()
+                 .addConfiguration(AnnotationUtils.getNgImportReference("RouterLink", "@angular/router"));
+        component.asHierarchyBase()
+                 .addConfiguration(AnnotationUtils.getNgImportModule("RouterLink"));
     }
 
     public static void applyRoute(IComponentHTMLAttributeBase<?, ?> component,
@@ -313,7 +344,12 @@ public class RoutingModule implements INgModule<RoutingModule>
                                   String variablePath)
     {
         component.addAttribute("[routerLink]", "['" + pathRoute.getAnnotation(NgRoutable.class)
-                                                               .path() + "'," +
-                variablePath + "]");
+                                                               .path() + "'" + (Strings.isNullOrEmpty(variablePath) ? "" : "," +
+                variablePath) + "]");
+
+        component.asHierarchyBase()
+                 .addConfiguration(AnnotationUtils.getNgImportReference("RouterLink", "@angular/router"));
+        component.asHierarchyBase()
+                 .addConfiguration(AnnotationUtils.getNgImportModule("RouterLink"));
     }
 }

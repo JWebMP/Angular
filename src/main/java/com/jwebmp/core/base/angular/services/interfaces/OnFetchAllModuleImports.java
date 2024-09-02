@@ -1,19 +1,15 @@
 package com.jwebmp.core.base.angular.services.interfaces;
 
-import com.jwebmp.core.base.ComponentHierarchyBase;
-import com.jwebmp.core.base.angular.client.annotations.angular.NgComponent;
-import com.jwebmp.core.base.angular.client.services.interfaces.INgComponent;
 import com.jwebmp.core.base.angular.client.services.spi.OnGetAllModuleImports;
 
-import java.util.List;
 import java.util.Set;
 
 public class OnFetchAllModuleImports implements OnGetAllModuleImports
 {
     @Override
-    public void perform(List<String> refs, Object clazz)
+    public void perform(Set<String> refs, Object clazz)
     {
-        if (clazz.getClass()
+        /*if (clazz.getClass()
                  .isAnnotationPresent(NgComponent.class) && clazz instanceof ComponentHierarchyBase && clazz instanceof INgComponent)
         {
             ComponentHierarchyBase chb = (ComponentHierarchyBase) clazz;
@@ -26,11 +22,11 @@ public class OnFetchAllModuleImports implements OnGetAllModuleImports
                          .isAnnotationPresent(NgComponent.class) && chb1 instanceof INgComponent)
                 {
                     INgComponent<?> ngComp = (INgComponent<?>) chb1;
-                    Set<String> strings = ((INgComponent<?>) chb1).importModules();
+                    Set<String> strings = ((INgComponent<?>) chb1).moduleImports();
                     refs.addAll(strings);
                 }
             }
-        }
+        }*/
     }
 
 }

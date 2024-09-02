@@ -18,13 +18,14 @@ import com.jwebmp.core.base.angular.client.annotations.typescript.TsDevDependenc
 import com.jwebmp.core.base.angular.client.annotations.typescript.TsDevDependency;
 import com.jwebmp.core.base.angular.client.services.AnnotationHelper;
 import com.jwebmp.core.base.angular.client.services.interfaces.*;
-import com.jwebmp.core.base.angular.modules.services.base.AngularAppBootModule;
 import com.jwebmp.core.base.angular.modules.services.base.EnvironmentModule;
+import com.jwebmp.core.base.angular.services.NGApplication;
 import com.jwebmp.core.base.angular.services.RenderedAssets;
 import com.jwebmp.core.base.angular.services.interfaces.NpmrcConfigurator;
 import com.jwebmp.core.base.angular.typescript.JWebMP.ResourceLocator;
 import com.jwebmp.core.base.html.Body;
 import com.jwebmp.core.base.html.DivSimple;
+import com.jwebmp.core.base.interfaces.IComponentHierarchyBase;
 import com.jwebmp.core.base.servlets.enumarations.DevelopmentEnvironments;
 import io.github.classgraph.ClassInfo;
 import io.github.classgraph.Resource;
@@ -63,6 +64,7 @@ public class JWebMPTypeScriptCompiler
         return IComponent.getCurrentAppFile();
     }
 
+    private List<File> completedFiles = new ArrayList<>();
 
     public JWebMPTypeScriptCompiler(INgApp<?> app)
     {
@@ -74,49 +76,53 @@ public class JWebMPTypeScriptCompiler
         log.info("Application [" + ngApp.value() + "] is compiling to " + appPath.getPath() + ". Change with env property \"jwebmp\"");
     }
 
+    private static final Set<INgApp<?>> allApps = new LinkedHashSet<>();
+
     public static Set<INgApp<?>> getAllApps()
     {
-        Set<INgApp<?>> out = new LinkedHashSet<>();
-        for (ClassInfo classInfo : IGuiceContext.instance()
-                                                .getScanResult()
-                                                .getClassesWithAnnotation(NgApp.class))
+        if (allApps.isEmpty())
         {
-            if (classInfo.isAbstract() || classInfo.isInterfaceOrAnnotation())
+            for (ClassInfo classInfo : IGuiceContext.instance()
+                                                    .getScanResult()
+                                                    .getClassesWithAnnotation(NgApp.class))
             {
-                continue;
-            }
-            try
-            {
-                INgApp<?> clazz = (INgApp<?>) IGuiceContext.get(classInfo.loadClass());
-                System.out.println("Generating Angular Application - (" + getTsFilename(clazz) + ") in folder " + getClassDirectory(classInfo.loadClass()));
-                out.add(clazz);
-            }
-            catch (ClassCastException e)
-            {
-                System.out.println("Cannot render app - " + classInfo.getSimpleName() + " / Annotated @NgApp does not implement INgApp");
+                if (classInfo.isAbstract() || classInfo.isInterfaceOrAnnotation())
+                {
+                    continue;
+                }
+                try
+                {
+                    INgApp<?> clazz = (INgApp<?>) IGuiceContext.get(classInfo.loadClass());
+                    System.out.println("Generating Angular Application - (" + getTsFilename(clazz) + ") in folder " + getClassDirectory(classInfo.loadClass()));
+                    allApps.add(clazz);
+                }
+                catch (ClassCastException e)
+                {
+                    System.out.println("Cannot render app - " + classInfo.getSimpleName() + " / Annotated @NgApp does not implement INgApp");
+                }
             }
         }
-        return out;
+        return allApps;
     }
 
-    public StringBuilder renderDataTypeTS(NgApp ngApp, AngularAppBootModule appBootModule, File srcDirectory, INgDataType<?> component, Class<?> requestingClass) throws
-                                                                                                                                                                  IOException
+    public StringBuilder renderDataTypeTS(NgApp ngApp, File srcDirectory, INgDataType<?> component, Class<?> requestingClass) throws
+                                                                                                                              IOException
     {
         StringBuilder sb = new StringBuilder();
         sb.append(component.renderClassTs());
         return sb;
     }
 
-    public StringBuilder renderServiceProviderTS(NgApp ngApp, AngularAppBootModule appBootModule, File srcDirectory, INgServiceProvider<?> component, Class<?> requestingClass) throws
-                                                                                                                                                                                IOException
+    public StringBuilder renderServiceProviderTS(NgApp ngApp, File srcDirectory, INgServiceProvider<?> component, Class<?> requestingClass) throws
+                                                                                                                                            IOException
     {
         StringBuilder sb = new StringBuilder();
         sb.append(component.renderClassTs());
         return sb;
     }
 
-    public StringBuilder renderProviderTS(NgApp ngApp, AngularAppBootModule appBootModule, File srcDirectory, INgProvider<?> component, Class<?> requestingClass) throws
-                                                                                                                                                                  IOException
+    public StringBuilder renderProviderTS(NgApp ngApp, File srcDirectory, INgProvider<?> component, Class<?> requestingClass) throws
+                                                                                                                              IOException
     {
         StringBuilder sb = new StringBuilder();
         sb.append(component.renderClassTs());
@@ -124,91 +130,53 @@ public class JWebMPTypeScriptCompiler
     }
 
 
-    public StringBuilder renderServiceTS(NgApp ngApp, AngularAppBootModule appBootModule, File srcDirectory, INgDataService<?> component, Class<?> requestingClass) throws
-                                                                                                                                                                    IOException
+    public StringBuilder renderServiceTS(NgApp ngApp, File srcDirectory, INgDataService<?> component, Class<?> requestingClass) throws
+                                                                                                                                IOException
     {
         StringBuilder sb = new StringBuilder();
         sb.append(component.renderClassTs());
         return sb;
     }
 
-    public StringBuilder renderDirectiveTS(NgApp ngApp, AngularAppBootModule appBootModule, File srcDirectory, INgDirective<?> component, Class<?> requestingClass) throws
-                                                                                                                                                                    IOException
+    public StringBuilder renderDirectiveTS(NgApp ngApp, File srcDirectory, INgDirective<?> component, Class<?> requestingClass) throws
+                                                                                                                                IOException
     {
         StringBuilder sb = new StringBuilder();
         sb.append(component.renderClassTs());
         return sb;
     }
 
-    public StringBuilder renderComponentTS(NgApp ngApp, AngularAppBootModule appBootModule, File srcDirectory, INgComponent<?> component, Class<?> requestingClass) throws
-                                                                                                                                                                    IOException
+    public StringBuilder renderComponentTS(NgApp ngApp, File srcDirectory, INgComponent<?> component, Class<?> requestingClass) throws
+                                                                                                                                IOException
     {
         StringBuilder sb = new StringBuilder();
         sb.append(component.renderClassTs());
         return sb;
     }
-	
-	/*public String getFileReference(String baseDirectory, Class<?> clazz, String... extension)
-	{
-		String classLocationDirectory = getClassLocationDirectory(clazz);
-		classLocationDirectory = classLocationDirectory.replaceAll("\\\\", "/");
-		String baseLocation = baseDirectory;
-		baseLocation.replaceAll("\\\\", "/");
-		baseLocation += "/src/app/";
-		classLocationDirectory = baseLocation + classLocationDirectory + getTsFilename(clazz) + (extension.length > 0 ? extension[0] : "");
-		
-		return classLocationDirectory;
-	}*/
-	
-	/*public File getFile(Class<?> clazz, String... extension)
-	{
-		//	ITSComponent.getFile(appBaseDirectory.getPath(), clazz, extension);
-		String baseDir = getFileReference(appBaseDirectory.getPath(), clazz, extension);
-		File file = new File(baseDir);
-		return file;
-	}*/
-	
-	/*public File getFile(String filename, String... extension) throws IOException
-	{
-		String baseDir = appBaseDirectory.getCanonicalPath()
-		                                 .replaceAll("\\\\", "/")
-		                 + "/src/app/"
-				                 .replaceAll("\\\\", "/");
-		return new File(FilenameUtils.concat(baseDir, filename)
-		                + (extension.length > 0 ? extension[0] : ""));
-	}*/
 
-    public StringBuilder renderModuleTS(NgApp ngApp, AngularAppBootModule appBootModule, File srcDirectory, INgModule<?> component, Class<?> requestingClass) throws
-                                                                                                                                                              IOException
+    public StringBuilder renderModuleTS(NgApp ngApp, File srcDirectory, INgModule<?> component, Class<?> requestingClass) throws
+                                                                                                                          IOException
     {
         StringBuilder sb = new StringBuilder();
-        if (component instanceof AngularAppBootModule)
-        {
-            component = appBootModule;
-        }
         component.setApp(app);
         sb.append(component.renderClassTs());
         return sb;
     }
 
-    public StringBuilder renderAppTS(Class<? extends INgApp<?>> appClass) throws IOException
+    public StringBuilder renderAppTS(INgApp<?> appNgApp) throws IOException
     {
         StringBuilder sb = new StringBuilder();
         ngApp = app.getClass()
                    .getAnnotation(NgApp.class);
+        Class<? extends INgApp<?>> appClass = (Class<? extends INgApp<?>>) appNgApp.getClass();
         AppUtils.getAppPath(appClass);
-
-        INgApp<?> app = IGuiceContext.get(appClass);
-
+        INgApp<?> app = appNgApp;
         ScanResult scan = IGuiceContext.instance()
                                        .getScanResult();
-
         CallScoper scoper = IGuiceContext.get(CallScoper.class);
         try
         {
             scoper.enter();
-            AngularAppBootModule appBootModule = new AngularAppBootModule();
-            appBootModule.setBootModule(ngApp.bootComponent());
 
             IGuiceContext.get(EnvironmentModule.class)
                          .getEnvironmentOptions()
@@ -333,6 +301,12 @@ public class JWebMPTypeScriptCompiler
             }
             FileUtils.writeStringToFile(polyfillFile, polyfills.toString(), UTF_8, false);
 
+            //APP.CONFIG.TS
+            try (var is = ResourceLocator.class.getResourceAsStream("app.config.json"))
+            {
+                FileUtils.copyInputStreamToFile(is, new File(AppUtils.getAppSrcPath(appClass) + "/app.config.ts"));
+            }
+
 
             Map<String, String> namedAssets = new HashMap<>();
             List<NgAsset> assets = IGuiceContext.get(AnnotationHelper.class)
@@ -446,11 +420,14 @@ public class JWebMPTypeScriptCompiler
 
             sb.append(app.renderImports());
 
-            sb.append("if(EnvironmentModule.production) {\n" + " enableProdMode();\n" + "}\n" + "" + "platformBrowserDynamic().bootstrapModule(")
-              .append(appBootModule.getClass()
-                                   .getSimpleName())
-              .append(")\n")
-              .append(".catch(err => console.error(err));\n");
+            sb.append("""
+                              import {bootstrapApplication} from '@angular/platform-browser';
+                              import {appConfig} from './app/app.config';
+                              
+                              bootstrapApplication(""")
+              .append(ngApp.bootComponent()
+                           .getSimpleName())
+              .append(", appConfig).catch((err) => console.error(err));");
 
 
             System.out.println("Writing out angular main.ts file - " + AppUtils.getAppMainTSPath(appClass, false));
@@ -467,7 +444,7 @@ public class JWebMPTypeScriptCompiler
             System.out.println("Writing out index.html - " + mainIndexHtmlTsFile.getCanonicalPath());
             try
             {
-                FileUtils.writeStringToFile(mainIndexHtmlTsFile, renderBootIndexHtml(app, appBootModule).toString(), UTF_8, false);
+                FileUtils.writeStringToFile(mainIndexHtmlTsFile, renderBootIndexHtml(app).toString(), UTF_8, false);
             }
             catch (IOException e)
             {
@@ -495,7 +472,6 @@ public class JWebMPTypeScriptCompiler
                 AppUtils.saveAppResourceFile(appClass, fileStream, assetLocation);
             }
 
-
             File finalSrcDirectory = AppUtils.getAppSrcPath(appClass);
 
             scan.getClassesWithAnnotation(NgModule.class)
@@ -521,58 +497,201 @@ public class JWebMPTypeScriptCompiler
                     {
                         File classFile = null;
                         classFile = getFile(appClass, aClass, ".ts");
-                        try
+                        if (!completedFiles.contains(classFile))
                         {
-                            FileUtils.forceMkdirParent(classFile);
-                            INgModule<?> modd = (INgModule<?>) IGuiceContext.get(aClass);
-                            modd.setApp(app);
-                            FileUtils.write(classFile, renderModuleTS(ngApp, appBootModule, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
-                        }
-                        catch (IOException e)
-                        {
-                            e.printStackTrace();
-                        }
-                    }
-                });
-
-            scan.getClassesWithAnnotation(NgComponent.class)
-                .stream()
-                // .filter(a -> !(a.isInterface() || a.isAbstract()))
-                .forEach(a -> {
-                    Set<Class<?>> classes = new HashSet<>();
-                    if (a.isInterface() || a.isAbstract())
-                    {
-                        for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
-                        {
-                            if (!subclass.isAbstract() && !subclass.isInterface())
+                            try
                             {
-                                classes.add(subclass.loadClass());
+                                completedFiles.add(classFile);
+                                FileUtils.forceMkdirParent(classFile);
+                                INgModule<?> modd = (INgModule<?>) IGuiceContext.get(aClass);
+                                modd.setApp(app);
+                                FileUtils.write(classFile, renderModuleTS(ngApp, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
+                            }
+                            catch (IOException e)
+                            {
+                                e.printStackTrace();
                             }
                         }
                     }
-                    else
-                    {
-                        Class<?> aClass = a.loadClass();
-                        classes.add(aClass);
-                    }
-                    for (Class<?> aClass : classes)
-                    {
+                });
 
-                        File classFile = null;
-                        classFile = getFile(appClass, aClass, ".ts");
-                        try
+            //components load through the child hierarchy of the app --
+            if (app instanceof NGApplication<?> application)
+            {
+                /*try
+                {
+                    //load the app without the angular config for component rendering
+                    INgApp iNgApp = IGuiceContext.get(app.getClass());
+                    iNgApp.toString(true);
+                    var populatedChildren = iNgApp.getBody()
+                                                  .getChildrenHierarchy();
+
+                    for (var child : populatedChildren)
+                    {
+                        var aClass = child.getClass();
+                        if (aClass.isAnnotationPresent(NgComponent.class) && child instanceof INgComponent<?> component)
                         {
-                            FileUtils.forceMkdirParent(classFile);
-                            INgComponent<?> modd = (INgComponent<?>) IGuiceContext.get(aClass);
-                            ComponentHierarchyBase chb2 = (ComponentHierarchyBase) modd;
-                            FileUtils.write(classFile, renderComponentTS(ngApp, appBootModule, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
+                            DivSimple<?> dummyAdd = new DivSimple<>();
+                            dummyAdd.add((GlobalChildren) component);
+                            dummyAdd.toString(true);
+                            component.processComponentReferences();
+                            File classFile = null;
+                            classFile = getFile(appClass, aClass, ".ts");
+                            if (!completedFiles.contains(classFile))
+                            {
+                                completedFiles.add(classFile);
+                                FileUtils.forceMkdirParent(classFile);
+                                INgComponent<?> modd = component;
+                                ComponentHierarchyBase chb2 = (ComponentHierarchyBase) modd;
+                                FileUtils.write(classFile, renderComponentTS(ngApp, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
+                            }
                         }
-                        catch (IOException e)
+
+                    }
+                }
+                catch (Exception e)
+                {
+                    e.printStackTrace();
+                }
+                //then load the objects defined with routes
+                for (IComponentHierarchyBase<?, ?> route : app.getRoutes())
+                {
+                    try
+                    {
+                        route.toString(0);
+                        var routeHierarchy = route.getChildrenHierarchy(true);
+
+                        for (var child : routeHierarchy)
                         {
-                            e.printStackTrace();
+                            var aClass = child.getClass();
+                            if (aClass.isAnnotationPresent(NgComponent.class) && child instanceof INgComponent<?> component)
+                            {
+                                DivSimple<?> dummyAdd = new DivSimple<>();
+                                dummyAdd.add(child);
+                                dummyAdd.toString(true);
+                                component.processComponentReferences();
+                                File classFile = null;
+                                classFile = getFile(appClass, aClass, ".ts");
+                                if (!completedFiles.contains(classFile))
+                                {
+                                    try
+                                    {
+                                        completedFiles.add(classFile);
+                                        FileUtils.forceMkdirParent(classFile);
+                                        INgComponent<?> modd = component;
+                                        FileUtils.write(classFile, renderComponentTS(ngApp, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        e.printStackTrace();
+                                    }
+                                }
+                            }
                         }
+                    }
+                    catch (Throwable e)
+                    {
+                        log.log(Level.SEVERE, "Error rendering routes", e);
+                    }
+                }
+*/
+                var standaloneComponents = scan.getClassesWithAnnotation(NgComponent.class)
+                                               .stream()
+                                               .filter(a -> !a.isAbstract() && !a.isInterface())
+                                               .filter(a -> a.loadClass()
+                                                             .getAnnotation(NgComponent.class)
+                                                             .standalone());
+                standaloneComponents.forEach(aClass -> {
+                    try
+                    {
+                        IComponentHierarchyBase<?, ?> route = (IComponentHierarchyBase<?, ?>) IGuiceContext.get(aClass.loadClass());
+                        route.toString(0);
+                        var routeHierarchy = route.getChildrenHierarchy(true);
+                        for (var child : routeHierarchy)
+                        {
+                            if (child.getClass()
+                                     .isAnnotationPresent(NgComponent.class))
+                            {
+                                continue;
+                            }
+                            var childClass = child.getClass();
+                            if (childClass.isAnnotationPresent(NgComponent.class) && child instanceof INgComponent<?> component)
+                            {
+                                DivSimple<?> dummyAdd = new DivSimple<>();
+                                dummyAdd.add(child);
+                                dummyAdd.toString(true);
+                                component.processComponentReferences();
+                                File classFile = null;
+                                classFile = getFile(appClass, childClass, ".ts");
+                                if (!completedFiles.contains(classFile))
+                                {
+                                    try
+                                    {
+                                        completedFiles.add(classFile);
+                                        FileUtils.forceMkdirParent(classFile);
+                                        INgComponent<?> modd = component;
+                                        FileUtils.write(classFile, renderComponentTS(ngApp, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        e.printStackTrace();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch (Throwable e)
+                    {
+                        e.printStackTrace();
                     }
                 });
+            }
+
+            if (true)
+            {
+                scan.getClassesWithAnnotation(NgComponent.class)
+                    .stream()
+                    // .filter(a -> !(a.isInterface() || a.isAbstract()))
+                    .forEach(a -> {
+                        Set<Class<?>> classes = new HashSet<>();
+                        if (a.isInterface() || a.isAbstract())
+                        {
+                            for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
+                            {
+                                if (!subclass.isAbstract() && !subclass.isInterface())
+                                {
+                                    classes.add(subclass.loadClass());
+                                }
+                            }
+                        }
+                        else
+                        {
+                            Class<?> aClass = a.loadClass();
+                            classes.add(aClass);
+                        }
+                        for (Class<?> aClass : classes)
+                        {
+                            File classFile = null;
+                            classFile = getFile(appClass, aClass, ".ts");
+                            try
+                            {
+                                FileUtils.forceMkdirParent(classFile);
+                                INgComponent<?> modd = (INgComponent<?>) IGuiceContext.get(aClass);
+                                if (modd instanceof ComponentHierarchyBase componentHierarchyBase)
+                                {
+                                    componentHierarchyBase.toString(0);
+                                }
+                                modd.processComponentReferences();
+                                ComponentHierarchyBase chb2 = (ComponentHierarchyBase) modd;
+                                FileUtils.write(classFile, renderComponentTS(ngApp, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
+                            }
+                            catch (IOException e)
+                            {
+                                e.printStackTrace();
+                            }
+                        }
+                    });
+            }
 
             scan.getClassesWithAnnotation(NgDirective.class)
                 .stream()
@@ -598,16 +717,19 @@ public class JWebMPTypeScriptCompiler
                     {
                         File classFile = null;
                         classFile = getFile(appClass, aClass, ".ts");
-
-                        try
+                        if (!completedFiles.contains(classFile))
                         {
-                            FileUtils.forceMkdirParent(classFile);
-                            INgDirective<?> modd = (INgDirective<?>) IGuiceContext.get(aClass);
-                            FileUtils.write(classFile, renderDirectiveTS(ngApp, appBootModule, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
-                        }
-                        catch (IOException e)
-                        {
-                            e.printStackTrace();
+                            try
+                            {
+                                completedFiles.add(classFile);
+                                FileUtils.forceMkdirParent(classFile);
+                                INgDirective<?> modd = (INgDirective<?>) IGuiceContext.get(aClass);
+                                FileUtils.write(classFile, renderDirectiveTS(ngApp, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
+                            }
+                            catch (IOException e)
+                            {
+                                e.printStackTrace();
+                            }
                         }
                     }
 
@@ -638,15 +760,19 @@ public class JWebMPTypeScriptCompiler
                     {
                         File classFile = null;
                         classFile = getFile(appClass, aClass, ".ts");
-                        try
+                        if (!completedFiles.contains(classFile))
                         {
-                            FileUtils.forceMkdirParent(classFile);
-                            INgDataService modd = (INgDataService) IGuiceContext.get(aClass);
-                            FileUtils.write(classFile, renderServiceTS(ngApp, appBootModule, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
-                        }
-                        catch (IOException e)
-                        {
-                            e.printStackTrace();
+                            try
+                            {
+                                completedFiles.add(classFile);
+                                FileUtils.forceMkdirParent(classFile);
+                                INgDataService modd = (INgDataService) IGuiceContext.get(aClass);
+                                FileUtils.write(classFile, renderServiceTS(ngApp, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
+                            }
+                            catch (IOException e)
+                            {
+                                e.printStackTrace();
+                            }
                         }
                     }
                 });
@@ -676,15 +802,19 @@ public class JWebMPTypeScriptCompiler
                     {
                         File classFile = null;
                         classFile = getFile(appClass, aClass, ".ts");
-                        try
+                        if (!completedFiles.contains(classFile))
                         {
-                            FileUtils.forceMkdirParent(classFile);
-                            INgProvider<?> modd = (INgProvider<?>) IGuiceContext.get(aClass);
-                            FileUtils.write(classFile, renderProviderTS(ngApp, appBootModule, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
-                        }
-                        catch (IOException e)
-                        {
-                            e.printStackTrace();
+                            try
+                            {
+                                completedFiles.add(classFile);
+                                FileUtils.forceMkdirParent(classFile);
+                                INgProvider<?> modd = (INgProvider<?>) IGuiceContext.get(aClass);
+                                FileUtils.write(classFile, renderProviderTS(ngApp, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
+                            }
+                            catch (IOException e)
+                            {
+                                e.printStackTrace();
+                            }
                         }
                     }
                 });
@@ -713,15 +843,19 @@ public class JWebMPTypeScriptCompiler
                     {
                         File classFile = null;
                         classFile = getFile(appClass, aClass, ".ts");
-                        try
+                        if (!completedFiles.contains(classFile))
                         {
-                            FileUtils.forceMkdirParent(classFile);
-                            INgDataType modd = (INgDataType) IGuiceContext.get(aClass);
-                            FileUtils.write(classFile, renderDataTypeTS(ngApp, appBootModule, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
-                        }
-                        catch (IOException e)
-                        {
-                            e.printStackTrace();
+                            try
+                            {
+                                completedFiles.add(classFile);
+                                FileUtils.forceMkdirParent(classFile);
+                                INgDataType modd = (INgDataType) IGuiceContext.get(aClass);
+                                FileUtils.write(classFile, renderDataTypeTS(ngApp, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
+                            }
+                            catch (IOException e)
+                            {
+                                e.printStackTrace();
+                            }
                         }
                     }
                 });
@@ -750,15 +884,19 @@ public class JWebMPTypeScriptCompiler
                     {
                         File classFile = null;
                         classFile = getFile(appClass, aClass, ".ts");
-                        try
+                        if (!completedFiles.contains(classFile))
                         {
-                            FileUtils.forceMkdirParent(classFile);
-                            INgServiceProvider<?> modd = (INgServiceProvider<?>) IGuiceContext.get(aClass);
-                            FileUtils.write(classFile, renderServiceProviderTS(ngApp, appBootModule, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
-                        }
-                        catch (IOException e)
-                        {
-                            e.printStackTrace();
+                            try
+                            {
+                                completedFiles.add(classFile);
+                                FileUtils.forceMkdirParent(classFile);
+                                INgServiceProvider<?> modd = (INgServiceProvider<?>) IGuiceContext.get(aClass);
+                                FileUtils.write(classFile, renderServiceProviderTS(ngApp, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
+                            }
+                            catch (IOException e)
+                            {
+                                e.printStackTrace();
+                            }
                         }
                     }
                 });
@@ -832,7 +970,7 @@ public class JWebMPTypeScriptCompiler
         return sb;
     }
 
-    public StringBuilder renderBootIndexHtml(INgApp<?> app, AngularAppBootModule appBootModule)
+    public StringBuilder renderBootIndexHtml(INgApp<?> app)
     {
         Page<?> p = (Page) app;
         StringBuilder sb = new StringBuilder();
@@ -842,7 +980,8 @@ public class JWebMPTypeScriptCompiler
         body.getChildren()
             .clear();
         List<NgComponent> annotations = IGuiceContext.get(AnnotationHelper.class)
-                                                     .getAnnotationFromClass(appBootModule.getBootModule(), NgComponent.class);
+                                                     .getAnnotationFromClass(app.getAnnotation()
+                                                                                .bootComponent(), NgComponent.class);
         if (annotations.isEmpty())
         {
             throw new RuntimeException("No components found to render for boot index, the boot module specified does not have a @NgComponent");

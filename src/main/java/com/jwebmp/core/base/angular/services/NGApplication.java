@@ -1,15 +1,18 @@
 package com.jwebmp.core.base.angular.services;
 
 import com.jwebmp.core.Page;
+import com.jwebmp.core.base.angular.client.annotations.angular.NgApp;
 import com.jwebmp.core.base.angular.client.annotations.references.NgComponentReference;
 import com.jwebmp.core.base.angular.client.annotations.references.NgImportReference;
+import com.jwebmp.core.base.angular.client.annotations.typescript.TsDependency;
 import com.jwebmp.core.base.angular.client.services.interfaces.AnnotationUtils;
 import com.jwebmp.core.base.angular.client.services.interfaces.INgApp;
-import com.jwebmp.core.base.angular.modules.services.base.AngularAppBootModule;
-import com.jwebmp.core.base.angular.modules.services.base.EnvironmentModule;
 import com.jwebmp.core.base.angular.services.compiler.JWebMPTypeScriptCompiler;
 import com.jwebmp.core.base.html.Base;
 import com.jwebmp.core.base.html.Meta;
+import com.jwebmp.core.base.interfaces.IComponentHierarchyBase;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,14 +22,19 @@ import java.util.List;
 import static com.jwebmp.core.base.angular.client.services.interfaces.AnnotationUtils.getTsFilename;
 import static com.jwebmp.core.base.angular.client.services.interfaces.ImportsStatementsComponent.getRelativePath;
 
-@NgImportReference(value = "platformBrowserDynamic", reference = "@angular/platform-browser-dynamic")
-@NgImportReference(value = "enableProdMode", reference = "@angular/core")
-@NgComponentReference(EnvironmentModule.class)
-@NgComponentReference(AngularAppBootModule.class)
+@TsDependency(value = "@angular/platform-browser", version = "^18.0.1", overrides = true)
+@TsDependency(value = "@angular/platform-browser-dynamic", version = "^18.0.1")
 
+//@NgImportReference(value = "platformBrowserDynamic", reference = "@angular/platform-browser-dynamic")
+//@NgImportReference(value = "enableProdMode", reference = "@angular/core")
+//@NgComponentReference(EnvironmentModule.class)
 public class NGApplication<J extends NGApplication<J>> extends Page<J> implements INgApp<J>
 {
     private List<String> renderAfterImports;
+
+    @Getter
+    @Setter
+    private List<IComponentHierarchyBase<?, ?>> routes = new ArrayList<>();
 
     public NGApplication()
     {
@@ -35,7 +43,14 @@ public class NGApplication<J extends NGApplication<J>> extends Page<J> implement
         getHead()
                 .add(new Meta(Meta.MetadataFields.ViewPort, "width=device-width, initial-scale=1"));
         getOptions().setBase(new Base<>("/"));
+
+        if (getClass().isAnnotationPresent(NgApp.class))
+        {
+            addConfiguration(AnnotationUtils.getNgComponentReference(getClass().getAnnotation(NgApp.class)
+                                                                               .bootComponent()));
+        }
     }
+
 
     public List<String> getRenderAfterImports()
     {

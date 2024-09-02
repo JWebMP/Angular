@@ -1,22 +1,16 @@
 package com.jwebmp.core.base.angular.services.interfaces;
 
-import com.jwebmp.core.base.*;
-import com.jwebmp.core.base.angular.client.annotations.angular.*;
-import com.jwebmp.core.base.angular.client.annotations.references.*;
-import com.jwebmp.core.base.angular.client.annotations.structures.*;
-import com.jwebmp.core.base.angular.client.services.interfaces.*;
-import com.jwebmp.core.base.angular.client.services.spi.*;
+import com.jwebmp.core.base.angular.client.annotations.references.NgImportReference;
+import com.jwebmp.core.base.angular.client.services.spi.OnGetAllImports;
 
-import java.util.*;
-
-import static com.jwebmp.core.base.angular.client.services.interfaces.AnnotationUtils.*;
+import java.util.List;
 
 public class OnFetchAllImports implements OnGetAllImports
 {
-	@Override
-	public void perform(List<NgImportReference> refs, Object clazz)
-	{
-		if (clazz.getClass()
+    @Override
+    public void perform(List<NgImportReference> refs, Object clazz)
+    {
+		/*if (clazz.getClass()
 		         .isAnnotationPresent(NgComponent.class) && clazz instanceof ComponentHierarchyBase && clazz instanceof INgComponent)
 		{
 			ComponentHierarchyBase chb = (ComponentHierarchyBase) clazz;
@@ -41,7 +35,7 @@ public class OnFetchAllImports implements OnGetAllImports
 					}
 				}
 			}
-		}
-	}
-	
+		}*/
+    }
+
 }

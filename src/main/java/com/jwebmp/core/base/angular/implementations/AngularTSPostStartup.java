@@ -1,6 +1,5 @@
 package com.jwebmp.core.base.angular.implementations;
 
-import com.guicedee.client.Environment;
 import com.guicedee.guicedinjection.interfaces.IGuicePostStartup;
 import com.jwebmp.core.base.angular.client.services.interfaces.INgApp;
 import com.jwebmp.core.base.angular.services.compiler.JWebMPTypeScriptCompiler;
@@ -18,32 +17,30 @@ import static com.jwebmp.core.base.angular.client.services.interfaces.IComponent
 public class AngularTSPostStartup implements IGuicePostStartup<AngularTSPostStartup>
 {
     public static Path basePath;
-    public static boolean loadTSOnStartup = Environment.getProperty("LoadTSOnStartup", "true")
-                                                       .equals("true");
+    //public static boolean loadTSOnStartup = Environment.getProperty("LoadTSOnStartup", "true")
+    //                                                   .equals("true");
     public static boolean buildApp = true;
 
     @Override
     public List<CompletableFuture<Boolean>> postLoad()
     {
         return List.of(CompletableFuture.supplyAsync(() -> {
-            if (loadTSOnStartup)
+            for (INgApp<?> app : JWebMPTypeScriptCompiler.getAllApps())
             {
-                for (INgApp<?> app : JWebMPTypeScriptCompiler.getAllApps())
-                {
-                    JWebMPTypeScriptCompiler compiler = new JWebMPTypeScriptCompiler(app);
-                    log.info("Post Startup - Generating @NgApp (" + getTsFilename(app.getClass()) + ") " +
-                                     "in folder " + getClassDirectory(app.getClass()));
+                JWebMPTypeScriptCompiler compiler = new JWebMPTypeScriptCompiler(app);
+                log.info("Post Startup - Generating @NgApp (" + getTsFilename(app.getClass()) + ") " +
+                                 "in folder " + getClassDirectory(app.getClass()));
 
-                    try
-                    {
-                        compiler.renderAppTS((Class<? extends INgApp<?>>) app.getClass());
-                    }
-                    catch (IOException e)
-                    {
-                        e.printStackTrace();
-                    }
+                try
+                {
+                    compiler.renderAppTS(app);
+                }
+                catch (IOException e)
+                {
+                    e.printStackTrace();
                 }
             }
+
             return true;
         }));
     }

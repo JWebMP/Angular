@@ -26,7 +26,7 @@ public class JWebMPTypeScriptCompilerTest
         for (INgApp<?> app : JWebMPTypeScriptCompiler.getAllApps())
         {
             JWebMPTypeScriptCompiler compiler = new JWebMPTypeScriptCompiler(app);
-            compiler.renderAppTS((Class<? extends INgApp<?>>) app.getClass());
+            compiler.renderAppTS(app);
             System.out.println("Generating @NgApp (" + getTsFilename(app.getClass()) + ") " +
                                        "in folder " + getClassDirectory(app.getClass()));
             System.out.println("================");

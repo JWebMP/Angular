@@ -1,19 +1,16 @@
 package com.jwebmp.core.base.angular.services.interfaces;
 
-import com.jwebmp.core.base.*;
-import com.jwebmp.core.base.angular.client.annotations.angular.*;
-import com.jwebmp.core.base.angular.client.annotations.constructors.*;
-import com.jwebmp.core.base.angular.client.services.interfaces.*;
-import com.jwebmp.core.base.angular.client.services.spi.*;
+import com.jwebmp.core.base.angular.client.annotations.constructors.NgConstructorParameter;
+import com.jwebmp.core.base.angular.client.services.spi.OnGetAllConstructorParameters;
 
-import java.util.*;
+import java.util.List;
 
 public class OnFetchAllConstructorParameters implements OnGetAllConstructorParameters
 {
-	@Override
-	public void perform(List<NgConstructorParameter> allParameters, Object clazz)
-	{
-		if (clazz.getClass().isAnnotationPresent(NgComponent.class) && clazz instanceof ComponentHierarchyBase && clazz instanceof INgComponent)
+    @Override
+    public void perform(List<NgConstructorParameter> allParameters, Object clazz)
+    {
+		/*if (clazz.getClass().isAnnotationPresent(NgComponent.class) && clazz instanceof ComponentHierarchyBase && clazz instanceof INgComponent)
 		{
 			ComponentHierarchyBase chb = (ComponentHierarchyBase) clazz;
 			chb.toString(0);
@@ -31,7 +28,7 @@ public class OnFetchAllConstructorParameters implements OnGetAllConstructorParam
 					}
 				}
 			}
-		}
-	}
-	
+		}*/
+    }
+
 }

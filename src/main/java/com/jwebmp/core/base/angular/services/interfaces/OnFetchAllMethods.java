@@ -24,7 +24,7 @@ public class OnFetchAllMethods implements OnGetAllMethods
                          .isAnnotationPresent(NgComponent.class) && chb1 instanceof INgComponent)
                 {
                     INgComponent<?> ngComp = (INgComponent<?>) chb1;
-                    allBodies.addAll(ngComp.getAllMethods());
+                    allBodies.addAll(ngComp.renderAllMethods());
                 }
             }
         }

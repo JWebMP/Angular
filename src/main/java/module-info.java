@@ -9,6 +9,7 @@ import com.jwebmp.core.base.angular.implementations.*;
 import com.jwebmp.core.base.angular.modules.listeners.OnClickListener;
 import com.jwebmp.core.base.angular.services.RenderedAssets;
 import com.jwebmp.core.base.angular.services.interfaces.*;
+import com.jwebmp.core.databind.IAfterRenderComplete;
 import com.jwebmp.core.databind.IOnComponentAdded;
 import com.jwebmp.core.databind.IOnComponentHtmlRender;
 import com.jwebmp.core.events.services.IOnClickService;
@@ -52,6 +53,7 @@ module com.jwebmp.core.angular {
     provides IOnComponentHtmlRender with OnComponentRenderApplyAngular;
     provides IGuiceConfigurator with SearchPathConfigurator;
     provides IOnComponentAdded with OnComponentAdded;
+    provides IAfterRenderComplete with AngularAfterRenderCompleted, AngularTagReplacementAfterRender, AngularComponentReferencesAfterRender;
 
     provides IGuicePreStartup with AngularPreStartup;
     provides IGuiceModule with AngularTSSiteBinder;
@@ -68,8 +70,12 @@ module com.jwebmp.core.angular {
     uses RenderedAssets;
     uses NpmrcConfigurator;
 
+    exports com.jwebmp.core.base.angular.modules.directives;
+
     opens com.jwebmp.core.base.angular.typescript.JWebMP to com.google.guice, com.fasterxml.jackson.databind, com.jwebmp.core;
     opens com.jwebmp.core.base.angular.services to com.google.guice, com.fasterxml.jackson.databind, com.jwebmp.core;
+    opens com.jwebmp.core.base.angular.components to com.google.guice, com.fasterxml.jackson.databind, com.jwebmp.core;
+    exports com.jwebmp.core.base.angular.components;
 
     exports com.jwebmp.core.base.angular.services.interfaces;
     opens com.jwebmp.core.base.angular.services.interfaces to com.fasterxml.jackson.databind, com.google.guice, com.jwebmp.core;

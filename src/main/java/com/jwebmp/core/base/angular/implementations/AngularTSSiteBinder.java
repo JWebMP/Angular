@@ -235,7 +235,7 @@ public class AngularTSSiteBinder
 */
 
                 String path = "";
-                for (DefinedRoute<?> route : RoutingModule.getRoutes())
+                for (DefinedRoute<?> route : RoutingModule.getRoutes(app))
                 {
                     bindRouteToPath(router, path, staticFileLocationPath, siteHostingLocation, route);
                 }
