@@ -12,6 +12,8 @@ import com.jwebmp.core.base.angular.client.annotations.angularconfig.NgAsset;
 import com.jwebmp.core.base.angular.client.annotations.angularconfig.NgPolyfill;
 import com.jwebmp.core.base.angular.client.annotations.angularconfig.NgScript;
 import com.jwebmp.core.base.angular.client.annotations.angularconfig.NgStyleSheet;
+import com.jwebmp.core.base.angular.client.annotations.boot.NgBootImportProvider;
+import com.jwebmp.core.base.angular.client.annotations.boot.NgBootImportReference;
 import com.jwebmp.core.base.angular.client.annotations.typescript.TsDependencies;
 import com.jwebmp.core.base.angular.client.annotations.typescript.TsDependency;
 import com.jwebmp.core.base.angular.client.annotations.typescript.TsDevDependencies;
@@ -304,7 +306,36 @@ public class JWebMPTypeScriptCompiler
             //APP.CONFIG.TS
             try (var is = ResourceLocator.class.getResourceAsStream("app.config.json"))
             {
-                FileUtils.copyInputStreamToFile(is, new File(AppUtils.getAppSrcPath(appClass) + "/app.config.ts"));
+                String bootAppString = IOUtils.toString(is, UTF_8);
+                StringBuilder bootImportsString = new StringBuilder();
+                var ir = scan.getClassesWithAnnotation(NgBootImportReference.class);
+                Set<String> imports = new LinkedHashSet<>();
+                for (ClassInfo classInfo : ir)
+                {
+                    var a = classInfo.loadClass()
+                                     .getAnnotationsByType(NgBootImportReference.class);
+                    for (NgBootImportReference ngBootImportReference : a)
+                    {
+                        String importString = "import {" + ngBootImportReference.value() + "} from '" + ngBootImportReference.reference() + "'";
+                        imports.add(importString);
+                    }
+                }
+                imports.forEach(a -> bootImportsString.append(a)
+                                                      .append("\n"));
+
+                StringBuilder bootImportProviders = new StringBuilder();
+                for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgBootImportProvider.class))
+                {
+                    var a = classInfo.loadClass()
+                                     .getAnnotationsByType(NgBootImportProvider.class);
+                    for (NgBootImportProvider ngBootImportProvider : a)
+                    {
+                        bootImportProviders.append(ngBootImportProvider.value() + ",\n");
+                    }
+                    //.append(",");
+                }
+                bootAppString = bootAppString.formatted(bootImportsString.toString(), bootImportProviders.toString());
+                FileUtils.writeStringToFile(new File(AppUtils.getAppSrcPath(appClass) + "/app.config.ts"), bootAppString, UTF_8);
             }
 
 
@@ -427,13 +458,15 @@ public class JWebMPTypeScriptCompiler
                               bootstrapApplication(""")
               .append(ngApp.bootComponent()
                            .getSimpleName())
+              .append("\n")
               .append(", appConfig).catch((err) => console.error(err));");
 
 
             System.out.println("Writing out angular main.ts file - " + AppUtils.getAppMainTSPath(appClass, false));
             try
             {
-                FileUtils.writeStringToFile(AppUtils.getAppMainTSPath(appClass, true), sb.toString(), UTF_8, false);
+                String bootAppString = sb.toString();
+                FileUtils.writeStringToFile(AppUtils.getAppMainTSPath(appClass, true), bootAppString, UTF_8, false);
             }
             catch (IOException e)
             {
