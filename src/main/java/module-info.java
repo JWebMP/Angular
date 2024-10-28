@@ -37,7 +37,7 @@ module com.jwebmp.core.angular {
     requires guiced.vertx.sockets;
 
     requires com.guicedee.jsonrepresentation;
-    requires io.vertx;
+    requires io.vertx.core;
     requires guiced.vertx;
     requires com.jwebmp.core;
 

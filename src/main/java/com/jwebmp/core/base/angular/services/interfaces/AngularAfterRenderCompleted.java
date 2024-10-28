@@ -53,7 +53,7 @@ public class AngularAfterRenderCompleted implements IAfterRenderComplete<Angular
         if (ngComponent == null)
         {
             //not ready yet, wait for adding to a component
-            log.log(Level.SEVERE, "Reading component no on an angular tree - " + component.getClass()
+            log.log(Level.FINE, "Reading component no on an angular tree - " + component.getClass()
                                                                                           .getName());
             return;
             //ngComponent = component;
