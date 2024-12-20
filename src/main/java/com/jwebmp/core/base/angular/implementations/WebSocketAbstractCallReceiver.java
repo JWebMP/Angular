@@ -3,6 +3,7 @@ package com.jwebmp.core.base.angular.implementations;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.guicedee.guicedservlets.websockets.options.WebSocketMessageReceiver;
 import com.guicedee.guicedservlets.websockets.services.IWebSocketMessageReceiver;
+import com.guicedee.services.jsonrepresentation.IJsonRepresentation;
 import com.guicedee.vertx.websockets.GuicedWebSocket;
 import com.jwebmp.core.base.ajax.*;
 import com.jwebmp.core.utilities.EscapeChars;
@@ -42,7 +43,7 @@ public abstract class WebSocketAbstractCallReceiver
         try
         {
             AjaxCall<?> ajaxCall = get(AjaxCall.class);
-            ObjectMapper om = get(DefaultObjectMapper);
+            ObjectMapper om = IJsonRepresentation.getObjectMapper();
             String originalValues = om.writeValueAsString(message.getData());
             AjaxCall<?> call = om.readValue(originalValues, AjaxCall.class);
             ajaxCall.fromCall(call);
@@ -52,25 +53,23 @@ public abstract class WebSocketAbstractCallReceiver
             }
             ajaxResponse = action(ajaxCall, ajaxResponse);
 
-        }
-        catch (Exception T)
+        } catch (Exception T)
         {
             ajaxResponse.setSuccess(false);
             AjaxResponseReaction<?> arr = new AjaxResponseReaction<>("Unknown Error",
-                                                                     "An AJAX call resulted in an unknown server error<br>" + T.getMessage() + "<br>" +
+                    "An AJAX call resulted in an unknown server error<br>" + T.getMessage() + "<br>" +
 
-                                                                             EscapeChars.forHTML(ExceptionUtils.getStackTrace(T)), ReactionType.DialogDisplay);
+                            EscapeChars.forHTML(ExceptionUtils.getStackTrace(T)), ReactionType.DialogDisplay);
             arr.setResponseType(AjaxResponseType.Danger);
             ajaxResponse.addReaction(arr);
             //  output = ajaxResponse.toString();
             WebSocketAbstractCallReceiver.log.log(Level.SEVERE, "Unknown in ajax reply\n", T);
-        }
-        catch (Throwable T)
+        } catch (Throwable T)
         {
             ajaxResponse.setSuccess(false);
             AjaxResponseReaction<?> arr = new AjaxResponseReaction<>("Unknown Error",
-                                                                     "An AJAX call resulted in an internal server error<br>" + T.getMessage() + "<br>" +
-                                                                             EscapeChars.forHTML(ExceptionUtils.getStackTrace(T)), ReactionType.DialogDisplay);
+                    "An AJAX call resulted in an internal server error<br>" + T.getMessage() + "<br>" +
+                            EscapeChars.forHTML(ExceptionUtils.getStackTrace(T)), ReactionType.DialogDisplay);
             arr.setResponseType(AjaxResponseType.Danger);
             ajaxResponse.addReaction(arr);
             //  output = ajaxResponse.toString();
