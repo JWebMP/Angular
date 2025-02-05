@@ -17,10 +17,17 @@ import java.util.Set;
 @NgDirective(value = "[wsgroup]", standalone = true)
 @NgField("@Input('wsgroup') wsgroup! : string;")
 @NgOnInit(
-        "this.socketClientService.send('AddToWebSocketGroup',{groupName : this.wsgroup},'onClick',{},this.elementRef);"
+        """
+                        if(this.socketClientService.groups.findIndex(x => x === this.wsgroup) === -1)
+                        {
+                            this.socketClientService.groups.push(this.wsgroup);
+                        }
+                        this.socketClientService.send('AddToWebSocketGroup',{groupName : this.wsgroup},'onClick',{},this.elementRef);
+                """
 )
 @NgOnDestroy(
-        "this.socketClientService.send('RemoveFromWebSocketGroup',{groupName : this.wsgroup},'onClick',{},this.elementRef);")
+        "this.socketClientService.send('RemoveFromWebSocketGroup',{groupName : this.wsgroup},'onClick',{},this.elementRef);\n" +
+                "this.socketClientService.groups.splice(this.socketClientService.groups.findIndex(x => x === this.wsgroup), 1);")
 
 
 @NgComponentReference(SocketClientService.class)
