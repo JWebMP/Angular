@@ -36,34 +36,26 @@ import static com.jwebmp.core.base.angular.client.services.interfaces.Annotation
 @TsDependency(value = "@angular/router", version = "^18.0.1")
 
 @NgModule
-public class RoutingModule implements INgModule<RoutingModule>
-{
+public class RoutingModule implements INgModule<RoutingModule> {
     private INgApp<?> app;
     private List<DefinedRoute<?>> definedRoutesList;
     private static List<DefinedRoute<?>> routes = new ArrayList<>();
 
     private static RoutingModuleOptions options;
 
-    public static RoutingModuleOptions getOptions()
-    {
-        if (options == null)
-        {
+    public static RoutingModuleOptions getOptions() {
+        if (options == null) {
             options = new RoutingModuleOptions();
         }
         return options;
     }
 
-    public static List<DefinedRoute<?>> getRoutes(INgApp<?> app)
-    {
-        if (routes.isEmpty())
-        {
-            try
-            {
+    public static List<DefinedRoute<?>> getRoutes(INgApp<?> app) {
+        if (routes.isEmpty()) {
+            try {
                 new RoutingModule().setApp(app)
-                                   .buildRoutes();
-            }
-            catch (Throwable T)
-            {
+                        .buildRoutes();
+            } catch (Throwable T) {
 
             }
         }
@@ -72,52 +64,40 @@ public class RoutingModule implements INgModule<RoutingModule>
     }
 
     @Override
-    public Set<String> moduleImports()
-    {
-        if (options == null)
-        {
+    public Set<String> moduleImports() {
+        if (options == null) {
             return Set.of("RouterModule.forRoot(routes)");
-        }
-        else
-        {
-            try
-            {
+        } else {
+            try {
                 return Set.of("RouterModule.forRoot(routes," + new ObjectMapper()
                         .disable(JsonGenerator.Feature.QUOTE_FIELD_NAMES)
                         .enable(DeserializationFeature.READ_ENUMS_USING_TO_STRING)
                         .enable(SerializationFeature.WRITE_ENUMS_USING_TO_STRING)
                         .writeValueAsString(options) + ")");
-            }
-            catch (JsonProcessingException e)
-            {
+            } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
         }
     }
 
     @Override
-    public RoutingModule setApp(INgApp<?> app)
-    {
+    public RoutingModule setApp(INgApp<?> app) {
         this.app = app;
         return this;
     }
 
     @Override
-    public List<String> exports()
-    {
+    public List<String> exports() {
         return List.of("RouterModule");
     }
 
     @Override
-    public List<NgImportReference> getAllImportAnnotations()
-    {
+    public List<NgImportReference> getAllImportAnnotations() {
         List<NgImportReference> out = INgModule.super.getAllImportAnnotations();
-        if (definedRoutesList == null)
-        {
+        if (definedRoutesList == null) {
             buildRoutes();
         }
-        for (DefinedRoute<?> definedRoute : definedRoutesList)
-        {
+        for (DefinedRoute<?> definedRoute : definedRoutesList) {
             NgComponentReference ngComponentReference = getNgComponentReference(definedRoute.getComponent());
             out.addAll(putRelativeLinkInMap(getClass(), ngComponentReference));
             buildImportReferenceNest(out, definedRoute);
@@ -125,20 +105,17 @@ public class RoutingModule implements INgModule<RoutingModule>
         return out;
     }
 
-    private void buildImportReferenceNest(List<NgImportReference> out, DefinedRoute<?> definedRoute)
-    {
+    private void buildImportReferenceNest(List<NgImportReference> out, DefinedRoute<?> definedRoute) {
         List<DefinedRoute<?>> dChildren = definedRoute.getChildren();
-        for (DefinedRoute<?> dChild : dChildren)
-        {
+        for (DefinedRoute<?> dChild : dChildren) {
             out.addAll(addImportToMap(dChild));
             buildImportReferenceNest(out, dChild);
         }
     }
 
-    public void buildRoutes()
-    {
+    public void buildRoutes() {
         ScanResult scan = IGuiceContext.instance()
-                                       .getScanResult();
+                .getScanResult();
 
         Map<Class<? extends IComponent<?>>, String> baseRoutes = new LinkedHashMap<>();
         definedRoutesList = new ArrayList<>();
@@ -146,22 +123,20 @@ public class RoutingModule implements INgModule<RoutingModule>
                 .getClassesWithAnnotation(NgRoutable.class)
                 .stream()
                 .sorted(Comparator.comparingInt(o -> o.loadClass()
-                                                      .getAnnotation(NgRoutable.class)
-                                                      .sortOrder()))
+                        .getAnnotation(NgRoutable.class)
+                        .sortOrder()))
                 .forEach(a -> {
-                             Class<? extends INgComponent<?>> aClass = (Class<? extends INgComponent<?>>) a.loadClass();
-                             var component = IGuiceContext.get(aClass);
-                             this.app.getRoutes()
-                                     .add((IComponentHierarchyBase<?, ?>) component);
-                             NgRoutable annotation = aClass.getAnnotation(NgRoutable.class);
-                             if (annotation != null)
-                             {
-                                 if (annotation.parent().length == 0)
-                                 {
-                                     baseRoutes.put(aClass, annotation.path());
-                                 }
-                             }
-                         }
+                            Class<? extends INgComponent<?>> aClass = (Class<? extends INgComponent<?>>) a.loadClass();
+                            var component = IGuiceContext.get(aClass);
+                            this.app.getRoutes()
+                                    .add((IComponentHierarchyBase<?, ?>) component);
+                            NgRoutable annotation = aClass.getAnnotation(NgRoutable.class);
+                            if (annotation != null) {
+                                if (annotation.parent().length == 0) {
+                                    baseRoutes.put(aClass, annotation.path());
+                                }
+                            }
+                        }
                 );
         baseRoutes.forEach((aClass, aName) -> {
             DefinedRoute<?> dr = getDefinedRoute(aClass);
@@ -169,18 +144,15 @@ public class RoutingModule implements INgModule<RoutingModule>
             definedRoutesList.add(dr);
             routes.add(dr);
         });
-        for (DefinedRoute<?> definedRoute : definedRoutesList)
-        {
-            if (definedRoute.getComponent() != null)
-            {
+        for (DefinedRoute<?> definedRoute : definedRoutesList) {
+            if (definedRoute.getComponent() != null) {
                 List<NgImportReference> refs = new ArrayList<>();
                 buildRoutePathwayImports(definedRoute, refs);
             }
         }
     }
 
-    private DefinedRoute<?> getDefinedRoute(Class<? extends IComponent<?>> aClass)
-    {
+    private DefinedRoute<?> getDefinedRoute(Class<? extends IComponent<?>> aClass) {
         DefinedRoute<?> dr = new DefinedRoute<>();
         NgRoutable annotation = aClass.getAnnotation(NgRoutable.class);
         dr.setPath(annotation.path());
@@ -188,33 +160,26 @@ public class RoutingModule implements INgModule<RoutingModule>
         dr.setComponent(aClass);
         dr.setComponentName(getTsFilename(aClass));
 
-        if (!Strings.isNullOrEmpty(annotation.redirectTo()))
-        {
+        if (!Strings.isNullOrEmpty(annotation.redirectTo())) {
             dr.setRedirectTo(annotation.redirectTo());
         }
-        if (!Strings.isNullOrEmpty(annotation.pathMatch()))
-        {
+        if (!Strings.isNullOrEmpty(annotation.pathMatch())) {
             dr.setPathMatch(annotation.pathMatch());
         }
         return dr;
     }
 
-    private List<NgImportReference> addImportToMap(DefinedRoute<?> definedRoute)
-    {
+    private List<NgImportReference> addImportToMap(DefinedRoute<?> definedRoute) {
         NgComponentReference reference = getNgComponentReference(definedRoute.getComponent());
-        if (definedRoute.getComponent() != null)
-        {
+        if (definedRoute.getComponent() != null) {
             return putRelativeLinkInMap(getClass(), reference);
         }
         return new ArrayList<>();
     }
 
-    private List<NgImportReference> buildRoutePathwayImports(DefinedRoute<?> definedRoute, List<NgImportReference> out)
-    {
-        for (DefinedRoute<?> child : definedRoute.getChildren())
-        {
-            if (child.getComponent() != null)
-            {
+    private List<NgImportReference> buildRoutePathwayImports(DefinedRoute<?> definedRoute, List<NgImportReference> out) {
+        for (DefinedRoute<?> child : definedRoute.getChildren()) {
+            if (child.getComponent() != null) {
                 out.addAll(addImportToMap(child));
                 out.addAll(buildRoutePathwayImports(child, out));
             }
@@ -224,43 +189,33 @@ public class RoutingModule implements INgModule<RoutingModule>
     }
 
     private void buildRoutePathway(DefinedRoute parentRoute,
-                                   Class<? extends IComponent<?>> aClass, boolean first)
-    {
+                                   Class<? extends IComponent<?>> aClass, boolean first) {
         DefinedRoute<?> innerDr = getDefinedRoute(aClass);
-        if (!first)
-        {
+        if (!first) {
             parentRoute.addChild(innerDr);
-        }
-        else
-        {
+        } else {
             innerDr = parentRoute;
         }
 
         first = false;
-        for (Class<? extends IComponent<?>> componentsWithParentClass : componentsWithParenClassAs(aClass))
-        {
+        for (Class<? extends IComponent<?>> componentsWithParentClass : componentsWithParenClassAs(aClass)) {
             buildRoutePathway(innerDr, componentsWithParentClass, first);
         }
     }
 
-    List<Class<? extends IComponent<?>>> componentsWithParenClassAs(Class<? extends IComponent<?>> clazz)
-    {
+    List<Class<? extends IComponent<?>>> componentsWithParenClassAs(Class<? extends IComponent<?>> clazz) {
         List<Class<? extends IComponent<?>>> out = new ArrayList<>();
 
         for (ClassInfo classInfo : IGuiceContext.instance()
-                                                .getScanResult()
-                                                .getClassesWithAnnotation(NgRoutable.class))
-        {
-            if (classInfo.isAbstract() || classInfo.isInterface())
-            {
+                .getScanResult()
+                .getClassesWithAnnotation(NgRoutable.class)) {
+            if (classInfo.isAbstract() || classInfo.isInterface()) {
                 continue;
             }
             NgRoutable routable = classInfo.loadClass()
-                                           .getAnnotation(NgRoutable.class);
-            for (Class<? extends IComponent<?>> aClass : routable.parent())
-            {
-                if (aClass.equals(clazz))
-                {
+                    .getAnnotation(NgRoutable.class);
+            for (Class<? extends IComponent<?>> aClass : routable.parent()) {
+                if (aClass.equals(clazz)) {
                     out.add((Class<? extends IComponent<?>>) classInfo.loadClass());
                 }
             }
@@ -268,29 +223,24 @@ public class RoutingModule implements INgModule<RoutingModule>
         return out;
     }
 
-    static <K, V> Map<K, V> filterByValue(Map<K, V> map, Predicate<V> predicate)
-    {
+    static <K, V> Map<K, V> filterByValue(Map<K, V> map, Predicate<V> predicate) {
         return map.entrySet()
-                  .stream()
-                  .filter(entry -> predicate.test(entry.getValue()))
-                  .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                .stream()
+                .filter(entry -> predicate.test(entry.getValue()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
 
     @Override
-    public String renderBeforeClass()
-    {
+    public String renderBeforeClass() {
         //render the const class
         ObjectMapper om = IGuiceContext.get(DefaultObjectMapper);
-        try
-        {
+        try {
             String routesOutput = om.writerWithDefaultPrettyPrinter()
-                                    .writeValueAsString(definedRoutesList);
+                    .writeValueAsString(definedRoutesList);
             routesOutput = "export const routes: Routes = " + routesOutput + ";\n";
             return routesOutput;
-        }
-        catch (JsonProcessingException e)
-        {
+        } catch (JsonProcessingException e) {
             e.printStackTrace();
         }
         return "";
@@ -298,14 +248,11 @@ public class RoutingModule implements INgModule<RoutingModule>
 
     public static void applyRoute(IComponentHTMLAttributeBase<?, ?> component,
                                   String pathRoute,
-                                  String variablePath)
-    {
-        if (pathRoute.startsWith("'"))
-        {
+                                  String variablePath) {
+        if (pathRoute.startsWith("'")) {
             pathRoute = pathRoute.substring(1);
         }
-        if (pathRoute.endsWith("'"))
-        {
+        if (pathRoute.endsWith("'")) {
             pathRoute = pathRoute.substring(0, pathRoute.length() - 1);
         }
 
@@ -314,42 +261,39 @@ public class RoutingModule implements INgModule<RoutingModule>
                 variablePath) + "]");
 
         component.asHierarchyBase()
-                 .addConfiguration(AnnotationUtils.getNgImportReference("RouterLink", "@angular/router"));
+                .addConfiguration(AnnotationUtils.getNgImportReference("RouterLink", "@angular/router"));
         component.asHierarchyBase()
-                 .addConfiguration(AnnotationUtils.getNgImportModule("RouterLink"));
+                .addConfiguration(AnnotationUtils.getNgImportModule("RouterLink"));
     }
 
-    public static void applyRequired(IComponentHierarchyBase<?, ?> component)
-    {
+    public static void applyRequired(IComponentHierarchyBase<?, ?> component) {
 
         component.asHierarchyBase()
-                 .addConfiguration(AnnotationUtils.getNgImportReference("RouterLink", "@angular/router"));
+                .addConfiguration(AnnotationUtils.getNgImportReference("RouterLink", "@angular/router"));
         component.asHierarchyBase()
-                 .addConfiguration(AnnotationUtils.getNgImportModule("RouterLink"));
+                .addConfiguration(AnnotationUtils.getNgImportModule("RouterLink"));
     }
 
     public static void applyRoute(IComponentHTMLAttributeBase<?, ?> component,
-                                  Class<? extends INgComponent<?>> pathRoute)
-    {
+                                  Class<? extends INgComponent<?>> pathRoute) {
         applyRoute(component, pathRoute, "");
 
         component.asHierarchyBase()
-                 .addConfiguration(AnnotationUtils.getNgImportReference("RouterLink", "@angular/router"));
+                .addConfiguration(AnnotationUtils.getNgImportReference("RouterLink", "@angular/router"));
         component.asHierarchyBase()
-                 .addConfiguration(AnnotationUtils.getNgImportModule("RouterLink"));
+                .addConfiguration(AnnotationUtils.getNgImportModule("RouterLink"));
     }
 
     public static void applyRoute(IComponentHTMLAttributeBase<?, ?> component,
                                   Class<? extends INgComponent<?>> pathRoute,
-                                  String variablePath)
-    {
+                                  String variablePath) {
         component.addAttribute("[routerLink]", "['" + pathRoute.getAnnotation(NgRoutable.class)
-                                                               .path() + "'" + (Strings.isNullOrEmpty(variablePath) ? "" : "," +
+                .path() + "'" + (Strings.isNullOrEmpty(variablePath) ? "" : "," +
                 variablePath) + "]");
 
         component.asHierarchyBase()
-                 .addConfiguration(AnnotationUtils.getNgImportReference("RouterLink", "@angular/router"));
+                .addConfiguration(AnnotationUtils.getNgImportReference("RouterLink", "@angular/router"));
         component.asHierarchyBase()
-                 .addConfiguration(AnnotationUtils.getNgImportModule("RouterLink"));
+                .addConfiguration(AnnotationUtils.getNgImportModule("RouterLink"));
     }
 }

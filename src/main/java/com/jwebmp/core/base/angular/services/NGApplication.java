@@ -28,61 +28,51 @@ import static com.jwebmp.core.base.angular.client.services.interfaces.ImportsSta
 //@NgImportReference(value = "platformBrowserDynamic", reference = "@angular/platform-browser-dynamic")
 //@NgImportReference(value = "enableProdMode", reference = "@angular/core")
 //@NgComponentReference(EnvironmentModule.class)
-public class NGApplication<J extends NGApplication<J>> extends Page<J> implements INgApp<J>
-{
+public class NGApplication<J extends NGApplication<J>> extends Page<J> implements INgApp<J> {
     private List<String> renderAfterImports;
 
     @Getter
     @Setter
     private List<IComponentHierarchyBase<?, ?>> routes = new ArrayList<>();
 
-    public NGApplication()
-    {
+    public NGApplication() {
         getHead()
                 .add(new Meta(Meta.MetadataFields.Charset, "utf-8"));
         getHead()
                 .add(new Meta(Meta.MetadataFields.ViewPort, "width=device-width, initial-scale=1"));
         getOptions().setBase(new Base<>("/"));
 
-        if (getClass().isAnnotationPresent(NgApp.class))
-        {
+        if (getClass().isAnnotationPresent(NgApp.class)) {
             addConfiguration(AnnotationUtils.getNgComponentReference(getClass().getAnnotation(NgApp.class)
-                                                                               .bootComponent()));
+                    .bootComponent()));
         }
     }
 
 
-    public List<String> getRenderAfterImports()
-    {
-        if (renderAfterImports == null)
-        {
+    public List<String> getRenderAfterImports() {
+        if (renderAfterImports == null) {
             renderAfterImports = new ArrayList<>();
         }
         return renderAfterImports;
     }
 
-    public NGApplication setRenderAfterImports(List<String> renderAfterImports)
-    {
+    public NGApplication setRenderAfterImports(List<String> renderAfterImports) {
         this.renderAfterImports = renderAfterImports;
         return this;
     }
 
     @Override
-    public List<NgImportReference> putRelativeLinkInMap(Class<?> clazz, NgComponentReference moduleRef)
-    {
+    public List<NgImportReference> putRelativeLinkInMap(Class<?> clazz, NgComponentReference moduleRef) {
         List<NgImportReference> out = new ArrayList<>();
         var baseDir = JWebMPTypeScriptCompiler.getCurrentAppFile();
-        try
-        {
+        try {
             File me = new File(baseDir.get()
-                                      .getCanonicalPath()
-                                      .replace('\\', '/') + "/src");
+                    .getCanonicalPath()
+                    .replace('\\', '/') + "/src");
             File destination = new File(getFileReference(baseDir.get()
-                                                                .getCanonicalPath(), moduleRef.value()));
+                    .getCanonicalPath(), moduleRef.value()));
             out.add(AnnotationUtils.getNgImportReference(getTsFilename(moduleRef.value()), getRelativePath(me, destination, null)));
-        }
-        catch (IOException e)
-        {
+        } catch (IOException e) {
             e.printStackTrace();
         }
         return out;

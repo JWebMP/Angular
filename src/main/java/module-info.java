@@ -34,11 +34,11 @@ module com.jwebmp.core.angular {
     requires com.fasterxml.jackson.databind;
     requires org.apache.commons.io;
 
-    requires guiced.vertx.sockets;
+    requires com.guicedee.vertx.sockets;
 
     requires com.guicedee.jsonrepresentation;
     requires io.vertx.core;
-    requires guiced.vertx;
+    requires com.guicedee.vertx;
     requires com.jwebmp.core;
 
     provides OnGetAllConstructorParameters with OnFetchAllConstructorParameters;
@@ -69,6 +69,7 @@ module com.jwebmp.core.angular {
     uses IWebSocketAuthDataProvider;
     uses RenderedAssets;
     uses NpmrcConfigurator;
+    uses com.jwebmp.core.base.angular.modules.services.angular.WebSocketGroupAdd;
 
     exports com.jwebmp.core.base.angular.modules.directives;
 

@@ -33,7 +33,7 @@
         </dependency>
 
         <dependency>
-            <groupId>com.guicedee.servlets</groupId>
+            <groupId>com.guicedee</groupId>
             <artifactId>guiced-vertx-sockets</artifactId>
         </dependency>
 

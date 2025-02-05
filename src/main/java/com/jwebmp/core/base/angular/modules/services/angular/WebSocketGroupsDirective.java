@@ -1,5 +1,6 @@
 package com.jwebmp.core.base.angular.modules.services.angular;
 
+import com.guicedee.client.IGuiceContext;
 import com.jwebmp.core.base.angular.client.annotations.angular.NgDirective;
 import com.jwebmp.core.base.angular.client.annotations.functions.NgOnDestroy;
 import com.jwebmp.core.base.angular.client.annotations.functions.NgOnInit;
@@ -10,6 +11,9 @@ import com.jwebmp.core.base.angular.client.services.interfaces.AnnotationUtils;
 import com.jwebmp.core.base.angular.client.services.interfaces.INgDirective;
 import com.jwebmp.core.base.interfaces.IComponentHierarchyBase;
 
+import java.util.ServiceLoader;
+import java.util.Set;
+
 @NgDirective(value = "[wsgroup]", standalone = true)
 @NgField("@Input('wsgroup') wsgroup! : string;")
 @NgOnInit(
@@ -17,18 +21,27 @@ import com.jwebmp.core.base.interfaces.IComponentHierarchyBase;
 )
 @NgOnDestroy(
         "this.socketClientService.send('RemoveFromWebSocketGroup',{groupName : this.wsgroup},'onClick',{},this.elementRef);")
+
+
 @NgComponentReference(SocketClientService.class)
-public class WebSocketGroupsDirective implements INgDirective<WebSocketGroupsDirective>
-{
-    public WebSocketGroupsDirective()
-    {
+public class WebSocketGroupsDirective implements INgDirective<WebSocketGroupsDirective> {
+    public WebSocketGroupsDirective() {
     }
 
-    public static void addGroup(IComponentHierarchyBase<?, ?> component, String groupName)
-    {
-        component.asAttributeBase()
-                 .addAttribute("wsgroup", groupName);
-        component.addConfiguration(AnnotationUtils.getNgComponentReference(WebSocketGroupsDirective.class));
+    public static void addGroup(IComponentHierarchyBase<?, ?> component, String groupName) {
+        Set<WebSocketGroupAdd> s = IGuiceContext.loaderToSet(ServiceLoader.load(WebSocketGroupAdd.class));
+        boolean performed = false;
+        for (WebSocketGroupAdd webSocketGroupAdd : s) {
+            performed = webSocketGroupAdd.addGroup(component, groupName);
+            if (performed) {
+                break;
+            }
+        }
+        if (!performed) {
+            component.asAttributeBase()
+                    .addAttribute("wsgroup", groupName);
+            component.addConfiguration(AnnotationUtils.getNgComponentReference(WebSocketGroupsDirective.class));
+        }
     }
 
 }
