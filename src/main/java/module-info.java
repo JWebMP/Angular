@@ -26,20 +26,20 @@ module com.jwebmp.core.angular {
     requires transitive com.guicedee.client;
     requires transitive com.jwebmp.client;
     requires transitive com.jwebmp.core.base.angular.client;
-    requires org.apache.commons.lang3;
 
 
     requires static lombok;
 
-    requires com.fasterxml.jackson.databind;
     requires org.apache.commons.io;
 
-    requires com.guicedee.vertx.sockets;
+    requires com.jwebmp.vertx;
 
     requires com.guicedee.jsonrepresentation;
-    requires io.vertx.core;
     requires com.guicedee.vertx;
     requires com.jwebmp.core;
+    requires org.apache.commons.text;
+    requires org.apache.commons.lang3;
+    requires io.vertx.eventbusbridge;
 
     provides OnGetAllConstructorParameters with OnFetchAllConstructorParameters;
     provides OnGetAllConstructorBodies with OnFetchAllConstructorBodies;

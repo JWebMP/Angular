@@ -11,6 +11,7 @@ import java.util.List;
 @NgField("@Input('clickClassName') clickClassName! : string;")
 @NgImportReference(value = "HostListener", reference = "@angular/core")
 
+@NgImportReference(value = "inject", reference = "@angular/core")
 
 @NgField("@Input(\"confirm\") confirm : boolean = false;")
 @NgField("@Input(\"confirmMessage\") confirmMessage : string = 'Are you sure?';")
@@ -35,12 +36,12 @@ public class OnClickListenerDirective implements INgDirective<OnClickListenerDir
                                             if(confirm(this.confirmMessage))
                                             {
                                                 let elementId: string = (event.target as Element).id;
-                                                this.socketClientService.send('ajax', {eventClass: this.clickClassName}, 'onClick', event, this.elementRef);
+                                                this.eventBusService.send('ajax', {eventClass: this.clickClassName}, 'onClick', event, this.elementRef);
                                             }
                                         }
                                         else {
                                             let elementId: string = (event.target as Element).id;
-                                            this.socketClientService.send('ajax', {eventClass: this.clickClassName}, 'onClick', event, this.elementRef);
+                                            this.eventBusService.send('ajax', {eventClass: this.clickClassName}, 'onClick', event, this.elementRef);
                                         }
                                     }
                         """);

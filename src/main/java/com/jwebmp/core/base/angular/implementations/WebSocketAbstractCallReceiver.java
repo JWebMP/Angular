@@ -3,10 +3,10 @@ package com.jwebmp.core.base.angular.implementations;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.guicedee.client.IGuiceContext;
 import com.guicedee.guicedservlets.websockets.options.CallScopeProperties;
+import com.guicedee.guicedservlets.websockets.options.IGuicedWebSocket;
 import com.guicedee.guicedservlets.websockets.options.WebSocketMessageReceiver;
 import com.guicedee.guicedservlets.websockets.services.IWebSocketMessageReceiver;
 import com.guicedee.services.jsonrepresentation.IJsonRepresentation;
-import com.guicedee.vertx.websockets.GuicedWebSocket;
 import com.jwebmp.core.base.ajax.*;
 import com.jwebmp.core.utilities.EscapeChars;
 import com.jwebmp.interception.services.AjaxCallIntercepter;
@@ -23,37 +23,47 @@ import static com.jwebmp.interception.services.JWebMPInterceptionBinder.AjaxCall
 
 @Log
 public abstract class WebSocketAbstractCallReceiver
-        implements IWebSocketMessageReceiver {
+        implements IWebSocketMessageReceiver
+{
     public abstract String getMessageDirector();
 
     public abstract AjaxResponse<?> action(AjaxCall<?> call, AjaxResponse<?> response);
 
     @Override
-    public Set<String> messageNames() {
+    public Set<String> messageNames()
+    {
         Set<String> messageNames = new HashSet<>();
         messageNames.add(getMessageDirector());
         return messageNames;
     }
 
     @Override
-    public void receiveMessage(WebSocketMessageReceiver message) throws SecurityException {
+    public void receiveMessage(WebSocketMessageReceiver message) throws SecurityException
+    {
         String output = "";
         AjaxResponse<?> ajaxResponse = get(AjaxResponse.class);
-        try {
+        try
+        {
             AjaxCall<?> ajaxCall = get(AjaxCall.class);
             ObjectMapper om = IJsonRepresentation.getObjectMapper();
             String originalValues = om.writeValueAsString(message.getData());
             CallScopeProperties properties = IGuiceContext.get(CallScopeProperties.class);
             AjaxCall<?> call = om.readValue(originalValues, AjaxCall.class);
             ajaxCall.fromCall(call);
-            for (AjaxCallIntercepter<?> ajaxCallIntercepter : get(AjaxCallInterceptorKey)) {
+            for (AjaxCallIntercepter<?> ajaxCallIntercepter : get(AjaxCallInterceptorKey))
+            {
                 ajaxCallIntercepter.intercept(ajaxCall, ajaxResponse);
             }
             ajaxResponse = action(ajaxCall, ajaxResponse);
-            if (properties.getProperties().containsKey("RequestContextId")) {
-                ajaxResponse.getSessionStorage().put("contextId", properties.getProperties().get("RequestContextId").toString());
+            if (ajaxResponse != null)
+            {
+                if (properties.getProperties().containsKey("RequestContextId"))
+                {
+                    ajaxResponse.getSessionStorage().put("contextId", properties.getProperties().get("RequestContextId").toString());
+                }
             }
-        } catch (Exception T) {
+        } catch (Exception T)
+        {
             ajaxResponse.setSuccess(false);
             AjaxResponseReaction<?> arr = new AjaxResponseReaction<>("Unknown Error",
                     "An AJAX call resulted in an unknown server error<br>" + T.getMessage() + "<br>" +
@@ -63,7 +73,8 @@ public abstract class WebSocketAbstractCallReceiver
             ajaxResponse.addReaction(arr);
             //  output = ajaxResponse.toString();
             WebSocketAbstractCallReceiver.log.log(Level.SEVERE, "Unknown in ajax reply\n", T);
-        } catch (Throwable T) {
+        } catch (Throwable T)
+        {
             ajaxResponse.setSuccess(false);
             AjaxResponseReaction<?> arr = new AjaxResponseReaction<>("Unknown Error",
                     "An AJAX call resulted in an internal server error<br>" + T.getMessage() + "<br>" +
@@ -73,11 +84,25 @@ public abstract class WebSocketAbstractCallReceiver
             //  output = ajaxResponse.toString();
             WebSocketAbstractCallReceiver.log.log(Level.SEVERE, "Unknown in ajax reply\n", T);
         }
-        if (ajaxResponse != null) {
-            GuicedWebSocket socket = get(GuicedWebSocket.class);
-            try {
-                socket.broadcastMessage(message.getBroadcastGroup(), ajaxResponse.toJson());
-            } catch (Exception e) {
+        if (ajaxResponse != null)
+        {
+            IGuicedWebSocket socket = get(IGuicedWebSocket.class);
+            try
+            {
+                if (ajaxResponse.getDataReturns() != null)
+                {
+                    if (ajaxResponse.getDataReturns().containsKey("listenerName"))
+                    {
+                        String listenerName = ajaxResponse.getDataReturns().get("listenerName").toString();
+                        socket.broadcastMessage(listenerName, ajaxResponse.toJson());
+                    } else
+                    {
+                        socket.broadcastMessage(message.getBroadcastGroup(), ajaxResponse.toJson());
+                    }
+                } else
+                    socket.broadcastMessage(message.getBroadcastGroup(), ajaxResponse.toJson());
+            } catch (Exception e)
+            {
                 throw new RuntimeException(e);
             }
         }

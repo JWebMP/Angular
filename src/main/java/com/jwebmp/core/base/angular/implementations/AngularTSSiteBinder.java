@@ -18,11 +18,19 @@ package com.jwebmp.core.base.angular.implementations;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
+import com.guicedee.client.CallScoper;
 import com.guicedee.client.IGuiceContext;
 import com.guicedee.guicedinjection.interfaces.IGuiceModule;
 import com.guicedee.guicedinjection.properties.GlobalProperties;
+import com.guicedee.guicedservlets.websockets.options.CallScopeProperties;
+import com.guicedee.guicedservlets.websockets.options.CallScopeSource;
+import com.guicedee.guicedservlets.websockets.options.IGuicedWebSocket;
+import com.guicedee.guicedservlets.websockets.options.WebSocketMessageReceiver;
+import com.guicedee.services.jsonrepresentation.IJsonRepresentation;
 import com.guicedee.vertx.spi.VertxRouterConfigurator;
 import com.jwebmp.core.annotations.PageConfiguration;
+import com.jwebmp.core.base.ajax.AjaxCall;
+import com.jwebmp.core.base.ajax.AjaxResponse;
 import com.jwebmp.core.base.angular.client.AppUtils;
 import com.jwebmp.core.base.angular.client.annotations.angular.NgApp;
 import com.jwebmp.core.base.angular.client.services.interfaces.INgApp;
@@ -32,9 +40,19 @@ import com.jwebmp.core.base.angular.services.DefinedRoute;
 import com.jwebmp.core.base.angular.services.compiler.JWebMPTypeScriptCompiler;
 import io.github.classgraph.ClassInfo;
 import io.vertx.core.Vertx;
+import io.vertx.core.eventbus.DeliveryOptions;
+import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonObject;
+import io.vertx.core.json.jackson.DatabindCodec;
+import io.vertx.ext.bridge.BridgeEventType;
+import io.vertx.ext.bridge.PermittedOptions;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.FileSystemAccess;
 import io.vertx.ext.web.handler.StaticHandler;
+import io.vertx.ext.web.handler.sockjs.BridgeEvent;
+import io.vertx.ext.web.handler.sockjs.SockJSBridgeOptions;
+import io.vertx.ext.web.handler.sockjs.SockJSHandler;
+import io.vertx.ext.web.handler.sockjs.SockJSHandlerOptions;
 import lombok.extern.java.Log;
 import org.apache.commons.io.FileUtils;
 
@@ -57,6 +75,31 @@ public class AngularTSSiteBinder
 
     private File siteHostingLocation;
 
+    public void receiveMessage(WebSocketMessageReceiver<?> messageReceived)
+    {
+        try
+        {
+            var callScopeProperties = IGuiceContext.get(CallScopeProperties.class);
+            String requestContextId = callScopeProperties.getProperties()
+                    .get("RequestContextId")
+                    .toString();
+            messageReceived.setBroadcastGroup(requestContextId);
+            if (IGuicedWebSocket.getMessagesListeners()
+                    .containsKey(messageReceived.getAction()))
+            {
+                IGuicedWebSocket.getMessagesListeners()
+                        .get(messageReceived.getAction())
+                        .receiveMessage(messageReceived);
+            } else
+            {
+                log.warning("No web socket action registered for " + messageReceived.getAction());
+            }
+        } catch (Exception e)
+        {
+            log.log(Level.SEVERE, "ERROR Message Received - Message=" + messageReceived.toString(), e);
+        }
+    }
+
     /**
      * Method onBind ...
      */
@@ -67,8 +110,8 @@ public class AngularTSSiteBinder
                 .toInstance(new EnvironmentModule());
 
         for (ClassInfo classInfo : IGuiceContext.instance()
-                                                .getScanResult()
-                                                .getClassesWithAnnotation(NgApp.class))
+                .getScanResult()
+                .getClassesWithAnnotation(NgApp.class))
         {
             if (classInfo.isAbstract() || classInfo.isInterface())
             {
@@ -89,8 +132,7 @@ public class AngularTSSiteBinder
             {
                 FileUtils.forceMkdirParent(siteHostingLocation);
                 FileUtils.forceMkdir(siteHostingLocation);
-            }
-            catch (IOException e)
+            } catch (IOException e)
             {
                 throw new RuntimeException(e);
             }
@@ -131,20 +173,20 @@ public class AngularTSSiteBinder
             System.out.println("here");
         }
         router.route(newPath)
-              .handler(StaticHandler.create(FileSystemAccess.ROOT, staticFileLocationPath)
-                                    .setAlwaysAsyncFS(true)
-                                    .setCacheEntryTimeout(604800)
-                                    .setCachingEnabled(true)
-                                    .setDefaultContentEncoding("UTF-8")
-                                    .setDirectoryListing(false)
-                                    .setEnableFSTuning(true)
-                                    .setIncludeHidden(false)
-                                    .setMaxAgeSeconds(604800)
-                                    .setSendVaryHeader(true)
-              );
+                .handler(StaticHandler.create(FileSystemAccess.ROOT, staticFileLocationPath)
+                        .setAlwaysAsyncFS(true)
+                        .setCacheEntryTimeout(604800)
+                        .setCachingEnabled(true)
+                        .setDefaultContentEncoding("UTF-8")
+                        .setDirectoryListing(false)
+                        .setEnableFSTuning(true)
+                        .setIncludeHidden(false)
+                        .setMaxAgeSeconds(604800)
+                        .setSendVaryHeader(true)
+                );
 
         if (route.getChildren() != null && !route.getChildren()
-                                                 .isEmpty())
+                .isEmpty())
         {
             for (DefinedRoute<?> child : route.getChildren())
             {
@@ -161,6 +203,16 @@ public class AngularTSSiteBinder
         return Integer.MIN_VALUE + 100;
     }
 
+    private void handleBridgeEvent(BridgeEvent event)
+    {
+        if (event.type() == BridgeEventType.SEND || event.type() == BridgeEventType.PUBLISH)
+        {
+            String address = event.getRawMessage().getString("address"); // Address message was received from
+            System.out.println("Message received at address: " + address);
+        }
+        event.complete(true); // Allow the event to proceed
+    }
+
 
     @Override
     public Router builder(Router router)
@@ -171,7 +223,76 @@ public class AngularTSSiteBinder
             try
             {
                 String staticFileLocationPath = AppUtils.getDistPath((Class<? extends INgApp<?>>) app.getClass())
-                                                        .getCanonicalPath();
+                        .getCanonicalPath();
+
+                //bind sockjs event bridge
+
+                SockJSBridgeOptions bridgeOptions = new SockJSBridgeOptions();
+                bridgeOptions.setPingTimeout(60000);
+                bridgeOptions.setMaxAddressLength(64 * 1024);
+                bridgeOptions.setReplyTimeout(20000);
+                SockJSHandlerOptions handlerOptions = new SockJSHandlerOptions();
+                handlerOptions.setHeartbeatInterval(30000);
+                handlerOptions.setRegisterWriteHandler(true);
+
+                bridgeOptions.addInboundPermitted(new PermittedOptions().setAddressRegex(".*"));
+                bridgeOptions.addOutboundPermitted(new PermittedOptions().setAddressRegex(".*"));
+
+                SockJSHandler sockJSHandler = SockJSHandler.create(vertx, handlerOptions);
+                // mount the bridge on the router
+                router
+                        .route("/eventbus/*")
+                        .subRouter(sockJSHandler.bridge(bridgeOptions, event -> handleBridgeEvent(event)));
+
+                vertx.eventBus().consumer("incoming", handler -> {
+                    var o = handler.body();
+                    if (o instanceof JsonObject jo)
+                    {
+                        String jsonString = jo.toString();
+                        var mr = jo.mapTo(WebSocketMessageReceiver.class);
+                        vertx.executeBlocking(() -> {
+                                    // Blocking code here
+                                    CallScoper callScoper = IGuiceContext.get(CallScoper.class);
+                                    callScoper.enter();
+                                    try
+                                    {
+                                        CallScopeProperties props = IGuiceContext.get(CallScopeProperties.class);
+                                        props.setSource(CallScopeSource.WebSocket);
+                                        props.getProperties()
+                                                .put("RequestContextId", handler.address());
+                                        receiveMessage(mr);
+                                        AjaxResponse<?> ar = IGuiceContext.get(AjaxResponse.class);
+                                        return ar;
+                                    } finally
+                                    {
+                                        callScoper.exit(); // Always exit the scope
+                                    }
+                                })
+                                .onComplete(complete -> {
+                                    System.out.println("Message processing completed successfully.");
+                                    var ar = complete.result();
+                                    DeliveryOptions options = new DeliveryOptions()
+                                            .addHeader("Content-Type", "application/json");
+                                    if (!ar.getDataReturns().isEmpty())
+                                    {
+                                        ar.getDataReturns().forEach((key, value) -> {
+                                            vertx.eventBus().publish(key, value);
+                                        });
+                                    }
+                                    //vertx.eventBus().publish()
+                                    //handler.reply(complete.result(), options);
+                                })
+                                .onFailure(res -> {
+                                    System.err.println("Failed to process message: " + res.getMessage());
+                                    handler.fail(500, res.getMessage()); // Notify sender of fa
+
+                                });
+                        handler.reply("{}");
+                    }
+                });
+
+
+
 /*
 
                 router.get("/*.js")
@@ -241,19 +362,18 @@ public class AngularTSSiteBinder
                 }
                 log.config("Configuring parent route - " + staticFileLocationPath);
                 router.get("/*")
-                      .handler(StaticHandler.create(FileSystemAccess.ROOT, staticFileLocationPath)
-                                            .setAlwaysAsyncFS(false)
-                                            .setCacheEntryTimeout(604800)
-                                            .setCachingEnabled(false)
-                                            .setDefaultContentEncoding("UTF-8")
-                                            .setDirectoryListing(false)
-                                            .setEnableFSTuning(false)
-                                            .setIncludeHidden(false)
-                                            .setMaxAgeSeconds(604800)
-                                            .setSendVaryHeader(false)
-                      );
-            }
-            catch (IOException e)
+                        .handler(StaticHandler.create(FileSystemAccess.ROOT, staticFileLocationPath)
+                                .setAlwaysAsyncFS(false)
+                                .setCacheEntryTimeout(604800)
+                                .setCachingEnabled(false)
+                                .setDefaultContentEncoding("UTF-8")
+                                .setDirectoryListing(false)
+                                .setEnableFSTuning(false)
+                                .setIncludeHidden(false)
+                                .setMaxAgeSeconds(604800)
+                                .setSendVaryHeader(false)
+                        );
+            } catch (IOException e)
             {
                 throw new RuntimeException(e);
             }
