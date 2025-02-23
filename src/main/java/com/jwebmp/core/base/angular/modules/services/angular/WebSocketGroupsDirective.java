@@ -2,6 +2,7 @@ package com.jwebmp.core.base.angular.modules.services.angular;
 
 import com.guicedee.client.IGuiceContext;
 import com.jwebmp.core.base.angular.client.annotations.angular.NgDirective;
+import com.jwebmp.core.base.angular.client.annotations.references.NgImportReference;
 import com.jwebmp.core.base.angular.client.services.EventBusListenerDirective;
 import com.jwebmp.core.base.angular.client.services.interfaces.AnnotationUtils;
 import com.jwebmp.core.base.angular.client.services.interfaces.INgDirective;
@@ -32,6 +33,9 @@ import java.util.stream.Collectors;
 
 
 //@NgComponentReference(SocketClientService.class)
+
+@NgImportReference(value = "inject", reference = "@angular/core")
+
 public class WebSocketGroupsDirective implements INgDirective<WebSocketGroupsDirective>
 {
     public WebSocketGroupsDirective()
@@ -61,7 +65,7 @@ public class WebSocketGroupsDirective implements INgDirective<WebSocketGroupsDir
                 groups = new String[]{groupName};
             }
             component.asAttributeBase()
-                    .addAttribute("appEventBusListener", "[" + wrapGroupsWithHtmlEscapedQuotes(List.of(groups)) + "]");
+                    .addAttribute("[appEventBusListener]", "[" + wrapGroupsWithHtmlEscapedQuotes(List.of(groups)) + "]");
             component.addConfiguration(AnnotationUtils.getNgComponentReference(EventBusListenerDirective.class));
         }
     }

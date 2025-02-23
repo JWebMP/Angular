@@ -84,7 +84,7 @@ public abstract class WebSocketAbstractCallReceiver
             //  output = ajaxResponse.toString();
             WebSocketAbstractCallReceiver.log.log(Level.SEVERE, "Unknown in ajax reply\n", T);
         }
-        if (ajaxResponse != null)
+  /*      if (ajaxResponse != null)
         {
             IGuicedWebSocket socket = get(IGuicedWebSocket.class);
             try
@@ -105,6 +105,6 @@ public abstract class WebSocketAbstractCallReceiver
             {
                 throw new RuntimeException(e);
             }
-        }
+        }*/
     }
 }

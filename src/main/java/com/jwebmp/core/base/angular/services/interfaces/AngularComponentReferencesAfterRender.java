@@ -39,17 +39,18 @@ public class AngularComponentReferencesAfterRender implements IAfterRenderComple
                 {
                     //component
                     ngComponent.addConfiguration(AnnotationUtils.getNgImportModule(AnnotationUtils.getTsFilename(configClass)));
-                }
-                else if (configClass.isAnnotationPresent(NgDirective.class))
+                } else if (configClass.isAnnotationPresent(NgDirective.class))
                 {
                     //directive
                     ngComponent.addConfiguration(AnnotationUtils.getNgImportModule(AnnotationUtils.getTsFilename(configClass)));
-                }
-                else if (configClass.isAnnotationPresent(NgServiceProvider.class))
+                } else if (configClass.isAnnotationPresent(NgServiceProvider.class))
                 {
                     //directive
                     NgServiceProvider anno = configClass.getAnnotation(NgServiceProvider.class);
-                    ngComponent.addConfiguration(AnnotationUtils.getNgImportProvider(AnnotationUtils.getTsFilename(configClass)));
+                    if (!anno.singleton())
+                    {
+                        ngComponent.addConfiguration(AnnotationUtils.getNgImportProvider(AnnotationUtils.getTsFilename(configClass)));
+                    }
                     ngComponent.addConfiguration(AnnotationUtils.getNgConstructorParameter("public " + anno.referenceName() + " : " + AnnotationUtils.getTsFilename(configClass)));
                 }
             }

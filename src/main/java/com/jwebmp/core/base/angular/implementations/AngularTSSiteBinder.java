@@ -26,12 +26,11 @@ import com.guicedee.guicedservlets.websockets.options.CallScopeProperties;
 import com.guicedee.guicedservlets.websockets.options.CallScopeSource;
 import com.guicedee.guicedservlets.websockets.options.IGuicedWebSocket;
 import com.guicedee.guicedservlets.websockets.options.WebSocketMessageReceiver;
-import com.guicedee.services.jsonrepresentation.IJsonRepresentation;
 import com.guicedee.vertx.spi.VertxRouterConfigurator;
 import com.jwebmp.core.annotations.PageConfiguration;
-import com.jwebmp.core.base.ajax.AjaxCall;
 import com.jwebmp.core.base.ajax.AjaxResponse;
 import com.jwebmp.core.base.angular.client.AppUtils;
+import com.jwebmp.core.base.angular.client.DynamicData;
 import com.jwebmp.core.base.angular.client.annotations.angular.NgApp;
 import com.jwebmp.core.base.angular.client.services.interfaces.INgApp;
 import com.jwebmp.core.base.angular.modules.services.angular.RoutingModule;
@@ -40,10 +39,9 @@ import com.jwebmp.core.base.angular.services.DefinedRoute;
 import com.jwebmp.core.base.angular.services.compiler.JWebMPTypeScriptCompiler;
 import io.github.classgraph.ClassInfo;
 import io.vertx.core.Vertx;
+import io.vertx.core.WorkerExecutor;
 import io.vertx.core.eventbus.DeliveryOptions;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.json.jackson.DatabindCodec;
 import io.vertx.ext.bridge.BridgeEventType;
 import io.vertx.ext.bridge.PermittedOptions;
 import io.vertx.ext.web.Router;
@@ -73,7 +71,15 @@ public class AngularTSSiteBinder
     @Inject
     private Vertx vertx;
 
+    private WorkerExecutor workerExecutor;
+
     private File siteHostingLocation;
+
+    @Inject
+    void setup()
+    {
+        workerExecutor = vertx.createSharedWorkerExecutor("angular-site-worker-pool");
+    }
 
     public void receiveMessage(WebSocketMessageReceiver<?> messageReceived)
     {
@@ -170,7 +176,7 @@ public class AngularTSSiteBinder
 
         if (newPath.equalsIgnoreCase("/"))
         {
-            System.out.println("here");
+            log.fine("here");
         }
         router.route(newPath)
                 .handler(StaticHandler.create(FileSystemAccess.ROOT, staticFileLocationPath)
@@ -208,7 +214,7 @@ public class AngularTSSiteBinder
         if (event.type() == BridgeEventType.SEND || event.type() == BridgeEventType.PUBLISH)
         {
             String address = event.getRawMessage().getString("address"); // Address message was received from
-            System.out.println("Message received at address: " + address);
+            //System.out.println("Message received at address: " + address);
         }
         event.complete(true); // Allow the event to proceed
     }
@@ -250,7 +256,15 @@ public class AngularTSSiteBinder
                     {
                         String jsonString = jo.toString();
                         var mr = jo.mapTo(WebSocketMessageReceiver.class);
-                        vertx.executeBlocking(() -> {
+                        if (mr.getData().containsKey("guid"))
+                        {
+                            mr.setWebSocketSessionId(mr.getData().get("guid").toString());
+                        }
+                        if (mr.getData().containsKey("dataService"))
+                        {
+                            mr.setBroadcastGroup(mr.getData().get("dataService").toString());
+                        }
+                        workerExecutor.executeBlocking(() -> {
                                     // Blocking code here
                                     CallScoper callScoper = IGuiceContext.get(CallScoper.class);
                                     callScoper.enter();
@@ -259,7 +273,7 @@ public class AngularTSSiteBinder
                                         CallScopeProperties props = IGuiceContext.get(CallScopeProperties.class);
                                         props.setSource(CallScopeSource.WebSocket);
                                         props.getProperties()
-                                                .put("RequestContextId", handler.address());
+                                                .put("RequestContextId", mr.getWebSocketSessionId());
                                         receiveMessage(mr);
                                         AjaxResponse<?> ar = IGuiceContext.get(AjaxResponse.class);
                                         return ar;
@@ -269,16 +283,33 @@ public class AngularTSSiteBinder
                                     }
                                 })
                                 .onComplete(complete -> {
-                                    System.out.println("Message processing completed successfully.");
-                                    var ar = complete.result();
+                                    //System.out.println("Message processing completed successfully.");
+                                    var ajaxResponse = complete.result();
                                     DeliveryOptions options = new DeliveryOptions()
                                             .addHeader("Content-Type", "application/json");
-                                    if (!ar.getDataReturns().isEmpty())
+                                    if (ajaxResponse.getDataReturns() != null)
                                     {
-                                        ar.getDataReturns().forEach((key, value) -> {
+                                        handler.reply("{}");
+                                        //String listenerName = ajaxResponse.getDataReturns().get("listenerName").toString();
+                                        ajaxResponse.getDataReturns().forEach((key, value) -> {
+                                            if (value instanceof DynamicData dd)
+                                            {
+                                                for (Object object : dd.getOut())
+                                                {
+                                                    vertx.eventBus().publish(key, object);
+                                                }
+                                            } else
+                                                vertx.eventBus().publish(key, value);
+                                        });
+                                    } else
+                                        handler.reply(complete.result(), options);
+
+                                    /*if (!ajaxResponse.getDataReturns().isEmpty())
+                                    {
+                                        ajaxResponse.getDataReturns().forEach((key, value) -> {
                                             vertx.eventBus().publish(key, value);
                                         });
-                                    }
+                                    }*/
                                     //vertx.eventBus().publish()
                                     //handler.reply(complete.result(), options);
                                 })
@@ -287,7 +318,7 @@ public class AngularTSSiteBinder
                                     handler.fail(500, res.getMessage()); // Notify sender of fa
 
                                 });
-                        handler.reply("{}");
+                        //   handler.reply("{}");
                     }
                 });
 
