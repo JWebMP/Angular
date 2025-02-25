@@ -287,6 +287,17 @@ public class AngularTSSiteBinder
                                     var ajaxResponse = complete.result();
                                     DeliveryOptions options = new DeliveryOptions()
                                             .addHeader("Content-Type", "application/json");
+
+                                    if (ajaxResponse.getSessionStorage() != null && !ajaxResponse.getSessionStorage().isEmpty())
+                                    {
+                                        // send session storage updates
+                                        vertx.eventBus().publish("SessionStorage", ajaxResponse.getSessionStorage());
+                                    }
+                                    if (ajaxResponse.getLocalStorage() != null && !ajaxResponse.getLocalStorage().isEmpty())
+                                    {
+                                        // send local storage updates
+                                        vertx.eventBus().publish("LocalStorage", ajaxResponse.getLocalStorage());
+                                    }
                                     if (ajaxResponse.getDataReturns() != null)
                                     {
                                         handler.reply("{}");

@@ -55,7 +55,7 @@ public abstract class WebSocketAbstractCallReceiver
                 ajaxCallIntercepter.intercept(ajaxCall, ajaxResponse);
             }
             ajaxResponse = action(ajaxCall, ajaxResponse);
-            if (ajaxResponse != null)
+            if (ajaxResponse != null && !ajaxCall.getSessionStorage().containsKey("contextId"))
             {
                 if (properties.getProperties().containsKey("RequestContextId"))
                 {
