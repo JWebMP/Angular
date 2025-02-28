@@ -3,7 +3,7 @@ import com.guicedee.guicedinjection.interfaces.IGuiceModule;
 import com.guicedee.guicedinjection.interfaces.IGuicePreStartup;
 import com.guicedee.guicedservlets.websockets.services.IWebSocketAuthDataProvider;
 import com.guicedee.guicedservlets.websockets.services.IWebSocketMessageReceiver;
-import com.guicedee.vertx.spi.VertxRouterConfigurator;
+import com.guicedee.vertx.web.spi.VertxRouterConfigurator;
 import com.jwebmp.core.base.angular.client.services.spi.*;
 import com.jwebmp.core.base.angular.implementations.*;
 import com.jwebmp.core.base.angular.modules.listeners.OnClickListener;
@@ -22,21 +22,14 @@ module com.jwebmp.core.angular {
 
     exports com.jwebmp.core.base.angular.services.compiler;
     exports com.jwebmp.core.base.angular.services;
-
-    requires transitive com.guicedee.client;
-    requires transitive com.jwebmp.client;
+    
     requires transitive com.jwebmp.core.base.angular.client;
-
+    requires transitive com.jwebmp.vertx;
 
     requires static lombok;
 
     requires org.apache.commons.io;
 
-    requires com.jwebmp.vertx;
-
-    requires com.guicedee.jsonrepresentation;
-    requires com.guicedee.vertx;
-    requires com.jwebmp.core;
     requires org.apache.commons.text;
     requires org.apache.commons.lang3;
     requires io.vertx.eventbusbridge;

@@ -26,7 +26,7 @@ import com.guicedee.guicedservlets.websockets.options.CallScopeProperties;
 import com.guicedee.guicedservlets.websockets.options.CallScopeSource;
 import com.guicedee.guicedservlets.websockets.options.IGuicedWebSocket;
 import com.guicedee.guicedservlets.websockets.options.WebSocketMessageReceiver;
-import com.guicedee.vertx.spi.VertxRouterConfigurator;
+import com.guicedee.vertx.web.spi.VertxRouterConfigurator;
 import com.jwebmp.core.annotations.PageConfiguration;
 import com.jwebmp.core.base.ajax.AjaxResponse;
 import com.jwebmp.core.base.angular.client.AppUtils;
