@@ -19,30 +19,38 @@ import static com.jwebmp.core.base.angular.services.interfaces.IOnNgComponentAdd
 @Log
 public class AngularAfterRenderCompleted implements IAfterRenderComplete<AngularAfterRenderCompleted>
 {
+    private static final Set<Class<?>> completedComponents = new HashSet<>();
 
     @Override
     public void process(IComponentHierarchyBase<?, ?> component)
     {
+        if (!completedComponents.contains(component.getClass()))
+        {
+            completedComponents.add(component.getClass());
+        } else
+        {
+            return;
+        }
         AnnotationHelper ah = IGuiceContext.get(AnnotationHelper.class);
         //run through children addition
         component.asBase()
-                 .getProperties()
-                 .put("tsReRender", "true");
+                .getProperties()
+                .put("tsReRender", "true");
         var children = component.getChildren();
         for (GlobalChildren child : children)
         {
             if (child.getClass()
-                     .isAnnotationPresent(NgComponent.class))
+                    .isAnnotationPresent(NgComponent.class))
             {
                 continue;
             }
             var cc = (IComponentHierarchyBase<GlobalChildren, ?>) child;
             if (!cc.asBase()
-                   .getProperties()
-                   .containsKey("tsReRender"))
+                    .getProperties()
+                    .containsKey("tsReRender"))
             {
                 if (cc.getConfigurations(NgComponent.class)
-                      .isEmpty())
+                        .isEmpty())
                 {
                     process(cc);
                 }
@@ -53,8 +61,8 @@ public class AngularAfterRenderCompleted implements IAfterRenderComplete<Angular
         if (ngComponent == null)
         {
             //not ready yet, wait for adding to a component
-            log.log(Level.FINE, "Reading component no on an angular tree - " + component.getClass()
-                                                                                          .getName());
+            log.log(Level.FINER, "Reading component no on an angular tree - " + component.getClass()
+                    .getName());
             return;
             //ngComponent = component;
         }
@@ -180,7 +188,7 @@ public class AngularAfterRenderCompleted implements IAfterRenderComplete<Angular
             try
             {
                 var onParentMethod = myConfig.getClass()
-                                             .getMethod("onParent");
+                        .getMethod("onParent");
                 onParentMethod.setAccessible(true);
                 boolean onParent = (boolean) onParentMethod.invoke(myConfig);
                 if (ngComponent.getParent() != null && onParent)
@@ -189,32 +197,30 @@ public class AngularAfterRenderCompleted implements IAfterRenderComplete<Angular
                     if (parentNgComponent != null)
                     {
                         var setOnParentMethod = myConfig.getClass()
-                                                        .getMethod("setOnParent", Boolean.class);
+                                .getMethod("setOnParent", Boolean.class);
                         setOnParentMethod.setAccessible(true);
                         setOnParentMethod.invoke(myConfig, false);
                         var setOnSelfMethod = myConfig.getClass()
-                                                      .getMethod("setOnSelf", Boolean.class);
+                                .getMethod("setOnSelf", Boolean.class);
                         setOnSelfMethod.setAccessible(true);
                         setOnSelfMethod.invoke(myConfig, true);
                         moveToParent.add(myConfig);
                         ngComponent.getConfigurations()
-                                   .add(myConfig);
+                                .add(myConfig);
                     }
                 }
-            }
-            catch (NoSuchMethodException e)
+            } catch (NoSuchMethodException e)
             {
                 //this is not a parent compatible annotation
-            }
-            catch (InvocationTargetException | IllegalAccessException e)
+            } catch (InvocationTargetException | IllegalAccessException e)
             {
                 throw new RuntimeException(e);
             }
         }
         component.getConfigurations()
-                 .removeAll(moveToParent);
+                .removeAll(moveToParent);
 
         ngComponent.getConfigurations()
-                   .addAll(component.getConfigurations());
+                .addAll(component.getConfigurations());
     }
 }
