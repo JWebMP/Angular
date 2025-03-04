@@ -51,19 +51,18 @@ import io.vertx.ext.web.handler.sockjs.BridgeEvent;
 import io.vertx.ext.web.handler.sockjs.SockJSBridgeOptions;
 import io.vertx.ext.web.handler.sockjs.SockJSHandler;
 import io.vertx.ext.web.handler.sockjs.SockJSHandlerOptions;
-import lombok.extern.java.Log;
+import lombok.extern.log4j.Log4j2;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.logging.Level;
 
 /**
  * @author GedMarc
  * @version 1.0
  * @since 20 Dec 2016
  */
-@Log
+@Log4j2
 public class AngularTSSiteBinder
         extends AbstractModule
         implements IGuiceModule<AngularTSSiteBinder>, VertxRouterConfigurator
@@ -98,11 +97,11 @@ public class AngularTSSiteBinder
                         .receiveMessage(messageReceived);
             } else
             {
-                log.warning("No web socket action registered for " + messageReceived.getAction());
+                log.warn("No web socket action registered for {}", messageReceived.getAction());
             }
         } catch (Exception e)
         {
-            log.log(Level.SEVERE, "ERROR Message Received - Message=" + messageReceived.toString(), e);
+            log.error("ERROR Message Received - Message={}", messageReceived.toString(), e);
         }
     }
 
@@ -143,7 +142,7 @@ public class AngularTSSiteBinder
                 throw new RuntimeException(e);
             }
             AngularTSPostStartup.basePath = siteHostingLocation.toPath();
-            AngularTSSiteBinder.log.log(Level.CONFIG, "Serving Angular TS for defined @NgApp " + app.value() + " at  " + siteHostingLocation.getPath());
+            log.info("Serving Angular TS for defined @NgApp {} at  {}", app.value(), siteHostingLocation.getPath());
 
             String path = "";
            /* for (DefinedRoute<?> route : RoutingModule.getRoutes())
@@ -172,12 +171,7 @@ public class AngularTSSiteBinder
         {
             newPath = newPath.replace("/**", "/*");
         }
-        log.config("Configuring route - " + newPath);
-
-        if (newPath.equalsIgnoreCase("/"))
-        {
-            log.fine("here");
-        }
+        log.debug("Configuring route - {}", newPath);
         router.route(newPath)
                 .handler(StaticHandler.create(FileSystemAccess.ROOT, staticFileLocationPath)
                         .setAlwaysAsyncFS(true)
@@ -402,7 +396,7 @@ public class AngularTSSiteBinder
                 {
                     bindRouteToPath(router, path, staticFileLocationPath, siteHostingLocation, route);
                 }
-                log.config("Configuring parent route - " + staticFileLocationPath);
+                log.debug("Configuring parent route - {}", staticFileLocationPath);
                 router.get("/*")
                         .handler(StaticHandler.create(FileSystemAccess.ROOT, staticFileLocationPath)
                                 .setAlwaysAsyncFS(false)

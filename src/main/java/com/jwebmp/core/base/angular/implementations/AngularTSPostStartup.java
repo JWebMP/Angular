@@ -7,6 +7,7 @@ import com.jwebmp.core.base.angular.services.compiler.JWebMPTypeScriptCompiler;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import lombok.extern.java.Log;
+import lombok.extern.log4j.Log4j2;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -16,7 +17,7 @@ import java.util.concurrent.CompletableFuture;
 import static com.jwebmp.core.base.angular.client.services.interfaces.AnnotationUtils.getTsFilename;
 import static com.jwebmp.core.base.angular.client.services.interfaces.IComponent.getClassDirectory;
 
-@Log
+@Log4j2
 public class AngularTSPostStartup implements IGuicePostStartup<AngularTSPostStartup>
 {
     @Inject
@@ -33,16 +34,15 @@ public class AngularTSPostStartup implements IGuicePostStartup<AngularTSPostStar
         return List.of(vertx.executeBlocking(() -> {
             for (INgApp<?> app : JWebMPTypeScriptCompiler.getAllApps())
             {
-                JWebMPTypeScriptCompiler compiler = new JWebMPTypeScriptCompiler(app);
-                log.info("Post Startup - Generating @NgApp (" + getTsFilename(app.getClass()) + ") " +
-                        "in folder " + getClassDirectory(app.getClass()));
-
                 try
                 {
+                    JWebMPTypeScriptCompiler compiler = new JWebMPTypeScriptCompiler(app);
+                    log.info("Post Startup - Generating @NgApp (" + getTsFilename(app.getClass()) + ") " +
+                            "in folder " + getClassDirectory(app.getClass()));
                     compiler.renderAppTS(app);
-                } catch (IOException e)
+                } catch (Throwable t)
                 {
-                    e.printStackTrace();
+                    log.error("Unable to generate @NgApp (" + getTsFilename(app.getClass()) + ")", t);
                 }
             }
 
