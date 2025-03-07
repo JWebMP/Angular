@@ -33,6 +33,7 @@ import io.github.classgraph.ClassInfo;
 import io.github.classgraph.Resource;
 import io.github.classgraph.ScanResult;
 import lombok.extern.java.Log;
+import lombok.extern.log4j.Log4j2;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.SystemUtils;
@@ -50,8 +51,9 @@ import static com.jwebmp.core.base.angular.client.services.interfaces.IComponent
 import static com.jwebmp.core.base.angular.implementations.AngularTSPostStartup.buildApp;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-@Log
-public class JWebMPTypeScriptCompiler {
+@Log4j2
+public class JWebMPTypeScriptCompiler
+{
     private final Set<String> assetStringBuilder = new LinkedHashSet<>();
     private final Set<String> stylesGlobal = new LinkedHashSet<>();
     private final Set<String> scripts = new LinkedHashSet<>();
@@ -60,13 +62,15 @@ public class JWebMPTypeScriptCompiler {
     private NgApp ngApp;
     private INgApp<?> app;
 
-    public static ThreadLocal<File> getCurrentAppFile() {
+    public static ThreadLocal<File> getCurrentAppFile()
+    {
         return IComponent.getCurrentAppFile();
     }
 
     private List<File> completedFiles = new ArrayList<>();
 
-    public JWebMPTypeScriptCompiler(INgApp<?> app) {
+    public JWebMPTypeScriptCompiler(INgApp<?> app)
+    {
         this.app = app;
         this.ngApp = app.getClass()
                 .getAnnotation(NgApp.class);
@@ -77,20 +81,26 @@ public class JWebMPTypeScriptCompiler {
 
     private static final Set<INgApp<?>> allApps = new LinkedHashSet<>();
 
-    public static Set<INgApp<?>> getAllApps() {
-        if (allApps.isEmpty()) {
+    public static Set<INgApp<?>> getAllApps()
+    {
+        if (allApps.isEmpty())
+        {
             for (ClassInfo classInfo : IGuiceContext.instance()
                     .getScanResult()
-                    .getClassesWithAnnotation(NgApp.class)) {
-                if (classInfo.isAbstract() || classInfo.isInterfaceOrAnnotation()) {
+                    .getClassesWithAnnotation(NgApp.class))
+            {
+                if (classInfo.isAbstract() || classInfo.isInterfaceOrAnnotation())
+                {
                     continue;
                 }
-                try {
+                try
+                {
                     INgApp<?> clazz = (INgApp<?>) IGuiceContext.get(classInfo.loadClass());
-                    System.out.println("Generating Angular Application - (" + getTsFilename(clazz) + ") in folder " + getClassDirectory(classInfo.loadClass()));
+                    log.debug("Generating Angular Application - (" + getTsFilename(clazz) + ") in folder " + getClassDirectory(classInfo.loadClass()));
                     allApps.add(clazz);
-                } catch (ClassCastException e) {
-                    System.out.println("Cannot render app - " + classInfo.getSimpleName() + " / Annotated @NgApp does not implement INgApp");
+                } catch (ClassCastException e)
+                {
+                    log.error("Cannot render app - " + classInfo.getSimpleName() + " / Annotated @NgApp does not implement INgApp", e);
                 }
             }
         }
@@ -98,21 +108,24 @@ public class JWebMPTypeScriptCompiler {
     }
 
     public StringBuilder renderDataTypeTS(NgApp ngApp, File srcDirectory, INgDataType<?> component, Class<?> requestingClass) throws
-            IOException {
+            IOException
+    {
         StringBuilder sb = new StringBuilder();
         sb.append(component.renderClassTs());
         return sb;
     }
 
     public StringBuilder renderServiceProviderTS(NgApp ngApp, File srcDirectory, INgServiceProvider<?> component, Class<?> requestingClass) throws
-            IOException {
+            IOException
+    {
         StringBuilder sb = new StringBuilder();
         sb.append(component.renderClassTs());
         return sb;
     }
 
     public StringBuilder renderProviderTS(NgApp ngApp, File srcDirectory, INgProvider<?> component, Class<?> requestingClass) throws
-            IOException {
+            IOException
+    {
         StringBuilder sb = new StringBuilder();
         sb.append(component.renderClassTs());
         return sb;
@@ -120,35 +133,40 @@ public class JWebMPTypeScriptCompiler {
 
 
     public StringBuilder renderServiceTS(NgApp ngApp, File srcDirectory, INgDataService<?> component, Class<?> requestingClass) throws
-            IOException {
+            IOException
+    {
         StringBuilder sb = new StringBuilder();
         sb.append(component.renderClassTs());
         return sb;
     }
 
     public StringBuilder renderDirectiveTS(NgApp ngApp, File srcDirectory, INgDirective<?> component, Class<?> requestingClass) throws
-            IOException {
+            IOException
+    {
         StringBuilder sb = new StringBuilder();
         sb.append(component.renderClassTs());
         return sb;
     }
 
     public StringBuilder renderComponentTS(NgApp ngApp, File srcDirectory, INgComponent<?> component, Class<?> requestingClass) throws
-            IOException {
+            IOException
+    {
         StringBuilder sb = new StringBuilder();
         sb.append(component.renderClassTs());
         return sb;
     }
 
     public StringBuilder renderModuleTS(NgApp ngApp, File srcDirectory, INgModule<?> component, Class<?> requestingClass) throws
-            IOException {
+            IOException
+    {
         StringBuilder sb = new StringBuilder();
         component.setApp(app);
         sb.append(component.renderClassTs());
         return sb;
     }
 
-    public StringBuilder renderAppTS(INgApp<?> appNgApp) throws IOException {
+    public StringBuilder renderAppTS(INgApp<?> appNgApp) throws IOException
+    {
         StringBuilder sb = new StringBuilder();
         ngApp = app.getClass()
                 .getAnnotation(NgApp.class);
@@ -158,7 +176,8 @@ public class JWebMPTypeScriptCompiler {
         ScanResult scan = IGuiceContext.instance()
                 .getScanResult();
         CallScoper scoper = IGuiceContext.get(CallScoper.class);
-        try {
+        try
+        {
             scoper.enter();
 
             IGuiceContext.get(EnvironmentModule.class)
@@ -173,7 +192,8 @@ public class JWebMPTypeScriptCompiler {
             File npmrcFile = AppUtils.getAppNpmrcPath(appClass, true);
             Set<NpmrcConfigurator> npmrcConfigurators = IGuiceContext.loaderToSetNoInjection(ServiceLoader.load(NpmrcConfigurator.class));
             StringBuilder npmrcString = new StringBuilder();
-            for (NpmrcConfigurator npmrcConfigurator : npmrcConfigurators) {
+            for (NpmrcConfigurator npmrcConfigurator : npmrcConfigurators)
+            {
                 Set<String> lines = npmrcConfigurator.lines();
                 lines.forEach(a -> npmrcString.append(a.trim())
                         .append('\n'));
@@ -193,10 +213,12 @@ public class JWebMPTypeScriptCompiler {
                     .forEach(a -> {
                         TsDependency annotation = a.loadClass()
                                 .getAnnotation(TsDependency.class);
-                        if (annotation != null) {
+                        if (annotation != null)
+                        {
                             var annotation1 = getNamedTSDependency(annotation);
                             dependencies.putIfAbsent(annotation1.value(), annotation1.version());
-                            if (annotation1.overrides()) {
+                            if (annotation1.overrides())
+                            {
                                 overrideDependencies.put(annotation1.value(), annotation1.version());
                             }
                         }
@@ -206,7 +228,8 @@ public class JWebMPTypeScriptCompiler {
                     .forEach(a -> {
                         TsDevDependency annotation = a.loadClass()
                                 .getAnnotation(TsDevDependency.class);
-                        if (annotation != null) {
+                        if (annotation != null)
+                        {
                             devDependencies.put(annotation.value(), annotation.version());
                         }
                     });
@@ -215,11 +238,14 @@ public class JWebMPTypeScriptCompiler {
                     .forEach(a -> {
                         TsDependencies annotations = a.loadClass()
                                 .getAnnotation(TsDependencies.class);
-                        if (annotations != null) {
-                            for (TsDependency annotation : annotations.value()) {
+                        if (annotations != null)
+                        {
+                            for (TsDependency annotation : annotations.value())
+                            {
                                 var annotation1 = getNamedTSDependency(annotation);
                                 dependencies.putIfAbsent(annotation1.value(), annotation1.version());
-                                if (annotation1.overrides()) {
+                                if (annotation1.overrides())
+                                {
                                     overrideDependencies.put(annotation1.value(), annotation1.version());
                                 }
                             }
@@ -230,8 +256,10 @@ public class JWebMPTypeScriptCompiler {
                     .forEach(a -> {
                         TsDevDependencies annotations = a.loadClass()
                                 .getAnnotation(TsDevDependencies.class);
-                        if (annotations != null) {
-                            for (TsDevDependency annotation : annotations.value()) {
+                        if (annotations != null)
+                        {
+                            for (TsDevDependency annotation : annotations.value())
+                            {
                                 devDependencies.put(annotation.value(), annotation.version());
                             }
                         }
@@ -260,29 +288,34 @@ public class JWebMPTypeScriptCompiler {
 
             File packageLockFile = new File(AppUtils.getAppPath(appClass)
                     .getCanonicalPath() + "/package-lock.json");
-            if (packageLockFile.exists() && packageLockFile.isFile()) {
+            if (packageLockFile.exists() && packageLockFile.isFile())
+            {
                 packageLockFile.delete();
             }
 
             File polyfillFile = AppUtils.getAppPolyfillsPath(appClass, true);// new File(srcDirectory.getCanonicalPath() + "/polyfills.ts");
             StringBuilder polyfills = new StringBuilder();
             for (NgPolyfill globalAnnotation : IGuiceContext.get(AnnotationHelper.class)
-                    .getGlobalAnnotations(NgPolyfill.class)) {
+                    .getGlobalAnnotations(NgPolyfill.class))
+            {
                 String newString = globalAnnotation.value();
                 polyfills.append("import \"" + newString + "\";\n");
             }
             FileUtils.writeStringToFile(polyfillFile, polyfills.toString(), UTF_8, false);
 
             //APP.CONFIG.TS
-            try (var is = ResourceLocator.class.getResourceAsStream("app.config.json")) {
+            try (var is = ResourceLocator.class.getResourceAsStream("app.config.json"))
+            {
                 String bootAppString = IOUtils.toString(is, UTF_8);
                 StringBuilder bootImportsString = new StringBuilder();
                 var ir = scan.getClassesWithAnnotation(NgBootImportReference.class);
                 Set<String> imports = new LinkedHashSet<>();
-                for (ClassInfo classInfo : ir) {
+                for (ClassInfo classInfo : ir)
+                {
                     var a = classInfo.loadClass()
                             .getAnnotationsByType(NgBootImportReference.class);
-                    for (NgBootImportReference ngBootImportReference : a) {
+                    for (NgBootImportReference ngBootImportReference : a)
+                    {
                         String importString = "import {" + ngBootImportReference.value() + "} from '" + ngBootImportReference.reference() + "'";
                         imports.add(importString);
                     }
@@ -291,10 +324,12 @@ public class JWebMPTypeScriptCompiler {
                         .append("\n"));
 
                 StringBuilder bootImportProviders = new StringBuilder();
-                for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgBootImportProvider.class)) {
+                for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgBootImportProvider.class))
+                {
                     var a = classInfo.loadClass()
                             .getAnnotationsByType(NgBootImportProvider.class);
-                    for (NgBootImportProvider ngBootImportProvider : a) {
+                    for (NgBootImportProvider ngBootImportProvider : a)
+                    {
                         bootImportProviders.append(ngBootImportProvider.value() + ",\n");
                     }
                     //.append(",");
@@ -307,17 +342,22 @@ public class JWebMPTypeScriptCompiler {
             Map<String, String> namedAssets = new HashMap<>();
             List<NgAsset> assets = IGuiceContext.get(AnnotationHelper.class)
                     .getGlobalAnnotations(NgAsset.class);
-            for (NgAsset ngAsset : assets) {
+            for (NgAsset ngAsset : assets)
+            {
                 String name = ngAsset.name();
-                if (Strings.isNullOrEmpty(ngAsset.name())) {
+                if (Strings.isNullOrEmpty(ngAsset.name()))
+                {
                     name = ngAsset.value();
                 }
                 namedAssets.put(name, ngAsset.value());
             }
-            for (NgAsset ngAsset : assets) {
+            for (NgAsset ngAsset : assets)
+            {
                 String name = ngAsset.name();
-                if (ngAsset.replaces().length > 0) {
-                    for (String replace : ngAsset.replaces()) {
+                if (ngAsset.replaces().length > 0)
+                {
+                    for (String replace : ngAsset.replaces())
+                    {
                         namedAssets.put(replace, ngAsset.value());
                     }
                 }
@@ -326,33 +366,42 @@ public class JWebMPTypeScriptCompiler {
             Map<String, String> namedStylesheets = new LinkedHashMap<>();
             List<NgStyleSheet> ngStyleSheets = IGuiceContext.get(AnnotationHelper.class)
                     .getGlobalAnnotations(NgStyleSheet.class);
-            ngStyleSheets.sort(new Comparator<NgStyleSheet>() {
+            ngStyleSheets.sort(new Comparator<NgStyleSheet>()
+            {
                 @Override
-                public int compare(NgStyleSheet o1, NgStyleSheet o2) {
+                public int compare(NgStyleSheet o1, NgStyleSheet o2)
+                {
                     return Integer.compare(o1.sortOrder(), o2.sortOrder());
                 }
             });
-            for (NgStyleSheet ngAsset : ngStyleSheets) {
+            for (NgStyleSheet ngAsset : ngStyleSheets)
+            {
                 String name = ngAsset.name();
-                if (Strings.isNullOrEmpty(ngAsset.name())) {
+                if (Strings.isNullOrEmpty(ngAsset.name()))
+                {
                     name = ngAsset.value();
                 }
                 namedStylesheets.put(name, ngAsset.value());
             }
-            for (NgStyleSheet ngAsset : ngStyleSheets) {
+            for (NgStyleSheet ngAsset : ngStyleSheets)
+            {
                 String name = ngAsset.name();
-                if (ngAsset.replaces().length > 0) {
-                    for (String replace : ngAsset.replaces()) {
+                if (ngAsset.replaces().length > 0)
+                {
+                    for (String replace : ngAsset.replaces())
+                    {
                         namedStylesheets.put(replace, ngAsset.value());
                     }
                 }
             }
 
-            for (String value : namedStylesheets.values()) {
+            for (String value : namedStylesheets.values())
+            {
                 stylesGlobal.add(value);
             }
 
-            for (String stylesheet : app.stylesheets()) {
+            for (String stylesheet : app.stylesheets())
+            {
                 stylesGlobal.add("src/assets/" + stylesheet);
             }
 
@@ -360,34 +409,43 @@ public class JWebMPTypeScriptCompiler {
 
             List<NgScript> allAnnotations = IGuiceContext.get(AnnotationHelper.class)
                     .getGlobalAnnotations(NgScript.class);
-            allAnnotations.sort(new Comparator<NgScript>() {
+            allAnnotations.sort(new Comparator<NgScript>()
+            {
                 @Override
-                public int compare(NgScript o1, NgScript o2) {
+                public int compare(NgScript o1, NgScript o2)
+                {
                     return Integer.compare(o1.sortOrder(), o2.sortOrder());
                 }
             });
 
-            for (NgScript ngAsset : allAnnotations) {
+            for (NgScript ngAsset : allAnnotations)
+            {
                 String name = ngAsset.name();
-                if (Strings.isNullOrEmpty(ngAsset.name())) {
+                if (Strings.isNullOrEmpty(ngAsset.name()))
+                {
                     name = ngAsset.value();
                 }
                 namedScripts.put(name, ngAsset.value());
             }
-            for (NgScript ngAsset : allAnnotations) {
+            for (NgScript ngAsset : allAnnotations)
+            {
                 String name = ngAsset.name();
-                if (ngAsset.replaces().length > 0) {
-                    for (String replace : ngAsset.replaces()) {
+                if (ngAsset.replaces().length > 0)
+                {
+                    for (String replace : ngAsset.replaces())
+                    {
                         namedScripts.put(replace, ngAsset.value());
                     }
                 }
             }
 
-            for (String value : namedScripts.values()) {
+            for (String value : namedScripts.values())
+            {
                 scripts.add(value);
             }
 
-            for (String stylesheet : app.scripts()) {
+            for (String stylesheet : app.scripts())
+            {
                 scripts.add("src/assets/" + stylesheet);
             }
 
@@ -405,33 +463,40 @@ public class JWebMPTypeScriptCompiler {
 
 
             System.out.println("Writing out angular main.ts file - " + AppUtils.getAppMainTSPath(appClass, false));
-            try {
+            try
+            {
                 String bootAppString = sb.toString();
                 FileUtils.writeStringToFile(AppUtils.getAppMainTSPath(appClass, true), bootAppString, UTF_8, false);
-            } catch (IOException e) {
+            } catch (IOException e)
+            {
                 e.printStackTrace();
             }
 
             File mainIndexHtmlTsFile = AppUtils.getIndexHtmlPath(appClass, true);//new File(srcDirectory.getCanonicalPath() + "/" + "index.html");
-            System.out.println("Writing out index.html - " + mainIndexHtmlTsFile.getCanonicalPath());
-            try {
+            log.debug("Writing out index.html - " + mainIndexHtmlTsFile.getCanonicalPath());
+            try
+            {
                 FileUtils.writeStringToFile(mainIndexHtmlTsFile, renderBootIndexHtml(app).toString(), UTF_8, false);
-            } catch (IOException e) {
-                e.printStackTrace();
+            } catch (IOException e)
+            {
+                log.error("Unable to write out index.html file", e);
             }
 
-            System.out.println("Writing out src/assets/ resources...");
-            for (Resource resource : scan.getResourcesMatchingWildcard("assets/**")) {
+            log.info("Writing out src/assets/ resources...");
+            for (Resource resource : scan.getResourcesMatchingWildcard("assets/**"))
+            {
                 AppUtils.saveAsset(appClass, resource.getURL()
                         .openStream(), resource.getPath());
             }
-            for (Resource resource : scan.getResourcesMatchingWildcard("src/assets/**")) {
+            for (Resource resource : scan.getResourcesMatchingWildcard("src/assets/**"))
+            {
                 AppUtils.saveAsset(appClass, resource.getURL()
                         .openStream(), resource.getPath());
             }
 
-            log.config("Loading resources from assets directory");
-            for (Resource allResource : scan.getResourcesMatchingWildcard("app/**")) {
+            log.info("Loading resources from assets directory");
+            for (Resource allResource : scan.getResourcesMatchingWildcard("app/**"))
+            {
                 String assetLocation = allResource.getPathRelativeToClasspathElement();
                 InputStream fileStream = allResource.getURL()
                         .openStream();
@@ -444,27 +509,35 @@ public class JWebMPTypeScriptCompiler {
                     .stream()
                     .forEach(a -> {
                         Set<Class<?>> classes = new HashSet<>();
-                        if (a.isInterface() || a.isAbstract()) {
-                            for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass())) {
-                                if (!subclass.isAbstract() && !subclass.isInterface()) {
+                        if (a.isInterface() || a.isAbstract())
+                        {
+                            for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
+                            {
+                                if (!subclass.isAbstract() && !subclass.isInterface())
+                                {
                                     classes.add(subclass.loadClass());
                                 }
                             }
-                        } else {
+                        } else
+                        {
                             Class<?> aClass = a.loadClass();
                             classes.add(aClass);
                         }
-                        for (Class<?> aClass : classes) {
+                        for (Class<?> aClass : classes)
+                        {
                             File classFile = null;
                             classFile = getFile(appClass, aClass, ".ts");
-                            if (!completedFiles.contains(classFile)) {
-                                try {
+                            if (!completedFiles.contains(classFile))
+                            {
+                                try
+                                {
                                     completedFiles.add(classFile);
                                     FileUtils.forceMkdirParent(classFile);
                                     INgModule<?> modd = (INgModule<?>) IGuiceContext.get(aClass);
                                     modd.setApp(app);
                                     FileUtils.write(classFile, renderModuleTS(ngApp, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
-                                } catch (IOException e) {
+                                } catch (IOException e)
+                                {
                                     e.printStackTrace();
                                 }
                             }
@@ -472,155 +545,89 @@ public class JWebMPTypeScriptCompiler {
                     });
 
             //components load through the child hierarchy of the app --
-            if (app instanceof NGApplication<?> application) {
-                /*try
-                {
-                    //load the app without the angular config for component rendering
-                    INgApp iNgApp = IGuiceContext.get(app.getClass());
-                    iNgApp.toString(true);
-                    var populatedChildren = iNgApp.getBody()
-                                                  .getChildrenHierarchy();
-
-                    for (var child : populatedChildren)
-                    {
-                        var aClass = child.getClass();
-                        if (aClass.isAnnotationPresent(NgComponent.class) && child instanceof INgComponent<?> component)
-                        {
-                            DivSimple<?> dummyAdd = new DivSimple<>();
-                            dummyAdd.add((GlobalChildren) component);
-                            dummyAdd.toString(true);
-                            component.processComponentReferences();
-                            File classFile = null;
-                            classFile = getFile(appClass, aClass, ".ts");
-                            if (!completedFiles.contains(classFile))
-                            {
-                                completedFiles.add(classFile);
-                                FileUtils.forceMkdirParent(classFile);
-                                INgComponent<?> modd = component;
-                                ComponentHierarchyBase chb2 = (ComponentHierarchyBase) modd;
-                                FileUtils.write(classFile, renderComponentTS(ngApp, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
-                            }
-                        }
-
-                    }
-                }
-                catch (Exception e)
-                {
-                    e.printStackTrace();
-                }
-                //then load the objects defined with routes
-                for (IComponentHierarchyBase<?, ?> route : app.getRoutes())
-                {
-                    try
-                    {
-                        route.toString(0);
-                        var routeHierarchy = route.getChildrenHierarchy(true);
-
-                        for (var child : routeHierarchy)
-                        {
-                            var aClass = child.getClass();
-                            if (aClass.isAnnotationPresent(NgComponent.class) && child instanceof INgComponent<?> component)
-                            {
-                                DivSimple<?> dummyAdd = new DivSimple<>();
-                                dummyAdd.add(child);
-                                dummyAdd.toString(true);
-                                component.processComponentReferences();
-                                File classFile = null;
-                                classFile = getFile(appClass, aClass, ".ts");
-                                if (!completedFiles.contains(classFile))
-                                {
-                                    try
-                                    {
-                                        completedFiles.add(classFile);
-                                        FileUtils.forceMkdirParent(classFile);
-                                        INgComponent<?> modd = component;
-                                        FileUtils.write(classFile, renderComponentTS(ngApp, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
-                                    }
-                                    catch (Exception e)
-                                    {
-                                        e.printStackTrace();
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    catch (Throwable e)
-                    {
-                        log.log(Level.SEVERE, "Error rendering routes", e);
-                    }
-                }
-*/
+            if (app instanceof NGApplication<?> application)
+            {
                 var standaloneComponents = scan.getClassesWithAnnotation(NgComponent.class)
                         .stream()
                         .filter(a -> !a.isAbstract() && !a.isInterface())
                         .filter(a -> a.loadClass()
                                 .getAnnotation(NgComponent.class)
                                 .standalone());
+
                 standaloneComponents.forEach(aClass -> {
-                    try {
+                    try
+                    {
                         IComponentHierarchyBase<?, ?> route = (IComponentHierarchyBase<?, ?>) IGuiceContext.get(aClass.loadClass());
                         route.toString(0);
                         var routeHierarchy = route.getChildrenHierarchy(true);
-                        for (var child : routeHierarchy) {
-                            if (child.getClass()
-                                    .isAnnotationPresent(NgComponent.class)) {
-                                continue;
-                            }
+                        for (var child : routeHierarchy)
+                        {
                             var childClass = child.getClass();
-                            if (childClass.isAnnotationPresent(NgComponent.class) && child instanceof INgComponent<?> component) {
+                            if (childClass.isAnnotationPresent(NgComponent.class) && child instanceof INgComponent<?> component)
+                            {
                                 DivSimple<?> dummyAdd = new DivSimple<>();
                                 dummyAdd.add(child);
                                 dummyAdd.toString(true);
-                                component.processComponentReferences();
                                 File classFile = null;
                                 classFile = getFile(appClass, childClass, ".ts");
-                                if (!completedFiles.contains(classFile)) {
-                                    try {
+                                if (!completedFiles.contains(classFile))
+                                {
+                                    try
+                                    {
                                         completedFiles.add(classFile);
                                         FileUtils.forceMkdirParent(classFile);
-                                        INgComponent<?> modd = component;
-                                        FileUtils.write(classFile, renderComponentTS(ngApp, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
-                                    } catch (Exception e) {
-                                        e.printStackTrace();
+                                        FileUtils.write(classFile, renderComponentTS(ngApp, finalSrcDirectory, component, component.getClass()), UTF_8, false);
+                                    } catch (Exception e)
+                                    {
+                                        log.error("Unable to write out component file", e);
                                     }
                                 }
                             }
                         }
-                    } catch (Throwable e) {
-                        e.printStackTrace();
+                    } catch (Throwable e)
+                    {
+                        log.error("Error rendering routes", e);
                     }
                 });
             }
 
-            if (true) {
+            if (true)
+            {
                 scan.getClassesWithAnnotation(NgComponent.class)
                         .stream()
                         // .filter(a -> !(a.isInterface() || a.isAbstract()))
                         .forEach(a -> {
                             Set<Class<?>> classes = new HashSet<>();
-                            if (a.isInterface() || a.isAbstract()) {
-                                for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass())) {
-                                    if (!subclass.isAbstract() && !subclass.isInterface()) {
+                            if (a.isInterface() || a.isAbstract())
+                            {
+                                for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
+                                {
+                                    if (!subclass.isAbstract() && !subclass.isInterface())
+                                    {
                                         classes.add(subclass.loadClass());
                                     }
                                 }
-                            } else {
+                            } else
+                            {
                                 Class<?> aClass = a.loadClass();
                                 classes.add(aClass);
                             }
-                            for (Class<?> aClass : classes) {
+                            for (Class<?> aClass : classes)
+                            {
                                 File classFile = null;
                                 classFile = getFile(appClass, aClass, ".ts");
-                                try {
+                                try
+                                {
                                     FileUtils.forceMkdirParent(classFile);
                                     INgComponent<?> modd = (INgComponent<?>) IGuiceContext.get(aClass);
-                                    if (modd instanceof ComponentHierarchyBase componentHierarchyBase) {
+                                    if (modd instanceof ComponentHierarchyBase componentHierarchyBase)
+                                    {
                                         componentHierarchyBase.toString(0);
                                     }
-                                    modd.processComponentReferences();
                                     ComponentHierarchyBase chb2 = (ComponentHierarchyBase) modd;
                                     FileUtils.write(classFile, renderComponentTS(ngApp, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
-                                } catch (IOException e) {
+                                } catch (IOException e)
+                                {
                                     e.printStackTrace();
                                 }
                             }
@@ -632,26 +639,34 @@ public class JWebMPTypeScriptCompiler {
                     // .filter(a -> !(a.isInterface() || a.isAbstract()))
                     .forEach(a -> {
                         Set<Class<?>> classes = new HashSet<>();
-                        if (a.isInterface() || a.isAbstract()) {
-                            for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass())) {
-                                if (!subclass.isAbstract() && !subclass.isInterface()) {
+                        if (a.isInterface() || a.isAbstract())
+                        {
+                            for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
+                            {
+                                if (!subclass.isAbstract() && !subclass.isInterface())
+                                {
                                     classes.add(subclass.loadClass());
                                 }
                             }
-                        } else {
+                        } else
+                        {
                             Class<?> aClass = a.loadClass();
                             classes.add(aClass);
                         }
-                        for (Class<?> aClass : classes) {
+                        for (Class<?> aClass : classes)
+                        {
                             File classFile = null;
                             classFile = getFile(appClass, aClass, ".ts");
-                            if (!completedFiles.contains(classFile)) {
-                                try {
+                            if (!completedFiles.contains(classFile))
+                            {
+                                try
+                                {
                                     completedFiles.add(classFile);
                                     FileUtils.forceMkdirParent(classFile);
                                     INgDirective<?> modd = (INgDirective<?>) IGuiceContext.get(aClass);
                                     FileUtils.write(classFile, renderDirectiveTS(ngApp, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
-                                } catch (IOException e) {
+                                } catch (IOException e)
+                                {
                                     e.printStackTrace();
                                 }
                             }
@@ -665,26 +680,34 @@ public class JWebMPTypeScriptCompiler {
                     //    .filter(a -> !(a.isInterface() || a.isAbstract()))
                     .forEach(a -> {
                         Set<Class<?>> classes = new HashSet<>();
-                        if (a.isInterface() || a.isAbstract()) {
-                            for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass())) {
-                                if (!subclass.isAbstract() && !subclass.isInterface()) {
+                        if (a.isInterface() || a.isAbstract())
+                        {
+                            for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
+                            {
+                                if (!subclass.isAbstract() && !subclass.isInterface())
+                                {
                                     classes.add(subclass.loadClass());
                                 }
                             }
-                        } else {
+                        } else
+                        {
                             Class<?> aClass = a.loadClass();
                             classes.add(aClass);
                         }
-                        for (Class<?> aClass : classes) {
+                        for (Class<?> aClass : classes)
+                        {
                             File classFile = null;
                             classFile = getFile(appClass, aClass, ".ts");
-                            if (!completedFiles.contains(classFile)) {
-                                try {
+                            if (!completedFiles.contains(classFile))
+                            {
+                                try
+                                {
                                     completedFiles.add(classFile);
                                     FileUtils.forceMkdirParent(classFile);
                                     INgDataService modd = (INgDataService) IGuiceContext.get(aClass);
                                     FileUtils.write(classFile, renderServiceTS(ngApp, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
-                                } catch (IOException e) {
+                                } catch (IOException e)
+                                {
                                     e.printStackTrace();
                                 }
                             }
@@ -697,26 +720,34 @@ public class JWebMPTypeScriptCompiler {
                     //.filter(a -> !(a.isInterface() || a.isAbstract()))
                     .forEach(a -> {
                         Set<Class<?>> classes = new HashSet<>();
-                        if (a.isInterface() || a.isAbstract()) {
-                            for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass())) {
-                                if (!subclass.isAbstract() && !subclass.isInterface()) {
+                        if (a.isInterface() || a.isAbstract())
+                        {
+                            for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
+                            {
+                                if (!subclass.isAbstract() && !subclass.isInterface())
+                                {
                                     classes.add(subclass.loadClass());
                                 }
                             }
-                        } else {
+                        } else
+                        {
                             Class<?> aClass = a.loadClass();
                             classes.add(aClass);
                         }
-                        for (Class<?> aClass : classes) {
+                        for (Class<?> aClass : classes)
+                        {
                             File classFile = null;
                             classFile = getFile(appClass, aClass, ".ts");
-                            if (!completedFiles.contains(classFile)) {
-                                try {
+                            if (!completedFiles.contains(classFile))
+                            {
+                                try
+                                {
                                     completedFiles.add(classFile);
                                     FileUtils.forceMkdirParent(classFile);
                                     INgProvider<?> modd = (INgProvider<?>) IGuiceContext.get(aClass);
                                     FileUtils.write(classFile, renderProviderTS(ngApp, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
-                                } catch (IOException e) {
+                                } catch (IOException e)
+                                {
                                     e.printStackTrace();
                                 }
                             }
@@ -728,26 +759,34 @@ public class JWebMPTypeScriptCompiler {
                     //   .filter(a -> !(a.isInterface() || a.isAbstract()))
                     .forEach(a -> {
                         Set<Class<?>> classes = new HashSet<>();
-                        if (a.isInterface() || a.isAbstract()) {
-                            for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass())) {
-                                if (!subclass.isAbstract() && !subclass.isInterface()) {
+                        if (a.isInterface() || a.isAbstract())
+                        {
+                            for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
+                            {
+                                if (!subclass.isAbstract() && !subclass.isInterface())
+                                {
                                     classes.add(subclass.loadClass());
                                 }
                             }
-                        } else {
+                        } else
+                        {
                             Class<?> aClass = a.loadClass();
                             classes.add(aClass);
                         }
-                        for (Class<?> aClass : classes) {
+                        for (Class<?> aClass : classes)
+                        {
                             File classFile = null;
                             classFile = getFile(appClass, aClass, ".ts");
-                            if (!completedFiles.contains(classFile)) {
-                                try {
+                            if (!completedFiles.contains(classFile))
+                            {
+                                try
+                                {
                                     completedFiles.add(classFile);
                                     FileUtils.forceMkdirParent(classFile);
                                     INgDataType modd = (INgDataType) IGuiceContext.get(aClass);
                                     FileUtils.write(classFile, renderDataTypeTS(ngApp, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
-                                } catch (IOException e) {
+                                } catch (IOException e)
+                                {
                                     e.printStackTrace();
                                 }
                             }
@@ -759,26 +798,34 @@ public class JWebMPTypeScriptCompiler {
                     //   .filter(a -> !(a.isInterface() || a.isAbstract()))
                     .forEach(a -> {
                         Set<Class<?>> classes = new HashSet<>();
-                        if (a.isInterface() || a.isAbstract()) {
-                            for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass())) {
-                                if (!subclass.isAbstract() && !subclass.isInterface()) {
+                        if (a.isInterface() || a.isAbstract())
+                        {
+                            for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
+                            {
+                                if (!subclass.isAbstract() && !subclass.isInterface())
+                                {
                                     classes.add(subclass.loadClass());
                                 }
                             }
-                        } else {
+                        } else
+                        {
                             Class<?> aClass = a.loadClass();
                             classes.add(aClass);
                         }
-                        for (Class<?> aClass : classes) {
+                        for (Class<?> aClass : classes)
+                        {
                             File classFile = null;
                             classFile = getFile(appClass, aClass, ".ts");
-                            if (!completedFiles.contains(classFile)) {
-                                try {
+                            if (!completedFiles.contains(classFile))
+                            {
+                                try
+                                {
                                     completedFiles.add(classFile);
                                     FileUtils.forceMkdirParent(classFile);
                                     INgServiceProvider<?> modd = (INgServiceProvider<?>) IGuiceContext.get(aClass);
                                     FileUtils.write(classFile, renderServiceProviderTS(ngApp, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
-                                } catch (IOException e) {
+                                } catch (IOException e)
+                                {
                                     e.printStackTrace();
                                 }
                             }
@@ -788,24 +835,30 @@ public class JWebMPTypeScriptCompiler {
 
             System.out.println("Registering Assets...");
             List<String> assetList = AppUtils.getAssetList(appClass);
-            if (assetList != null) {
-                for (String assetName : assetList) {
+            if (assetList != null)
+            {
+                for (String assetName : assetList)
+                {
                     assetStringBuilder.add(assetName);
                 }
             }
 
             Set<RenderedAssets> renderedAssets = IGuiceContext.loaderToSet(ServiceLoader.load(RenderedAssets.class));
-            for (RenderedAssets<?> renderedAsset : renderedAssets) {
-                for (String asset : renderedAsset.assets()) {
+            for (RenderedAssets<?> renderedAsset : renderedAssets)
+            {
+                for (String asset : renderedAsset.assets())
+                {
                     namedAssets.put(asset, asset);
                 }
             }
 
-            for (String value : namedAssets.values()) {
+            for (String value : namedAssets.values())
+            {
                 assetStringBuilder.add(value);
             }
 
-            for (String asset : app.assets()) {
+            for (String asset : app.assets())
+            {
                 assetStringBuilder.add(asset);
             }
 
@@ -838,7 +891,8 @@ public class JWebMPTypeScriptCompiler {
                 System.out.println("Building Angular Client App...");
                 installAngular(AppUtils.getAppPath(appClass));
             }*/
-        } finally {
+        } finally
+        {
             scoper.exit();
         }
         System.out.println("App Ready");
@@ -846,7 +900,8 @@ public class JWebMPTypeScriptCompiler {
         return sb;
     }
 
-    public StringBuilder renderBootIndexHtml(INgApp<?> app) {
+    public StringBuilder renderBootIndexHtml(INgApp<?> app)
+    {
         Page<?> p = (Page) app;
         StringBuilder sb = new StringBuilder();
         Body body = p.getBody();
@@ -857,9 +912,11 @@ public class JWebMPTypeScriptCompiler {
         List<NgComponent> annotations = IGuiceContext.get(AnnotationHelper.class)
                 .getAnnotationFromClass(app.getAnnotation()
                         .bootComponent(), NgComponent.class);
-        if (annotations.isEmpty()) {
+        if (annotations.isEmpty())
+        {
             throw new RuntimeException("No components found to render for boot index, the boot module specified does not have a @NgComponent");
-        } else {
+        } else
+        {
             body.add(new DivSimple<>().setTag(annotations.get(0)
                     .value()));
         }
@@ -869,9 +926,12 @@ public class JWebMPTypeScriptCompiler {
         return sb;
     }
 
-    public static void installDependencies(File appBaseDirectory) {
-        if (SystemUtils.IS_OS_WINDOWS) {
-            try {
+    public static void installDependencies(File appBaseDirectory)
+    {
+        if (SystemUtils.IS_OS_WINDOWS)
+        {
+            try
+            {
                 ProcessBuilder processBuilder = new ProcessBuilder("cmd.exe", "/c", FileUtils.getUserDirectory() + "/AppData/Roaming/npm/npm.cmd install");
                 //processBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
                 //processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
@@ -881,11 +941,14 @@ public class JWebMPTypeScriptCompiler {
                 processBuilder = processBuilder.directory(appBaseDirectory);
                 Process p = processBuilder.start();
                 p.waitFor();
-            } catch (Exception e) {
+            } catch (Exception e)
+            {
                 e.printStackTrace();
             }
-        } else if (SystemUtils.IS_OS_LINUX) {
-            try {
+        } else if (SystemUtils.IS_OS_LINUX)
+        {
+            try
+            {
                 ProcessBuilder processBuilder = new ProcessBuilder("npm", "install", "--force");
                 processBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
                 processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
@@ -895,17 +958,22 @@ public class JWebMPTypeScriptCompiler {
                 Process p = processBuilder.start();
                 p.waitFor();
                 p.destroyForcibly();
-            } catch (IOException e) {
+            } catch (IOException e)
+            {
                 e.printStackTrace();
-            } catch (InterruptedException e) {
+            } catch (InterruptedException e)
+            {
                 e.printStackTrace();
             }
         }
     }
 
-    public static void installAngular(File appBaseDirectory) {
-        if (SystemUtils.IS_OS_WINDOWS) {
-            try {
+    public static void installAngular(File appBaseDirectory)
+    {
+        if (SystemUtils.IS_OS_WINDOWS)
+        {
+            try
+            {
                 ProcessBuilder processBuilder =
 
                         new ProcessBuilder("cmd.exe", "/c", FileUtils.getUserDirectory() + "/AppData/Roaming/npm/npm.cmd", "run", "build" + (IGuiceContext.get(EnvironmentModule.class)
@@ -926,11 +994,14 @@ public class JWebMPTypeScriptCompiler {
 				{
 					e.printStackTrace();
 				}*/
-            } catch (IOException e) {
+            } catch (IOException e)
+            {
                 e.printStackTrace();
             }
-        } else if (SystemUtils.IS_OS_LINUX) {
-            try {
+        } else if (SystemUtils.IS_OS_LINUX)
+        {
+            try
+            {
                 ProcessBuilder processBuilder = new ProcessBuilder("npm", "run", "build" + (IGuiceContext.get(EnvironmentModule.class)
                         .getEnvironmentOptions()
                         .isProduction() ? "-prod" : ""));
@@ -940,7 +1011,8 @@ public class JWebMPTypeScriptCompiler {
                         .putAll(System.getenv());
                 processBuilder = processBuilder.directory(appBaseDirectory);
                 Process p = processBuilder.start();
-            } catch (IOException e) {
+            } catch (IOException e)
+            {
                 e.printStackTrace();
             }
         }
@@ -949,15 +1021,19 @@ public class JWebMPTypeScriptCompiler {
 
     private static final Map<String, TsDependency> namedDependencies = new HashMap<>();
 
-    private TsDependency getNamedTSDependency(TsDependency dependency) {
+    private TsDependency getNamedTSDependency(TsDependency dependency)
+    {
         String name = dependency.value();
-        if (!Strings.isNullOrEmpty(dependency.name())) {
+        if (!Strings.isNullOrEmpty(dependency.name()))
+        {
             name = dependency.name();
         }
 
-        if (dependency.overrides()) {
+        if (dependency.overrides())
+        {
             namedDependencies.put(name, dependency);
-        } else {
+        } else
+        {
             namedDependencies.putIfAbsent(name, dependency);
         }
         TsDependency dep = namedDependencies.get(name);

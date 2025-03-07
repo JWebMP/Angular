@@ -40,13 +40,8 @@ public class OnComponentAdded implements IOnNgComponentAdded<OnComponentAdded>
                 .getProperties()
                 .put("tsConfigured", "true");
         var children = component.getChildren();
-        for (GlobalChildren child : children)
+        /*for (GlobalChildren child : children)
         {
-           /* if (child.getClass()
-                     .isAnnotationPresent(NgComponent.class))
-            {
-                continue;
-            }*/
             var cc = (IComponentHierarchyBase<GlobalChildren, ?>) child;
             if (!cc.asBase()
                     .getProperties()
@@ -54,9 +49,9 @@ public class OnComponentAdded implements IOnNgComponentAdded<OnComponentAdded>
             {
                 onComponentAdded(component, cc);
             }
-        }
+        }*/
 
-        configureByAttribute(component);
+       /* configureByAttribute(component);
         unwrapAnnotations(component);
         unwrapMethods(component);
         determineImportReferences(component);
@@ -68,7 +63,7 @@ public class OnComponentAdded implements IOnNgComponentAdded<OnComponentAdded>
             component.asBase()
                     .getProperties()
                     .put("angular-web-component", true);
-        }
+        }*/
 
         //at this point all the configurations for all the classes must be set
 
@@ -140,7 +135,7 @@ public class OnComponentAdded implements IOnNgComponentAdded<OnComponentAdded>
 
     private void determineImportReferences(IComponentHierarchyBase<GlobalChildren, ?> component)
     {
-        if (!component.getConfigurations(NgOnInit.class)
+       /* if (!component.getConfigurations(NgOnInit.class)
                 .isEmpty())
         {
             component.addConfiguration(AnnotationUtils.getNgInterface("OnInit"));
@@ -188,162 +183,17 @@ public class OnComponentAdded implements IOnNgComponentAdded<OnComponentAdded>
                     component.addConfiguration(AnnotationUtils.getNgImportReference(ngImportReference.value(), ngImportReference.value()));
                 }
             }
-        }
+        }*/
 
     }
 
-    private void unwrapMethods(IComponentHierarchyBase<GlobalChildren, ?> comp)
-    {
-        if (comp instanceof IComponent<?> component)
-        {
-            for (String componentMethod : component.interfaces())
-            {
-                if (!Strings.isNullOrEmpty(componentMethod))
-                {
-                    var ng = AnnotationUtils.getNgInterface(componentMethod);
-                    comp.addConfiguration(ng);
-                }
-            }
-
-            for (String componentMethod : component.methods())
-            {
-                if (!Strings.isNullOrEmpty(componentMethod))
-                {
-                    var ng = AnnotationUtils.getNgComponentMethod(componentMethod);
-                    comp.addConfiguration(ng);
-                }
-            }
-
-            for (String componentField : component.globalFields())
-            {
-                if (!Strings.isNullOrEmpty(componentField))
-                {
-                    var ng = AnnotationUtils.getNgGlobalField(componentField);
-                    comp.addConfiguration(ng);
-                }
-            }
-
-            for (String componentField : component.fields())
-            {
-                if (!Strings.isNullOrEmpty(componentField))
-                {
-                    var ng = AnnotationUtils.getNgField(componentField);
-                    comp.addConfiguration(ng);
-                }
-            }
-
-            for (String componentField : component.moduleImports())
-            {
-                if (!Strings.isNullOrEmpty(componentField))
-                {
-                    var ng = AnnotationUtils.getNgImportModule(componentField);
-                    comp.addConfiguration(ng);
-                }
-            }
-
-            for (String contentChecked : component.onInit())
-            {
-                if (!Strings.isNullOrEmpty(contentChecked))
-                {
-                    var ng = AnnotationUtils.getNgOnInit(contentChecked);
-                    comp.addConfiguration(ng);
-                }
-            }
-            for (String contentChecked : component.onDestroy())
-            {
-                if (!Strings.isNullOrEmpty(contentChecked))
-                {
-                    var ng = AnnotationUtils.getNgOnDestroy(contentChecked);
-                    comp.addConfiguration(ng);
-                }
-            }
-
-            for (String contentChecked : component.afterContentChecked())
-            {
-                if (!Strings.isNullOrEmpty(contentChecked))
-                {
-                    var ng = AnnotationUtils.getNgAfterContentChecked(contentChecked);
-                    comp.addConfiguration(ng);
-                }
-            }
-            for (String contentChecked : component.afterContentInit())
-            {
-                if (!Strings.isNullOrEmpty(contentChecked))
-                {
-                    var ng = AnnotationUtils.getNgAfterContentInit(contentChecked);
-                    comp.addConfiguration(ng);
-                }
-            }
-
-            for (String contentChecked : component.afterViewInit())
-            {
-                if (!Strings.isNullOrEmpty(contentChecked))
-                {
-                    var ng = AnnotationUtils.getNgAfterViewInit(contentChecked);
-                    comp.addConfiguration(ng);
-                }
-            }
-            for (String contentChecked : component.afterViewChecked())
-            {
-                if (!Strings.isNullOrEmpty(contentChecked))
-                {
-                    var ng = AnnotationUtils.getNgAfterViewChecked(contentChecked);
-                    comp.addConfiguration(ng);
-                }
-            }
-            for (String componentConstructorParameter : component.constructorParameters())
-            {
-                if (!Strings.isNullOrEmpty(componentConstructorParameter))
-                {
-                    var ng = AnnotationUtils.getNgConstructorParameter(componentConstructorParameter);
-                    comp.addConfiguration(ng);
-                }
-            }
-            for (String componentConstructorParameter : component.constructorBody())
-            {
-                if (!Strings.isNullOrEmpty(componentConstructorParameter))
-                {
-                    var ng = AnnotationUtils.getNgConstructorBody(componentConstructorParameter);
-                    comp.addConfiguration(ng);
-                }
-            }
-        }
-
-        if (comp instanceof INgComponent<?> component)
-        {
-            for (String provider : component.providers())
-            {
-                if (!Strings.isNullOrEmpty(provider))
-                {
-                    var ng = AnnotationUtils.getNgImportProvider(provider);
-                    comp.addConfiguration(ng);
-                }
-            }
-            for (String input : component.inputs())
-            {
-                if (!Strings.isNullOrEmpty(input))
-                {
-                    var ng = AnnotationUtils.getNgInput(input);
-                    comp.addConfiguration(ng);
-                }
-            }
-        }
-
-        for (IEvent<?, ?> iEvent : comp.getEventsAll())
-        {
-            if (iEvent instanceof ClickAdapter<?> ev)
-            {
-                comp.addConfiguration(AnnotationUtils.getNgComponentReference(OnClickListenerDirective.class));
-            }
-        }
-    }
 
     /**
      * Takes the annotations and creates anno-objects out of them for equality and hash
      */
     private void unwrapAnnotations(IComponentHierarchyBase<GlobalChildren, ?> component)
     {
-        var ah = IGuiceContext.get(AnnotationHelper.class);
+        /*var ah = IGuiceContext.get(AnnotationHelper.class);
         ah.getAnnotationFromClass(component.getClass(), NgField.class)
                 .forEach(a -> component.addConfiguration(AnnotationUtils.getNgField(a.value())
                         .setOnSelf(a.onSelf())
@@ -437,30 +287,12 @@ public class OnComponentAdded implements IOnNgComponentAdded<OnComponentAdded>
                     {
                         component.addConfiguration(AnnotationUtils.getNgImportReference("Injectable", "@angular/core"));
                     }
-                });
+                });*/
     }
 
     private void configureByAttribute(IComponentHierarchyBase<GlobalChildren, ?> component)
     {
-        if (component instanceof Input input)
-        {
-            if (!input.getProperties()
-                    .containsKey("noName") && input.getAttributes()
-                    .containsKey("[(ngModel)]"))
-            {
-                input.addAttribute("#" + (Strings.isNullOrEmpty(input.getName()) ? input.getID() : input.getName()), "ngModel");
-                component.addConfiguration(AnnotationUtils.getNgImportReference("FormsModule", "@angular/forms"));
-                component.addConfiguration(AnnotationUtils.getNgImportModule("FormsModule"));
-            }
-        }
-
-        if (component.asAttributeBase()
-                .getAttributes()
-                .containsKey("[ngClass]"))
-        {
-            component.addConfiguration(AnnotationUtils.getNgImportReference("NgClass", "@angular/common"));
-            component.addConfiguration(AnnotationUtils.getNgImportModule("NgClass"));
-        }
+/*
 
         if (component.asAttributeBase()
                 .getAttributes()
@@ -542,7 +374,7 @@ public class OnComponentAdded implements IOnNgComponentAdded<OnComponentAdded>
         {
             component.addConfiguration(AnnotationUtils.getNgImportReference("FormsModule", "@angular/forms"));
             component.addConfiguration(AnnotationUtils.getNgImportModule("FormsModule"));
-        }
+        }*/
     }
 
     @Override

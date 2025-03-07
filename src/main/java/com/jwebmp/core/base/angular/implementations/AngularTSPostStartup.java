@@ -50,9 +50,9 @@ public class AngularTSPostStartup implements IGuicePostStartup<AngularTSPostStar
         }));
     }
 
-    @Override
+/*    @Override
     public Integer sortOrder()
     {
         return Integer.MAX_VALUE - 500;
-    }
+    }*/
 }
