@@ -33,7 +33,7 @@ import com.jwebmp.core.base.angular.client.AppUtils;
 import com.jwebmp.core.base.angular.client.DynamicData;
 import com.jwebmp.core.base.angular.client.annotations.angular.NgApp;
 import com.jwebmp.core.base.angular.client.services.interfaces.INgApp;
-import com.jwebmp.core.base.angular.modules.services.angular.RoutingModule;
+import com.jwebmp.core.base.angular.modules.services.angular.AngularRoutingModule;
 import com.jwebmp.core.base.angular.modules.services.base.EnvironmentModule;
 import com.jwebmp.core.base.angular.services.DefinedRoute;
 import com.jwebmp.core.base.angular.services.compiler.JWebMPTypeScriptCompiler;
@@ -95,11 +95,13 @@ public class AngularTSSiteBinder
                 IGuicedWebSocket.getMessagesListeners()
                         .get(messageReceived.getAction())
                         .receiveMessage(messageReceived);
-            } else
+            }
+            else
             {
                 log.warn("No web socket action registered for {}", messageReceived.getAction());
             }
-        } catch (Exception e)
+        }
+        catch (Exception e)
         {
             log.error("ERROR Message Received - Message={}", messageReceived.toString(), e);
         }
@@ -137,7 +139,8 @@ public class AngularTSSiteBinder
             {
                 FileUtils.forceMkdirParent(siteHostingLocation);
                 FileUtils.forceMkdir(siteHostingLocation);
-            } catch (IOException e)
+            }
+            catch (IOException e)
             {
                 throw new RuntimeException(e);
             }
@@ -271,7 +274,8 @@ public class AngularTSSiteBinder
                                         receiveMessage(mr);
                                         AjaxResponse<?> ar = IGuiceContext.get(AjaxResponse.class);
                                         return ar;
-                                    } finally
+                                    }
+                                    finally
                                     {
                                         callScoper.exit(); // Always exit the scope
                                     }
@@ -303,11 +307,17 @@ public class AngularTSSiteBinder
                                                 {
                                                     vertx.eventBus().publish(key, object);
                                                 }
-                                            } else
+                                            }
+                                            else
+                                            {
                                                 vertx.eventBus().publish(key, value);
+                                            }
                                         });
-                                    } else
+                                    }
+                                    else
+                                    {
                                         handler.reply(complete.result(), options);
+                                    }
 
                                     /*if (!ajaxResponse.getDataReturns().isEmpty())
                                     {
@@ -392,7 +402,7 @@ public class AngularTSSiteBinder
 */
 
                 String path = "";
-                for (DefinedRoute<?> route : RoutingModule.getRoutes(app))
+                for (DefinedRoute<?> route : AngularRoutingModule.getRoutes(app))
                 {
                     bindRouteToPath(router, path, staticFileLocationPath, siteHostingLocation, route);
                 }
@@ -409,7 +419,8 @@ public class AngularTSSiteBinder
                                 .setMaxAgeSeconds(604800)
                                 .setSendVaryHeader(false)
                         );
-            } catch (IOException e)
+            }
+            catch (IOException e)
             {
                 throw new RuntimeException(e);
             }

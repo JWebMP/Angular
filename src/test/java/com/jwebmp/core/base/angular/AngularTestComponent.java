@@ -4,7 +4,7 @@ import com.google.inject.Inject;
 import com.jwebmp.core.base.angular.client.annotations.angular.NgComponent;
 
 import com.jwebmp.core.base.angular.client.services.interfaces.INgComponent;
-import com.jwebmp.core.base.angular.modules.services.angular.RoutingModule;
+import com.jwebmp.core.base.angular.modules.services.angular.AngularRoutingModule;
 import com.jwebmp.core.base.angular.services.RouterOutlet;
 import com.jwebmp.core.base.html.Button;
 import com.jwebmp.core.base.html.DivSimple;
@@ -23,7 +23,7 @@ public class AngularTestComponent extends DivSimple<AngularTestComponent>
 
         Button button = new Button();
         button.setText("click me");
-        RoutingModule.applyRoute(button, "products", "");
+        AngularRoutingModule.applyRoute(button, "products", "");
         add(button);
 
         Button serverClickable = new Button();

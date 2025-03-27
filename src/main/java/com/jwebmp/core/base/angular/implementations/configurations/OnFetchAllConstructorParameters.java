@@ -13,10 +13,6 @@ public class OnFetchAllConstructorParameters implements OnGetAllConstructorParam
     @Override
     public void perform(List<NgConstructorParameter> constructorParameters, Object instance)
     {
-        if (instance.getClass().getCanonicalName().contains("TasksCreateModal"))
-        {
-            System.out.println("here");
-        }
         if (instance.getClass().isAnnotationPresent(NgComponent.class) &&
                 instance instanceof INgComponent<?> ngComponent &&
                 instance instanceof ComponentHierarchyBase componentHierarchyBase)

@@ -47,12 +47,17 @@ public class AngularTSPostStartup implements IGuicePostStartup<AngularTSPostStar
             }
 
             return true;
-        }));
+        }, false));
     }
 
-/*    @Override
+    /**
+     * Same as vertx startup
+     *
+     * @return
+     */
+    @Override
     public Integer sortOrder()
     {
-        return Integer.MAX_VALUE - 500;
-    }*/
+        return Integer.MAX_VALUE - 5000;
+    }
 }

@@ -14,7 +14,7 @@ public class OnFetchAllImports implements OnGetAllImports
     @Override
     public void perform(List<NgImportReference> allImportReferences, Object instance)
     {
-        if (instance.getClass().isAnnotationPresent(NgImportReference.class) &&
+        if (instance instanceof NgComponent annotation &&
                 instance instanceof INgComponent<?> ngComponent &&
                 instance instanceof ComponentHierarchyBase componentHierarchyBase)
         {

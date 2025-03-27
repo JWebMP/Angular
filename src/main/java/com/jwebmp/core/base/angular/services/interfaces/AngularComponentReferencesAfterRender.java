@@ -4,6 +4,8 @@ import com.jwebmp.core.base.angular.client.annotations.angular.NgComponent;
 import com.jwebmp.core.base.angular.client.annotations.angular.NgDirective;
 import com.jwebmp.core.base.angular.client.annotations.angular.NgServiceProvider;
 import com.jwebmp.core.base.angular.client.annotations.references.NgComponentReference;
+import com.jwebmp.core.base.angular.client.annotations.references.NgImportReference;
+import com.jwebmp.core.base.angular.client.annotations.structures.NgField;
 import com.jwebmp.core.base.angular.client.services.interfaces.AnnotationUtils;
 import com.jwebmp.core.base.interfaces.IComponentHierarchyBase;
 import com.jwebmp.core.databind.IAfterRenderComplete;
@@ -45,13 +47,14 @@ public class AngularComponentReferencesAfterRender implements IAfterRenderComple
                     ngComponent.addConfiguration(AnnotationUtils.getNgImportModule(AnnotationUtils.getTsFilename(configClass)));
                 } else if (configClass.isAnnotationPresent(NgServiceProvider.class))
                 {
-                    //directive
+                    //service provider
                     NgServiceProvider anno = configClass.getAnnotation(NgServiceProvider.class);
                     if (!anno.singleton())
                     {
                         ngComponent.addConfiguration(AnnotationUtils.getNgImportProvider(AnnotationUtils.getTsFilename(configClass)));
                     }
-                    ngComponent.addConfiguration(AnnotationUtils.getNgConstructorParameter("public " + anno.referenceName() + " : " + AnnotationUtils.getTsFilename(configClass)));
+                    ngComponent.addConfiguration(AnnotationUtils.getNgImportReference("inject", "@angular/core"));
+                    ngComponent.addConfiguration(AnnotationUtils.getNgField("private readonly " + anno.referenceName() + " = inject(" + AnnotationUtils.getTsFilename(configClass) + ");"));
                 }
             }
         }

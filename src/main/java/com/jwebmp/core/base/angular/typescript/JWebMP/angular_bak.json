@@ -48,7 +48,6 @@
             "index": "src/index.html",
             "browser": /*MainTSFile*/,
             "polyfills": [
-              "zone.js"
             ],
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",

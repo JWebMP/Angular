@@ -1,6 +1,6 @@
 import {ApplicationConfig,importProvidersFrom, provideZoneChangeDetection} from '@angular/core';
 import {provideRouter, withRouterConfig} from '@angular/router';
-import {routes} from "./com/jwebmp/core/base/angular/modules/services/angular/RoutingModule/RoutingModule";
+import {routes} from "./com/jwebmp/core/base/angular/modules/services/angular/AngularRoutingModule/AngularRoutingModule";
 import {provideAnimations} from '@angular/platform-browser/animations';
 import {provideAnimationsAsync} from "@angular/platform-browser/animations/async";
 %s
