@@ -16,8 +16,6 @@ import com.jwebmp.core.base.angular.client.services.interfaces.*;
 import com.jwebmp.core.base.html.DivSimple;
 import com.jwebmp.core.base.html.Input;
 import com.jwebmp.core.base.html.interfaces.GlobalChildren;
-import com.jwebmp.core.base.html.interfaces.events.GlobalEvents;
-import com.jwebmp.core.base.interfaces.IComponentEventBase;
 import com.jwebmp.core.base.interfaces.IComponentHierarchyBase;
 import com.jwebmp.core.databind.IConfiguration;
 import com.jwebmp.core.databind.IOnComponentConfigured;
@@ -163,7 +161,8 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
             else if (configuration instanceof NgComponentReference ngComponentReference)
             {
                 Class<?> configReferenceClass = ngComponentReference.value();
-                if (INgDirective.class.isAssignableFrom(configReferenceClass) || INgModule.class.isAssignableFrom(configReferenceClass))
+                if (INgDirective.class.isAssignableFrom(configReferenceClass) ||
+                        INgModule.class.isAssignableFrom(configReferenceClass))
                 {
                     @SuppressWarnings({"unchecked", "rawtypes"})
                     List<NgImportReference>
@@ -819,12 +818,12 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                         INgProvider.class.isAssignableFrom(importReference.value())
                 )
                 {
-                    compConfig.getInjects().add(
+                    /*compConfig.getInjects().add(
                             AnnotationUtils.getNgInject(
                                     AnnotationUtils.getTsVarName(importReference.value()),
                                     AnnotationUtils.getTsFilename(importReference.value())
                             )
-                    );
+                    );*/
                     compConfig.getImportReferences().add(AnnotationUtils.getNgImportReference("inject", "@angular/core"));
                 }
             }

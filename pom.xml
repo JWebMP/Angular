@@ -78,6 +78,23 @@
     </dependencyManagement>
 
     <build>
+        <resources>
+            <!-- Main resources -->
+            <resource>
+                <directory>src/main/resources</directory>
+                <includes>
+                    <include>**/*</include> 
+                </includes>
+            </resource>
+            <resource>
+                <directory>src/main/java</directory>
+                <includes>
+                    <include>**/*.json</include> 
+                    <include>**/*.config</include> 
+                    <include>**/.gitignore</include> 
+                </includes>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>

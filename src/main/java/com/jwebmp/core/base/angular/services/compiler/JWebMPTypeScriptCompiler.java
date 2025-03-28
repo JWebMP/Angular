@@ -44,6 +44,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
+import java.util.function.Predicate;
 
 import static com.guicedee.guicedinjection.interfaces.ObjectBinderKeys.DefaultObjectMapper;
 import static com.jwebmp.core.base.angular.client.AppUtils.getAppMainTSPath;
@@ -63,6 +64,19 @@ public class JWebMPTypeScriptCompiler
 
     private NgApp ngApp;
     private INgApp<?> app;
+
+    private final Predicate<Class<?>> packageFilter = a -> {
+        String packageName = a.getPackageName();
+        return packageName.startsWith("com.jwebmp") ||
+                packageName.startsWith("com.guicedee") ||
+                packageName.startsWith(app.getClass().getPackageName());
+    };
+    private final Predicate<ClassInfo> packageFilterClassInfo = a -> {
+        String packageName = a.getPackageName();
+        return packageName.startsWith("com.jwebmp") ||
+                packageName.startsWith("com.guicedee") ||
+                packageName.startsWith(app.getClass().getPackageName());
+    };
 
     public static ThreadLocal<File> getCurrentAppFile()
     {
@@ -184,6 +198,9 @@ public class JWebMPTypeScriptCompiler
         ScanResult scan = IGuiceContext.instance()
                 .getScanResult();
         CallScoper scoper = IGuiceContext.get(CallScoper.class);
+
+        var vertx = VertXPreStartup.getVertx();
+
         try
         {
             scoper.enter();
@@ -273,78 +290,25 @@ public class JWebMPTypeScriptCompiler
                         }
                     });
 
-
             ObjectMapper om = IGuiceContext.get(DefaultObjectMapper);
-            String appName = AppUtils.getAppName(appClass);
-            packageTemplate = packageTemplate.replace("/*appName*/", appName);
-            packageTemplate = packageTemplate.replace("/*dependencies*/", om.writerWithDefaultPrettyPrinter()
-                    .writeValueAsString(dependencies));
-            packageTemplate = packageTemplate.replace("/*devDependencies*/", om.writerWithDefaultPrettyPrinter()
-                    .writeValueAsString(devDependencies));
-            packageTemplate = packageTemplate.replace("/*overrideDependencies*/", om.writerWithDefaultPrettyPrinter()
-                    .writeValueAsString(overrideDependencies));
+            vertx.executeBlocking(() -> {
+                return processPackageJsonFile(currentAppFile.get(), appClass, packageTemplate, om, dependencies, devDependencies, overrideDependencies, packageJsonFile);
+            }, false);
 
-            FileUtils.writeStringToFile(packageJsonFile, packageTemplate, UTF_8, false);
+            vertx.executeBlocking(() -> {
+                processTypeScriptConfigFiles(currentAppFile.get(), appClass);
+                return true;
+            }, false);
 
-            File tsConfigFile = AppUtils.getAppTsConfigAppPath(appClass, true);// new File( AppUtils.getFileReferenceAppFile(appClass,"/tsconfig.app.json"));
-            String tsConfigTemplate = IOUtils.toString(Objects.requireNonNull(ResourceLocator.class.getResourceAsStream("tsconfig.app.json")), UTF_8);
-            FileUtils.writeStringToFile(tsConfigFile, tsConfigTemplate, UTF_8, false);
+            vertx.executeBlocking(() -> {
+                processPolyfillFile(currentAppFile.get(), appClass);
+                return true;
+            }, false);
 
-            File tsConfigFileAbs = AppUtils.getAppTsConfigPath(appClass, true); //new File(AppUtils.getFileReferenceAppFile(appClass,"/tsconfig.json"));
-            String tsConfigTemplateAbs = IOUtils.toString(Objects.requireNonNull(ResourceLocator.class.getResourceAsStream("tsconfig.json")), UTF_8);
-            FileUtils.writeStringToFile(tsConfigFileAbs, tsConfigTemplateAbs, UTF_8, false);
-
-            File packageLockFile = new File(AppUtils.getAppPath(appClass)
-                    .getCanonicalPath() + "/package-lock.json");
-            if (packageLockFile.exists() && packageLockFile.isFile())
-            {
-                packageLockFile.delete();
-            }
-
-            File polyfillFile = AppUtils.getAppPolyfillsPath(appClass, true);// new File(srcDirectory.getCanonicalPath() + "/polyfills.ts");
-            StringBuilder polyfills = new StringBuilder();
-            for (NgPolyfill globalAnnotation : IGuiceContext.get(AnnotationHelper.class)
-                    .getGlobalAnnotations(NgPolyfill.class))
-            {
-                String newString = globalAnnotation.value();
-                polyfills.append("import \"" + newString + "\";\n");
-            }
-            FileUtils.writeStringToFile(polyfillFile, polyfills.toString(), UTF_8, false);
-
-            //APP.CONFIG.TS
-            try (var is = ResourceLocator.class.getResourceAsStream("app.config.json"))
-            {
-                String bootAppString = IOUtils.toString(is, UTF_8);
-                StringBuilder bootImportsString = new StringBuilder();
-                var ir = scan.getClassesWithAnnotation(NgBootImportReference.class);
-                Set<String> imports = new LinkedHashSet<>();
-                for (ClassInfo classInfo : ir)
-                {
-                    var a = classInfo.loadClass()
-                            .getAnnotationsByType(NgBootImportReference.class);
-                    for (NgBootImportReference ngBootImportReference : a)
-                    {
-                        String importString = "import {" + ngBootImportReference.value() + "} from '" + ngBootImportReference.reference() + "'";
-                        imports.add(importString);
-                    }
-                }
-                imports.forEach(a -> bootImportsString.append(a)
-                        .append("\n"));
-
-                StringBuilder bootImportProviders = new StringBuilder();
-                for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgBootImportProvider.class))
-                {
-                    var a = classInfo.loadClass()
-                            .getAnnotationsByType(NgBootImportProvider.class);
-                    for (NgBootImportProvider ngBootImportProvider : a)
-                    {
-                        bootImportProviders.append(ngBootImportProvider.value()).append(",\n");
-                    }
-                    //.append(",");
-                }
-                bootAppString = bootAppString.formatted(bootImportsString.toString(), bootImportProviders.toString());
-                FileUtils.writeStringToFile(new File(AppUtils.getAppSrcPath(appClass) + "/app.config.ts"), bootAppString, UTF_8);
-            }
+            vertx.executeBlocking(() -> {
+                processAppConfigFile(currentAppFile.get(), scan, appClass);
+                return true;
+            }, false);
 
 
             Map<String, String> namedAssets = new HashMap<>();
@@ -466,7 +430,7 @@ public class JWebMPTypeScriptCompiler
             {
             }.putRelativeLinkInMap(appDirectory, bootComponentClass);
 
-            sb.append("import {%s} from '%s';\n".formatted(importReferences.get(0).value(), importReferences.get(0).reference()));
+            sb.append("import {%s} from '%s';\n".formatted(importReferences.getFirst().value(), importReferences.getFirst().reference()));
 
             //   sb.append(app.renderImports());
 
@@ -528,53 +492,27 @@ public class JWebMPTypeScriptCompiler
             log.info("Loading resources from assets directory");
             for (Resource allResource : scan.getResourcesMatchingWildcard("app/**"))
             {
-                String assetLocation = allResource.getPathRelativeToClasspathElement();
-                InputStream fileStream = allResource.getURL()
-                        .openStream();
-                AppUtils.saveAppResourceFile(appClass, fileStream, assetLocation);
+                vertx.executeBlocking(() -> {
+                    String assetLocation = allResource.getPathRelativeToClasspathElement();
+                    InputStream fileStream = allResource.getURL()
+                            .openStream();
+                    AppUtils.saveAppResourceFile(appClass, fileStream, assetLocation);
+                    return true;
+                }, false);
             }
 
             File finalSrcDirectory = AppUtils.getAppSrcPath(appClass);
 
+            var currentApp = currentAppFile.get();
+
             scan.getClassesWithAnnotation(NgModule.class)
                     .stream()
+                    //.filter(packageFilterClassInfo)
                     .forEach(a -> {
-                        Set<Class<?>> classes = new HashSet<>();
-                        if (a.isInterface() || a.isAbstract())
-                        {
-                            for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
-                            {
-                                if (!subclass.isAbstract() && !subclass.isInterface())
-                                {
-                                    classes.add(subclass.loadClass());
-                                }
-                            }
-                        }
-                        else
-                        {
-                            Class<?> aClass = a.loadClass();
-                            classes.add(aClass);
-                        }
-                        for (Class<?> aClass : classes)
-                        {
-                            File classFile = null;
-                            classFile = getFile(appClass, aClass, ".ts");
-                            if (!completedFiles.contains(classFile))
-                            {
-                                try
-                                {
-                                    completedFiles.add(classFile);
-                                    FileUtils.forceMkdirParent(classFile);
-                                    INgModule<?> modd = (INgModule<?>) IGuiceContext.get(aClass);
-                                    modd.setApp(app);
-                                    FileUtils.write(classFile, renderModuleTS(ngApp, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
-                                }
-                                catch (IOException e)
-                                {
-                                    e.printStackTrace();
-                                }
-                            }
-                        }
+                        vertx.executeBlocking(() -> {
+                            processNgModuleFiles(currentApp, a, scan, appClass, app, finalSrcDirectory);
+                            return true;
+                        }, false);
                     });
 
             //components load through the child hierarchy of the app --
@@ -585,21 +523,14 @@ public class JWebMPTypeScriptCompiler
                         .filter(a -> !a.isAbstract() && !a.isInterface())
                         .filter(a -> a.loadClass()
                                 .getAnnotation(NgComponent.class)
-                                .standalone())
-                        .filter(a -> {
-                            String packageName = a.getPackageName();
-                            return packageName.startsWith("com.jwebmp") ||
-                                    packageName.startsWith("com.guicedee") ||
-                                    packageName.startsWith(app.getClass().getPackageName());
-                        });
+                                .standalone());
+                //.filter(packageFilterClassInfo);
 
                 // Process the filtered components
                 standaloneComponents.distinct().forEach(aClass -> {
-                    var vertx = VertXPreStartup.getVertx();
-
-                    vertx.<Boolean>executeBlocking(() -> {
+                    vertx.executeBlocking(() -> {
                         var callScoper = IGuiceContext.get(CallScoper.class);
-                        boolean x = processStandaloneComponent(application, aClass, callScoper, app, appClass, finalSrcDirectory);
+                        boolean x = processStandaloneComponent(currentApp, application, aClass, callScoper, app, appClass, finalSrcDirectory);
                         return x;
                     }, false);
                 });
@@ -607,293 +538,491 @@ public class JWebMPTypeScriptCompiler
 
             scan.getClassesWithAnnotation(NgDirective.class)
                     .stream()
-                    // .filter(a -> !(a.isInterface() || a.isAbstract()))
+                    //.filter(packageFilterClassInfo)
                     .forEach(a -> {
-                        Set<Class<?>> classes = new HashSet<>();
-                        if (a.isInterface() || a.isAbstract())
-                        {
-                            for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
-                            {
-                                if (!subclass.isAbstract() && !subclass.isInterface())
-                                {
-                                    classes.add(subclass.loadClass());
-                                }
-                            }
-                        }
-                        else
-                        {
-                            Class<?> aClass = a.loadClass();
-                            classes.add(aClass);
-                        }
-                        for (Class<?> aClass : classes)
-                        {
-                            File classFile = null;
-                            classFile = getFile(appClass, aClass, ".ts");
-                            if (!completedFiles.contains(classFile))
-                            {
-                                try
-                                {
-                                    completedFiles.add(classFile);
-                                    FileUtils.forceMkdirParent(classFile);
-                                    INgDirective<?> modd = (INgDirective<?>) IGuiceContext.get(aClass);
-                                    FileUtils.write(classFile, renderDirectiveTS(ngApp, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
-                                }
-                                catch (IOException e)
-                                {
-                                    e.printStackTrace();
-                                }
-                            }
-                        }
-
-
+                        vertx.executeBlocking(() -> {
+                            processNgDirectiveFiles(currentApp, a, scan, appClass, finalSrcDirectory);
+                            return true;
+                        }, false);
                     });
 
             scan.getClassesWithAnnotation(NgDataService.class)
                     .stream()
-                    //    .filter(a -> !(a.isInterface() || a.isAbstract()))
+                    //.filter(packageFilterClassInfo)
                     .forEach(a -> {
-                        Set<Class<?>> classes = new HashSet<>();
-                        if (a.isInterface() || a.isAbstract())
-                        {
-                            for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
-                            {
-                                if (!subclass.isAbstract() && !subclass.isInterface())
-                                {
-                                    classes.add(subclass.loadClass());
-                                }
-                            }
-                        }
-                        else
-                        {
-                            Class<?> aClass = a.loadClass();
-                            classes.add(aClass);
-                        }
-                        for (Class<?> aClass : classes)
-                        {
-                            File classFile = null;
-                            classFile = getFile(appClass, aClass, ".ts");
-                            if (!completedFiles.contains(classFile))
-                            {
-                                try
-                                {
-                                    completedFiles.add(classFile);
-                                    FileUtils.forceMkdirParent(classFile);
-                                    INgDataService modd = (INgDataService) IGuiceContext.get(aClass);
-                                    FileUtils.write(classFile, renderServiceTS(ngApp, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
-                                }
-                                catch (IOException e)
-                                {
-                                    e.printStackTrace();
-                                }
-                            }
-                        }
+                        vertx.executeBlocking(() -> {
+                            processNgDataServiceFiles(currentApp, a, scan, appClass, finalSrcDirectory);
+                            return true;
+                        }, false);
                     });
 
 
             scan.getClassesWithAnnotation(NgProvider.class)
                     .stream()
-                    //.filter(a -> !(a.isInterface() || a.isAbstract()))
+                    //.filter(packageFilterClassInfo)
                     .forEach(a -> {
-                        Set<Class<?>> classes = new HashSet<>();
-                        if (a.isInterface() || a.isAbstract())
-                        {
-                            for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
-                            {
-                                if (!subclass.isAbstract() && !subclass.isInterface())
-                                {
-                                    classes.add(subclass.loadClass());
-                                }
-                            }
-                        }
-                        else
-                        {
-                            Class<?> aClass = a.loadClass();
-                            classes.add(aClass);
-                        }
-                        for (Class<?> aClass : classes)
-                        {
-                            File classFile = null;
-                            classFile = getFile(appClass, aClass, ".ts");
-                            if (!completedFiles.contains(classFile))
-                            {
-                                try
-                                {
-                                    completedFiles.add(classFile);
-                                    FileUtils.forceMkdirParent(classFile);
-                                    INgProvider<?> modd = (INgProvider<?>) IGuiceContext.get(aClass);
-                                    FileUtils.write(classFile, renderProviderTS(ngApp, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
-                                }
-                                catch (IOException e)
-                                {
-                                    e.printStackTrace();
-                                }
-                            }
-                        }
+                        vertx.executeBlocking(() -> {
+                            processNgProviderFiles(currentApp, a, scan, appClass, finalSrcDirectory);
+                            return true;
+                        }, false);
                     });
 
             scan.getClassesWithAnnotation(NgDataType.class)
                     .stream()
-                    //   .filter(a -> !(a.isInterface() || a.isAbstract()))
+                    //.filter(packageFilterClassInfo)
                     .forEach(a -> {
-                        Set<Class<?>> classes = new HashSet<>();
-                        if (a.isInterface() || a.isAbstract())
-                        {
-                            for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
-                            {
-                                if (!subclass.isAbstract() && !subclass.isInterface())
-                                {
-                                    classes.add(subclass.loadClass());
-                                }
-                            }
-                        }
-                        else
-                        {
-                            Class<?> aClass = a.loadClass();
-                            classes.add(aClass);
-                        }
-                        for (Class<?> aClass : classes)
-                        {
-                            File classFile = null;
-                            classFile = getFile(appClass, aClass, ".ts");
-                            if (!completedFiles.contains(classFile))
-                            {
-                                try
-                                {
-                                    completedFiles.add(classFile);
-                                    FileUtils.forceMkdirParent(classFile);
-                                    INgDataType modd = (INgDataType) IGuiceContext.get(aClass);
-                                    FileUtils.write(classFile, renderDataTypeTS(ngApp, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
-                                }
-                                catch (IOException e)
-                                {
-                                    e.printStackTrace();
-                                }
-                            }
-                        }
+                        vertx.executeBlocking(() -> {
+                            processNgDataTypeFiles(currentApp, a, scan, appClass, finalSrcDirectory);
+                            return true;
+                        }, false);
                     });
 
             scan.getClassesWithAnnotation(NgServiceProvider.class)
                     .stream()
-                    //   .filter(a -> !(a.isInterface() || a.isAbstract()))
+                    //.filter(packageFilterClassInfo)
                     .forEach(a -> {
-                        Set<Class<?>> classes = new HashSet<>();
-                        if (a.isInterface() || a.isAbstract())
-                        {
-                            for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
-                            {
-                                if (!subclass.isAbstract() && !subclass.isInterface())
-                                {
-                                    classes.add(subclass.loadClass());
-                                }
-                            }
-                        }
-                        else
-                        {
-                            Class<?> aClass = a.loadClass();
-                            classes.add(aClass);
-                        }
-                        for (Class<?> aClass : classes)
-                        {
-                            File classFile = null;
-                            classFile = getFile(appClass, aClass, ".ts");
-                            if (!completedFiles.contains(classFile))
-                            {
-                                try
-                                {
-                                    completedFiles.add(classFile);
-                                    FileUtils.forceMkdirParent(classFile);
-                                    INgServiceProvider<?> modd = (INgServiceProvider<?>) IGuiceContext.get(aClass);
-                                    FileUtils.write(classFile, renderServiceProviderTS(ngApp, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
-                                }
-                                catch (IOException e)
-                                {
-                                    e.printStackTrace();
-                                }
-                            }
-                        }
+                        vertx.executeBlocking(() -> {
+                            processNgServiceProviderFiles(currentApp, a, scan, appClass, finalSrcDirectory);
+                            return true;
+                        }, false);
                     });
 
+            vertx.executeBlocking(() -> {
+                renderAngularApplicationFiles(currentApp, appClass, namedAssets, app, om);
+                return true;
+            }, false);
 
-            log.info("Registering Assets...");
-            List<String> assetList = AppUtils.getAssetList(appClass);
-            if (assetList != null)
-            {
-                for (String assetName : assetList)
-                {
-                    assetStringBuilder.add(assetName);
-                }
-            }
-
-            Set<RenderedAssets> renderedAssets = IGuiceContext.loaderToSet(ServiceLoader.load(RenderedAssets.class));
-            for (RenderedAssets<?> renderedAsset : renderedAssets)
-            {
-                for (String asset : renderedAsset.assets())
-                {
-                    namedAssets.put(asset, asset);
-                }
-            }
-
-            for (String value : namedAssets.values())
-            {
-                assetStringBuilder.add(value);
-            }
-
-            for (String asset : app.assets())
-            {
-                assetStringBuilder.add(asset);
-            }
-
-            StringBuilder assetsAngular19 = new StringBuilder();
-            assetsAngular19.append("""
-                    
-                                [
-                                  {
-                                    "glob": "**/*",
-                                    "input": "public"
-                                  }
-                                ]
-                    """);
-
-            assetStringBuilder.removeIf(a -> stylesGlobal.contains(a));
-
-            String angularTemplate = IOUtils.toString(Objects.requireNonNull(ResourceLocator.class.getResourceAsStream("angular.json")), UTF_8);
-
-            angularTemplate = angularTemplate.replace("/*BuildAssets*/", assetsAngular19);
-
-
-            angularTemplate = angularTemplate.replace("/*BuildStylesSCSS*/", om.writerWithDefaultPrettyPrinter()
-                    .writeValueAsString(stylesGlobal));
-            angularTemplate = angularTemplate.replace("/*BuildScripts*/", om.writerWithDefaultPrettyPrinter()
-                    .writeValueAsString(scripts));
-            angularTemplate = angularTemplate.replace("/*MainTSFile*/", om.writerWithDefaultPrettyPrinter()
-                    .writeValueAsString("src/main.ts"));
-
-            File angularFile = AppUtils.getAngularJsonPath(appClass, true);// new File(appBaseDirectory.getCanonicalPath() + "/angular.json");
-            FileUtils.writeStringToFile(angularFile, angularTemplate, UTF_8, false);
-
-
-           /* if (buildApp)
-            {
-                System.out.println("Installing node-modules...");
-                installDependencies(AppUtils.getAppPath(appClass));
-            }
-            if (buildApp)
-            {
-                System.out.println("Building Angular Client App...");
-                installAngular(AppUtils.getAppPath(appClass));
-            }*/
         }
         finally
         {
             scoper.exit();
         }
-        System.out.println("App Ready");
-        //serveAngular(appBaseDirectory);
+        log.debug("Angular App Ready");
         return sb;
     }
 
-    private boolean processStandaloneComponent(NGApplication<?> application, ClassInfo aClass, CallScoper callScoper, INgApp<?> app, Class<? extends INgApp<?>> appClass, File finalSrcDirectory)
+    private void renderAngularApplicationFiles(File currentApp, Class<? extends INgApp<?>> appClass, Map<String, String> namedAssets, INgApp<?> app, ObjectMapper om) throws IOException
     {
+        currentAppFile.set(currentApp);
+        log.debug("Registering Assets...");
+        List<String> assetList = AppUtils.getAssetList(appClass);
+        if (assetList != null)
+        {
+            assetStringBuilder.addAll(assetList);
+        }
+        @SuppressWarnings({"rawtypes", "unchecked"})
+        Set<RenderedAssets> renderedAssets = IGuiceContext.loaderToSet(ServiceLoader.load(RenderedAssets.class));
+        for (RenderedAssets<?> renderedAsset : renderedAssets)
+        {
+            for (String asset : renderedAsset.assets())
+            {
+                namedAssets.put(asset, asset);
+            }
+        }
+        assetStringBuilder.addAll(namedAssets.values());
+        assetStringBuilder.addAll(app.assets());
+        StringBuilder assetsAngular19 = new StringBuilder();
+        assetsAngular19.append("""
+                
+                            [
+                              {
+                                "glob": "**/*",
+                                "input": "public"
+                              }
+                            ]
+                """);
+        assetStringBuilder.removeIf(stylesGlobal::contains);
+
+        String angularTemplate = IOUtils.toString(Objects.requireNonNull(ResourceLocator.class.getResourceAsStream("angular.json")), UTF_8);
+
+        angularTemplate = angularTemplate.replace("/*BuildAssets*/", assetsAngular19);
+        angularTemplate = angularTemplate.replace("/*BuildStylesSCSS*/", om.writerWithDefaultPrettyPrinter()
+                .writeValueAsString(stylesGlobal));
+        angularTemplate = angularTemplate.replace("/*BuildScripts*/", om.writerWithDefaultPrettyPrinter()
+                .writeValueAsString(scripts));
+        angularTemplate = angularTemplate.replace("/*MainTSFile*/", om.writerWithDefaultPrettyPrinter()
+                .writeValueAsString("src/main.ts"));
+
+        File angularFile = AppUtils.getAngularJsonPath(appClass, true);// new File(appBaseDirectory.getCanonicalPath() + "/angular.json");
+        FileUtils.writeStringToFile(angularFile, angularTemplate, UTF_8, false);
+    }
+
+    private void processNgServiceProviderFiles(File currentApp, ClassInfo a, ScanResult scan, Class<? extends INgApp<?>> appClass, File finalSrcDirectory)
+    {
+        CallScoper scoper = IGuiceContext.get(CallScoper.class);
+        scoper.enter();
+        currentAppFile.set(currentApp);
+        try
+        {
+            Set<Class<?>> classes = new HashSet<>();
+            if (a.isInterface() || a.isAbstract())
+            {
+                for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
+                {
+                    if (!subclass.isAbstract() && !subclass.isInterface())
+                    {
+                        classes.add(subclass.loadClass());
+                    }
+                }
+            }
+            else
+            {
+                Class<?> aClass = a.loadClass();
+                classes.add(aClass);
+            }
+            for (Class<?> aClass : classes)
+            {
+                File classFile = null;
+                classFile = getFile(appClass, aClass, ".ts");
+                if (aClass.getCanonicalName().contains("AngularFormDataProvider"))
+                {
+                    System.out.println("asdfsdf");
+                }
+                if (!completedFiles.contains(classFile))
+                {
+                    completedFiles.add(classFile);
+                    FileUtils.forceMkdirParent(classFile);
+                    INgServiceProvider<?> modd = (INgServiceProvider<?>) IGuiceContext.get(aClass);
+                    FileUtils.write(classFile, renderServiceProviderTS(ngApp, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
+                }
+            }
+        }
+        catch (Throwable e)
+        {
+            log.error("Unable to process NgServiceProvider files", e);
+        }
+        finally
+        {
+            scoper.exit();
+        }
+    }
+
+    private void processNgDataTypeFiles(File currentApp, ClassInfo a, ScanResult scan, Class<? extends INgApp<?>> appClass, File finalSrcDirectory)
+    {
+        currentAppFile.set(currentApp);
+        CallScoper scoper = IGuiceContext.get(CallScoper.class);
+        scoper.enter();
+        try
+        {
+            Set<Class<?>> classes = new HashSet<>();
+            if (a.isInterface() || a.isAbstract())
+            {
+                for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
+                {
+                    if (!subclass.isAbstract() && !subclass.isInterface())
+                    {
+                        classes.add(subclass.loadClass());
+                    }
+                }
+            }
+            else
+            {
+                Class<?> aClass = a.loadClass();
+                classes.add(aClass);
+            }
+            for (Class<?> aClass : classes)
+            {
+                File classFile = null;
+                classFile = getFile(appClass, aClass, ".ts");
+                if (!completedFiles.contains(classFile))
+                {
+                    completedFiles.add(classFile);
+                    FileUtils.forceMkdirParent(classFile);
+                    INgDataType modd = (INgDataType) IGuiceContext.get(aClass);
+                    FileUtils.write(classFile, renderDataTypeTS(ngApp, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
+                }
+            }
+        }
+        catch (Throwable e)
+        {
+            log.error("Unable to process NgDataType files", e);
+        }
+    }
+
+    private void processNgProviderFiles(File currentApp, ClassInfo a, ScanResult scan, Class<? extends INgApp<?>> appClass, File finalSrcDirectory)
+    {
+        currentAppFile.set(currentApp);
+        CallScoper scoper = IGuiceContext.get(CallScoper.class);
+        scoper.enter();
+        try
+        {
+            Set<Class<?>> classes = new HashSet<>();
+            if (a.isInterface() || a.isAbstract())
+            {
+                for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
+                {
+                    if (!subclass.isAbstract() && !subclass.isInterface())
+                    {
+                        classes.add(subclass.loadClass());
+                    }
+                }
+            }
+            else
+            {
+                Class<?> aClass = a.loadClass();
+                classes.add(aClass);
+            }
+            for (Class<?> aClass : classes)
+            {
+                File classFile = null;
+                classFile = getFile(appClass, aClass, ".ts");
+                if (!completedFiles.contains(classFile))
+                {
+                    completedFiles.add(classFile);
+                    FileUtils.forceMkdirParent(classFile);
+                    INgProvider<?> modd = (INgProvider<?>) IGuiceContext.get(aClass);
+                    FileUtils.write(classFile, renderProviderTS(ngApp, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
+                }
+            }
+        }
+        catch (Throwable e)
+        {
+            log.error("Unable to process NgProvider files", e);
+        }
+    }
+
+    private void processNgDataServiceFiles(File currentApp, ClassInfo a, ScanResult scan, Class<? extends INgApp<?>> appClass, File finalSrcDirectory)
+    {
+        currentAppFile.set(currentApp);
+        CallScoper scoper = IGuiceContext.get(CallScoper.class);
+        scoper.enter();
+        try
+        {
+            Set<Class<?>> classes = new HashSet<>();
+            if (a.isInterface() || a.isAbstract())
+            {
+                for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
+                {
+                    if (!subclass.isAbstract() && !subclass.isInterface())
+                    {
+                        classes.add(subclass.loadClass());
+                    }
+                }
+            }
+            else
+            {
+                Class<?> aClass = a.loadClass();
+                classes.add(aClass);
+            }
+            for (Class<?> aClass : classes)
+            {
+                File classFile = null;
+                classFile = getFile(appClass, aClass, ".ts");
+                if (!completedFiles.contains(classFile))
+                {
+                    completedFiles.add(classFile);
+                    FileUtils.forceMkdirParent(classFile);
+                    INgDataService modd = (INgDataService) IGuiceContext.get(aClass);
+                    FileUtils.write(classFile, renderServiceTS(ngApp, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
+                }
+            }
+        }
+        catch (Throwable e)
+        {
+            log.error("Unable to process NgDataService files", e);
+        }
+    }
+
+    private void processNgDirectiveFiles(File currentApp, ClassInfo a, ScanResult scan, Class<? extends INgApp<?>> appClass, File finalSrcDirectory)
+    {
+        currentAppFile.set(currentApp);
+        CallScoper scoper = IGuiceContext.get(CallScoper.class);
+        scoper.enter();
+        try
+        {
+            Set<Class<?>> classes = new HashSet<>();
+            if (a.isInterface() || a.isAbstract())
+            {
+                for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
+                {
+                    if (!subclass.isAbstract() && !subclass.isInterface())
+                    {
+                        classes.add(subclass.loadClass());
+                    }
+                }
+            }
+            else
+            {
+                Class<?> aClass = a.loadClass();
+                classes.add(aClass);
+            }
+            for (Class<?> aClass : classes)
+            {
+                File classFile = null;
+                classFile = getFile(appClass, aClass, ".ts");
+                if (!completedFiles.contains(classFile))
+                {
+                    completedFiles.add(classFile);
+                    FileUtils.forceMkdirParent(classFile);
+                    INgDirective<?> modd = (INgDirective<?>) IGuiceContext.get(aClass);
+                    FileUtils.write(classFile, renderDirectiveTS(ngApp, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
+                }
+            }
+        }
+        catch (Throwable e)
+        {
+            log.error("Unable to process NgDirective files", e);
+        }
+    }
+
+    private void processNgModuleFiles(File currentApp, ClassInfo a, ScanResult scan, Class<? extends INgApp<?>> appClass, INgApp<?> app, File finalSrcDirectory)
+    {
+        currentAppFile.set(currentApp);
+        CallScoper scoper = IGuiceContext.get(CallScoper.class);
+        scoper.enter();
+        try
+        {
+            Set<Class<?>> classes = new HashSet<>();
+            if (a.isInterface() || a.isAbstract())
+            {
+                for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
+                {
+                    if (!subclass.isAbstract() && !subclass.isInterface())
+                    {
+                        classes.add(subclass.loadClass());
+                    }
+                }
+            }
+            else
+            {
+                Class<?> aClass = a.loadClass();
+                classes.add(aClass);
+            }
+            for (Class<?> aClass : classes)
+            {
+                File classFile = null;
+                classFile = getFile(appClass, aClass, ".ts");
+                if (!completedFiles.contains(classFile))
+                {
+                    completedFiles.add(classFile);
+                    FileUtils.forceMkdirParent(classFile);
+                    INgModule<?> modd = (INgModule<?>) IGuiceContext.get(aClass);
+                    modd.setApp(app);
+                    FileUtils.write(classFile, renderModuleTS(ngApp, finalSrcDirectory, modd, modd.getClass()), UTF_8, false);
+                }
+            }
+        }
+        catch (Throwable e)
+        {
+            log.error("Unable to process NgModule files", e);
+        }
+    }
+
+    private void processAppConfigFile(File file, ScanResult scan, Class<? extends INgApp<?>> appClass) throws IOException
+    {
+        currentAppFile.set(file);
+        CallScoper scoper = IGuiceContext.get(CallScoper.class);
+        scoper.enter();
+        try (var is = ResourceLocator.class.getResourceAsStream("app.config.json"))
+        {
+            String bootAppString = IOUtils.toString(is, UTF_8);
+            StringBuilder bootImportsString = new StringBuilder();
+            var ir = scan.getClassesWithAnnotation(NgBootImportReference.class);
+            Set<String> imports = new LinkedHashSet<>();
+            for (ClassInfo classInfo : ir)
+            {
+                var a = classInfo.loadClass()
+                        .getAnnotationsByType(NgBootImportReference.class);
+                for (NgBootImportReference ngBootImportReference : a)
+                {
+                    String importString = "import {" + ngBootImportReference.value() + "} from '" + ngBootImportReference.reference() + "'";
+                    imports.add(importString);
+                }
+            }
+            imports.forEach(a -> bootImportsString.append(a)
+                    .append("\n"));
+
+            StringBuilder bootImportProviders = new StringBuilder();
+            for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgBootImportProvider.class))
+            {
+                var a = classInfo.loadClass()
+                        .getAnnotationsByType(NgBootImportProvider.class);
+                for (NgBootImportProvider ngBootImportProvider : a)
+                {
+                    bootImportProviders.append(ngBootImportProvider.value()).append(",\n");
+                }
+                //.append(",");
+            }
+            bootAppString = bootAppString.formatted(bootImportsString.toString(), bootImportProviders.toString());
+            FileUtils.writeStringToFile(new File(AppUtils.getAppSrcPath(appClass) + "/app.config.ts"), bootAppString, UTF_8);
+        }
+        catch (Throwable e)
+        {
+            log.error("Unable to process App Config File", e);
+        }
+        finally
+        {
+            scoper.exit();
+
+        }
+    }
+
+    private void processPolyfillFile(File file, Class<? extends INgApp<?>> appClass) throws IOException
+    {
+        currentAppFile.set(file);
+        File polyfillFile = AppUtils.getAppPolyfillsPath(appClass, true);// new File(srcDirectory.getCanonicalPath() + "/polyfills.ts");
+        StringBuilder polyfills = new StringBuilder();
+        for (NgPolyfill globalAnnotation : IGuiceContext.get(AnnotationHelper.class)
+                .getGlobalAnnotations(NgPolyfill.class))
+        {
+            String newString = globalAnnotation.value();
+            polyfills.append("import \"" + newString + "\";\n");
+        }
+        FileUtils.writeStringToFile(polyfillFile, polyfills.toString(), UTF_8, false);
+    }
+
+    private void processTypeScriptConfigFiles(File file, Class<? extends INgApp<?>> appClass) throws IOException
+    {
+        currentAppFile.set(file);
+        File tsConfigFile = AppUtils.getAppTsConfigAppPath(appClass, true);// new File( AppUtils.getFileReferenceAppFile(appClass,"/tsconfig.app.json"));
+        String tsConfigTemplate = IOUtils.toString(Objects.requireNonNull(ResourceLocator.class.getResourceAsStream("tsconfig.app.json")), UTF_8);
+        FileUtils.writeStringToFile(tsConfigFile, tsConfigTemplate, UTF_8, false);
+
+        File tsConfigFileAbs = AppUtils.getAppTsConfigPath(appClass, true); //new File(AppUtils.getFileReferenceAppFile(appClass,"/tsconfig.json"));
+        String tsConfigTemplateAbs = IOUtils.toString(Objects.requireNonNull(ResourceLocator.class.getResourceAsStream("tsconfig.json")), UTF_8);
+        FileUtils.writeStringToFile(tsConfigFileAbs, tsConfigTemplateAbs, UTF_8, false);
+
+
+        File gitIgnoreFile = AppUtils.getAppTsConfigPath(appClass, true); //new File(AppUtils.getFileReferenceAppFile(appClass,"/tsconfig.json"));
+        String gitIgnoreFileAbs = IOUtils.toString(Objects.requireNonNull(ResourceLocator.class.getResourceAsStream(".gitignore")), UTF_8);
+        FileUtils.writeStringToFile(gitIgnoreFile, gitIgnoreFileAbs, UTF_8, false);
+
+        File packageLockFile = new File(AppUtils.getAppPath(appClass)
+                .getCanonicalPath() + "/package-lock.json");
+        if (packageLockFile.exists() && packageLockFile.isFile())
+        {
+            packageLockFile.delete();
+        }
+    }
+
+    private boolean processPackageJsonFile(File file, Class<? extends INgApp<?>> appClass, String packageTemplate, ObjectMapper om, Map<String, String> dependencies, Map<String, String> devDependencies, Map<String, String> overrideDependencies, File packageJsonFile) throws IOException
+    {
+        currentAppFile.set(file);
+        CallScoper callScoper = IGuiceContext.get(CallScoper.class);
+        callScoper.enter();
+        try
+        {
+            String appName = AppUtils.getAppName(appClass);
+            packageTemplate = packageTemplate.replace("/*appName*/", appName);
+            packageTemplate = packageTemplate.replace("/*dependencies*/", om.writerWithDefaultPrettyPrinter()
+                    .writeValueAsString(dependencies));
+            packageTemplate = packageTemplate.replace("/*devDependencies*/", om.writerWithDefaultPrettyPrinter()
+                    .writeValueAsString(devDependencies));
+            packageTemplate = packageTemplate.replace("/*overrideDependencies*/", om.writerWithDefaultPrettyPrinter()
+                    .writeValueAsString(overrideDependencies));
+
+            FileUtils.writeStringToFile(packageJsonFile, packageTemplate, UTF_8, false);
+        }
+        finally
+        {
+            callScoper.exit();
+        }
+        return true;
+    }
+
+    private boolean processStandaloneComponent(File currentApp, NGApplication<?> application, ClassInfo aClass, CallScoper callScoper, INgApp<?> app, Class<? extends INgApp<?>> appClass, File finalSrcDirectory)
+    {
+        currentAppFile.set(currentApp);
         try
         {
             callScoper.enter();

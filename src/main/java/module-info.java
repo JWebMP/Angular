@@ -66,9 +66,11 @@ module com.jwebmp.core.angular {
     uses com.jwebmp.core.base.angular.modules.services.angular.WebSocketGroupAdd;
 
     exports com.jwebmp.core.base.angular.modules.directives;
+    exports com.jwebmp.core.base.angular.components.modules;
     exports com.jwebmp.core.base.angular.implementations.configurations;
 
     opens com.jwebmp.core.base.angular.typescript.JWebMP to com.google.guice, com.fasterxml.jackson.databind, com.jwebmp.core;
+    opens com.jwebmp.core.base.angular.components.modules to com.google.guice, com.fasterxml.jackson.databind, com.jwebmp.core;
     opens com.jwebmp.core.base.angular.implementations.configurations to com.google.guice, com.fasterxml.jackson.databind, com.jwebmp.core;
     opens com.jwebmp.core.base.angular.services to com.google.guice, com.fasterxml.jackson.databind, com.jwebmp.core;
     opens com.jwebmp.core.base.angular.components to com.google.guice, com.fasterxml.jackson.databind, com.jwebmp.core;

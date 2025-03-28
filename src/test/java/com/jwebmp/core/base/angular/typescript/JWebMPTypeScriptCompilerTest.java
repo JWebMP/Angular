@@ -6,6 +6,7 @@ import com.jwebmp.core.base.angular.services.compiler.JWebMPTypeScriptCompiler;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.time.Duration;
 
 import static com.jwebmp.core.base.angular.client.services.interfaces.AnnotationUtils.getTsFilename;
 import static com.jwebmp.core.base.angular.client.services.interfaces.IComponent.getClassDirectory;
@@ -15,23 +16,24 @@ public class JWebMPTypeScriptCompilerTest
     public static void main(String[] args) throws Exception
     {
         IGuiceContext.instance()
-                     .inject();
+                .inject();
     }
 
     @Test
-    public void testAppSearch() throws IOException
+    public void testAppSearch() throws IOException, InterruptedException
     {
         IGuiceContext.instance()
-                     .inject();
+                .inject();
         for (INgApp<?> app : JWebMPTypeScriptCompiler.getAllApps())
         {
             JWebMPTypeScriptCompiler compiler = new JWebMPTypeScriptCompiler(app);
             compiler.renderAppTS(app);
             System.out.println("Generating @NgApp (" + getTsFilename(app.getClass()) + ") " +
-                                       "in folder " + getClassDirectory(app.getClass()));
+                    "in folder " + getClassDirectory(app.getClass()));
             System.out.println("================");
             //compiler.renderAppTS(app);
             System.out.println("================");
         }
+        Thread.sleep(Duration.ofSeconds(2L));
     }
 }
