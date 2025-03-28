@@ -5,7 +5,7 @@ import com.google.common.base.Strings;
 import com.guicedee.client.CallScoper;
 import com.guicedee.client.IGuiceContext;
 import com.guicedee.guicedservlets.websockets.options.CallScopeProperties;
-import com.guicedee.guicedservlets.websockets.options.CallScopeSource;
+import com.guicedee.vertx.spi.VertXPreStartup;
 import com.jwebmp.core.Page;
 import com.jwebmp.core.base.ComponentHierarchyBase;
 import com.jwebmp.core.base.angular.client.AppUtils;
@@ -35,12 +35,10 @@ import com.jwebmp.core.base.servlets.enumarations.DevelopmentEnvironments;
 import io.github.classgraph.ClassInfo;
 import io.github.classgraph.Resource;
 import io.github.classgraph.ScanResult;
-import lombok.extern.java.Log;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.SystemUtils;
-import org.apache.commons.lang3.reflect.FieldUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -53,7 +51,6 @@ import static com.jwebmp.core.base.angular.client.AppUtils.getFile;
 import static com.jwebmp.core.base.angular.client.services.interfaces.AnnotationUtils.getTsFilename;
 import static com.jwebmp.core.base.angular.client.services.interfaces.IComponent.currentAppFile;
 import static com.jwebmp.core.base.angular.client.services.interfaces.IComponent.getClassDirectory;
-import static com.jwebmp.core.base.angular.implementations.AngularTSPostStartup.buildApp;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 @Log4j2
@@ -492,7 +489,7 @@ public class JWebMPTypeScriptCompiler
             }
             catch (IOException e)
             {
-                e.printStackTrace();
+                log.error("Unable to write out angular main.ts file", e);
             }
 
             File mainIndexHtmlTsFile = AppUtils.getIndexHtmlPath(appClass, true);//new File(srcDirectory.getCanonicalPath() + "/" + "index.html");
@@ -588,69 +585,23 @@ public class JWebMPTypeScriptCompiler
                         .filter(a -> !a.isAbstract() && !a.isInterface())
                         .filter(a -> a.loadClass()
                                 .getAnnotation(NgComponent.class)
-                                .standalone());
+                                .standalone())
+                        .filter(a -> {
+                            String packageName = a.getPackageName();
+                            return packageName.startsWith("com.jwebmp") ||
+                                    packageName.startsWith("com.guicedee") ||
+                                    packageName.startsWith(app.getClass().getPackageName());
+                        });
 
-                standaloneComponents.distinct().parallel().forEach(aClass -> {
-                    var callScoper = IGuiceContext.get(CallScoper.class);
-                    try
-                    {
-                        callScoper.enter();
-                        var scopeProperties = IGuiceContext.get(CallScopeProperties.class);
-                        //scopeProperties.setSource(CallScopeSource.Http)
-                        IComponent.app.set(application);
-                        File appPath = AppUtils.getAppPath((Class<? extends INgApp<?>>) app.getClass());
-                        currentAppFile.set(appPath);
-                        Class<?> clazz = aClass.loadClass();
-                        IComponentHierarchyBase<?, ?> ngComponent = (IComponentHierarchyBase<?, ?>) IGuiceContext.get(clazz);
-                        var html = ngComponent.toString(0);
-                        {
-                            var childClass = clazz;
-                            if (childClass.isAnnotationPresent(NgComponent.class) &&
-                                    ngComponent instanceof INgComponent<?> component)
-                            {
-                                DivSimple<?> dummyAdd = new DivSimple<>();
-                                dummyAdd.add(ngComponent);
-                                dummyAdd.toString(true);
-                                File classFile = null;
-                                classFile = getFile(appClass, childClass, ".ts");
-                                var htmlFile = getFile(appClass, clazz, ".html");
-                                var cssFile = getFile(appClass, clazz, ".scss");
-                                if (!classFile.getCanonicalPath().replace('\\', '/').contains("src/app/"))
-                                {
-                                    log.error("Unable to write out component file - {}", classFile.getCanonicalPath());
-                                    return;
-                                }
-                                StringBuilder cssString = ngComponent.cast()
-                                        .asStyleBase()
-                                        .renderCss(1);
+                // Process the filtered components
+                standaloneComponents.distinct().forEach(aClass -> {
+                    var vertx = VertXPreStartup.getVertx();
 
-                                if (!completedFiles.contains(classFile))
-                                {
-                                    try
-                                    {
-                                        completedFiles.add(classFile);
-                                        FileUtils.forceMkdirParent(classFile);
-                                        FileUtils.write(classFile, renderComponentTS(ngApp, finalSrcDirectory, component, component.getClass()), UTF_8, false);
-                                        FileUtils.write(htmlFile, html, UTF_8, false);
-                                        FileUtils.write(cssFile, cssString.toString(), UTF_8, false);
-
-                                    }
-                                    catch (Exception e)
-                                    {
-                                        log.error("Unable to write out component file", e);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    catch (Throwable e)
-                    {
-                        log.error("Error rendering routes", e);
-                    }
-                    finally
-                    {
-                        callScoper.exit();
-                    }
+                    vertx.<Boolean>executeBlocking(() -> {
+                        var callScoper = IGuiceContext.get(CallScoper.class);
+                        boolean x = processStandaloneComponent(application, aClass, callScoper, app, appClass, finalSrcDirectory);
+                        return x;
+                    }, false);
                 });
             }
 
@@ -939,6 +890,71 @@ public class JWebMPTypeScriptCompiler
         System.out.println("App Ready");
         //serveAngular(appBaseDirectory);
         return sb;
+    }
+
+    private boolean processStandaloneComponent(NGApplication<?> application, ClassInfo aClass, CallScoper callScoper, INgApp<?> app, Class<? extends INgApp<?>> appClass, File finalSrcDirectory)
+    {
+        try
+        {
+            callScoper.enter();
+            var scopeProperties = IGuiceContext.get(CallScopeProperties.class);
+            //scopeProperties.setSource(CallScopeSource.Http)
+            IComponent.app.set(application);
+            File appPath = AppUtils.getAppPath((Class<? extends INgApp<?>>) app.getClass());
+            currentAppFile.set(appPath);
+            Class<?> clazz = aClass.loadClass();
+            IComponentHierarchyBase<?, ?> ngComponent = (IComponentHierarchyBase<?, ?>) IGuiceContext.get(clazz);
+            var html = ngComponent.toString(0);
+            {
+                var childClass = clazz;
+                if (childClass.isAnnotationPresent(NgComponent.class) &&
+                        ngComponent instanceof INgComponent<?> component)
+                {
+                    DivSimple<?> dummyAdd = new DivSimple<>();
+                    dummyAdd.add(ngComponent);
+                    dummyAdd.toString(true);
+                    File classFile = null;
+                    classFile = getFile(appClass, childClass, ".ts");
+                    var htmlFile = getFile(appClass, clazz, ".html");
+                    var cssFile = getFile(appClass, clazz, ".scss");
+                    if (!classFile.getCanonicalPath().replace('\\', '/').contains("src/app/"))
+                    {
+                        log.error("Unable to write out component file - {}", classFile.getCanonicalPath());
+                        return false;
+                    }
+                    StringBuilder cssString = ngComponent.cast()
+                            .asStyleBase()
+                            .renderCss(1);
+
+                    if (!completedFiles.contains(classFile))
+                    {
+                        try
+                        {
+                            completedFiles.add(classFile);
+                            FileUtils.forceMkdirParent(classFile);
+                            FileUtils.write(classFile, renderComponentTS(ngApp, finalSrcDirectory, component, component.getClass()), UTF_8, false);
+                            FileUtils.write(htmlFile, html, UTF_8, false);
+                            FileUtils.write(cssFile, cssString.toString(), UTF_8, false);
+                            return true;
+                        }
+                        catch (Exception e)
+                        {
+                            log.error("Unable to write out component file", e);
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+        catch (Throwable e)
+        {
+            log.error("Error rendering routes", e);
+        }
+        finally
+        {
+            callScoper.exit();
+        }
+        return true;
     }
 
     public StringBuilder renderBootIndexHtml(INgApp<?> app)

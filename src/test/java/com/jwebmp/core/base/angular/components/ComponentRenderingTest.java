@@ -2,6 +2,7 @@ package com.jwebmp.core.base.angular.components;
 
 import com.jwebmp.core.base.angular.client.annotations.angular.NgComponent;
 import com.jwebmp.core.base.angular.client.annotations.components.NgInput;
+import com.jwebmp.core.base.angular.client.annotations.components.NgOutput;
 import com.jwebmp.core.base.angular.client.annotations.constructors.NgConstructorParameter;
 import com.jwebmp.core.base.angular.client.annotations.functions.*;
 import com.jwebmp.core.base.angular.client.annotations.references.NgComponentReference;
@@ -11,6 +12,7 @@ import com.jwebmp.core.base.angular.client.annotations.structures.NgMethod;
 import com.jwebmp.core.base.angular.client.services.EventBusListenerDirective;
 import com.jwebmp.core.base.angular.client.services.EventBusService;
 import com.jwebmp.core.base.angular.client.services.interfaces.INgComponent;
+import com.jwebmp.core.base.angular.client.services.tstypes.string;
 import com.jwebmp.core.base.html.DivSimple;
 
 import java.util.List;
@@ -43,10 +45,14 @@ import java.util.List;
 @NgComponentReference(EventBusListenerDirective.class)
 
 @NgInput("testInput")
+@NgInput(value = "testInput2", type = string.class, mandatory = true)
+@NgOutput("testOutput")
 public class ComponentRenderingTest extends DivSimple<ComponentRenderingTest> implements INgComponent<ComponentRenderingTest>
 {
     public ComponentRenderingTest()
     {
+        add(new ComponentTestNormalChild());
+        add(new ComponentTestTypeChild());
     }
 
     @Override

@@ -44,19 +44,8 @@ module com.jwebmp.core.angular {
     requires org.apache.commons.lang3;
     requires io.vertx.eventbusbridge;
 
-    provides OnGetAllConstructorParameters with OnFetchAllConstructorParameters;
-    provides OnGetAllConstructorBodies with OnFetchAllConstructorBodies;
-    provides OnGetAllFields with OnFetchAllFields;
-    provides OnGetAllImports with OnFetchAllImports;
-    provides OnGetAllMethods with OnFetchAllMethods;
-    provides OnGetAllModuleImports with OnFetchAllModuleImports;
-
-
     provides com.guicedee.guicedinjection.interfaces.IGuiceScanModuleInclusions with AngularScanModuleInclusion;
-    provides IOnComponentHtmlRender with OnComponentRenderApplyAngular;
     provides IGuiceConfigurator with SearchPathConfigurator;
-    provides IOnComponentAdded with OnComponentAdded;
-    provides IAfterRenderComplete with AngularAfterRenderCompleted, AngularTagReplacementAfterRender, AngularComponentReferencesAfterRender;
 
     provides IGuicePreStartup with AngularPreStartup;
     provides IGuiceModule with AngularTSSiteBinder;
