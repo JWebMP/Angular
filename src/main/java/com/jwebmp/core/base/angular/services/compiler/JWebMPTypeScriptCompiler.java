@@ -604,47 +604,60 @@ public class JWebMPTypeScriptCompiler
     private void renderAngularApplicationFiles(File currentApp, Class<? extends INgApp<?>> appClass, Map<String, String> namedAssets, INgApp<?> app, ObjectMapper om) throws IOException
     {
         currentAppFile.set(currentApp);
-        log.debug("Registering Assets...");
-        List<String> assetList = AppUtils.getAssetList(appClass);
-        if (assetList != null)
+        CallScoper scoper = IGuiceContext.get(CallScoper.class);
+        scoper.enter();
+        try
         {
-            assetStringBuilder.addAll(assetList);
-        }
-        @SuppressWarnings({"rawtypes", "unchecked"})
-        Set<RenderedAssets> renderedAssets = IGuiceContext.loaderToSet(ServiceLoader.load(RenderedAssets.class));
-        for (RenderedAssets<?> renderedAsset : renderedAssets)
-        {
-            for (String asset : renderedAsset.assets())
+            log.debug("Registering Assets...");
+            List<String> assetList = AppUtils.getAssetList(appClass);
+            if (assetList != null)
             {
-                namedAssets.put(asset, asset);
+                assetStringBuilder.addAll(assetList);
             }
+            @SuppressWarnings({"rawtypes", "unchecked"})
+            Set<RenderedAssets> renderedAssets = IGuiceContext.loaderToSet(ServiceLoader.load(RenderedAssets.class));
+            for (RenderedAssets<?> renderedAsset : renderedAssets)
+            {
+                for (String asset : renderedAsset.assets())
+                {
+                    namedAssets.put(asset, asset);
+                }
+            }
+            assetStringBuilder.addAll(namedAssets.values());
+            assetStringBuilder.addAll(app.assets());
+            StringBuilder assetsAngular19 = new StringBuilder();
+            assetsAngular19.append("""
+                    
+                                [
+                                  {
+                                    "glob": "**/*",
+                                    "input": "public"
+                                  }
+                                ]
+                    """);
+            assetStringBuilder.removeIf(stylesGlobal::contains);
+
+            String angularTemplate = IOUtils.toString(Objects.requireNonNull(ResourceLocator.class.getResourceAsStream("angular.json")), UTF_8);
+
+            angularTemplate = angularTemplate.replace("/*BuildAssets*/", assetsAngular19);
+            angularTemplate = angularTemplate.replace("/*BuildStylesSCSS*/", om.writerWithDefaultPrettyPrinter()
+                    .writeValueAsString(stylesGlobal));
+            angularTemplate = angularTemplate.replace("/*BuildScripts*/", om.writerWithDefaultPrettyPrinter()
+                    .writeValueAsString(scripts));
+            angularTemplate = angularTemplate.replace("/*MainTSFile*/", om.writerWithDefaultPrettyPrinter()
+                    .writeValueAsString("src/main.ts"));
+
+            File angularFile = AppUtils.getAngularJsonPath(appClass, true);// new File(appBaseDirectory.getCanonicalPath() + "/angular.json");
+            FileUtils.writeStringToFile(angularFile, angularTemplate, UTF_8, false);
         }
-        assetStringBuilder.addAll(namedAssets.values());
-        assetStringBuilder.addAll(app.assets());
-        StringBuilder assetsAngular19 = new StringBuilder();
-        assetsAngular19.append("""
-                
-                            [
-                              {
-                                "glob": "**/*",
-                                "input": "public"
-                              }
-                            ]
-                """);
-        assetStringBuilder.removeIf(stylesGlobal::contains);
-
-        String angularTemplate = IOUtils.toString(Objects.requireNonNull(ResourceLocator.class.getResourceAsStream("angular.json")), UTF_8);
-
-        angularTemplate = angularTemplate.replace("/*BuildAssets*/", assetsAngular19);
-        angularTemplate = angularTemplate.replace("/*BuildStylesSCSS*/", om.writerWithDefaultPrettyPrinter()
-                .writeValueAsString(stylesGlobal));
-        angularTemplate = angularTemplate.replace("/*BuildScripts*/", om.writerWithDefaultPrettyPrinter()
-                .writeValueAsString(scripts));
-        angularTemplate = angularTemplate.replace("/*MainTSFile*/", om.writerWithDefaultPrettyPrinter()
-                .writeValueAsString("src/main.ts"));
-
-        File angularFile = AppUtils.getAngularJsonPath(appClass, true);// new File(appBaseDirectory.getCanonicalPath() + "/angular.json");
-        FileUtils.writeStringToFile(angularFile, angularTemplate, UTF_8, false);
+        catch (Throwable e)
+        {
+            log.error("Unable to write out angular.json file", e);
+        }
+        finally
+        {
+            scoper.exit();
+        }
     }
 
     private void processNgServiceProviderFiles(File currentApp, ClassInfo a, ScanResult scan, Class<? extends INgApp<?>> appClass, File finalSrcDirectory)
@@ -983,7 +996,7 @@ public class JWebMPTypeScriptCompiler
         FileUtils.writeStringToFile(tsConfigFileAbs, tsConfigTemplateAbs, UTF_8, false);
 
 
-        File gitIgnoreFile = AppUtils.getAppTsConfigPath(appClass, true); //new File(AppUtils.getFileReferenceAppFile(appClass,"/tsconfig.json"));
+        File gitIgnoreFile = AppUtils.getGitIgnorePath(appClass, true); //new File(AppUtils.getFileReferenceAppFile(appClass,"/tsconfig.json"));
         String gitIgnoreFileAbs = IOUtils.toString(Objects.requireNonNull(ResourceLocator.class.getResourceAsStream(".gitignore")), UTF_8);
         FileUtils.writeStringToFile(gitIgnoreFile, gitIgnoreFileAbs, UTF_8, false);
 

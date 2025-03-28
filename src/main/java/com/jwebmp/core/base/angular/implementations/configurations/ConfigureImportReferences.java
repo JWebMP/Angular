@@ -147,7 +147,7 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
     {
         for (IConfiguration configuration : component.getConfigurations())
         {
-            if (configuration instanceof NgComponentReference ngComponentReference && component instanceof ImportsStatementsComponent<?> imp)
+            if (configuration instanceof NgComponentReference ngComponentReference && component instanceof ImportsStatementsComponent<?> imp && compConfig instanceof INgComponent)
             {
                 if ((ngComponentReference.onSelf() && !checkForParent) || (ngComponentReference.onParent() && checkForParent))
                 {
