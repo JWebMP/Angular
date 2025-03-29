@@ -687,10 +687,6 @@ public class JWebMPTypeScriptCompiler
             {
                 File classFile = null;
                 classFile = getFile(appClass, aClass, ".ts");
-                if (aClass.getCanonicalName().contains("AngularFormDataProvider"))
-                {
-                    System.out.println("asdfsdf");
-                }
                 if (!completedFiles.contains(classFile))
                 {
                     completedFiles.add(classFile);

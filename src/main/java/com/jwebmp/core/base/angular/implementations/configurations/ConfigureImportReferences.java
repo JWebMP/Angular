@@ -82,11 +82,6 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                 onComponentConfigured(component, (IComponentHierarchyBase<GlobalChildren, ?>) child, false);
             }
         }
-
-        if (component.getClass().getSimpleName().equalsIgnoreCase("FontAwesome"))
-        {
-            System.out.println("asdfff");
-        }
         configureAngularLifeCycleMethods(componentClass, component, checkForParent);
         processComponentConfigurations(component, checkForParent);
 
