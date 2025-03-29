@@ -8,9 +8,11 @@ import com.jwebmp.core.base.ajax.ReactionType;
 import com.jwebmp.core.base.angular.services.compiler.JWebMPTypeScriptCompiler;
 import com.jwebmp.core.base.interfaces.IComponentHierarchyBase;
 import com.jwebmp.core.events.click.ClickAdapter;
+import lombok.extern.log4j.Log4j2;
 
 import java.io.IOException;
 
+@Log4j2
 public class RebuildAppClickEvent extends ClickAdapter<RebuildAppClickEvent>
 {
     public RebuildAppClickEvent()
@@ -31,7 +33,7 @@ public class RebuildAppClickEvent extends ClickAdapter<RebuildAppClickEvent>
         }
         catch (IOException e)
         {
-            e.printStackTrace();
+            log.error("Failed to compile TS", e);
         }
         response.addReaction(new AjaxResponseReaction<>("/", ReactionType.RedirectUrl));
     }

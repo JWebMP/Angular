@@ -837,7 +837,11 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
         AnnotationUtils.getAnnotation(component.getClass(), NgImportReference.class).forEach(importReference -> {
             if ((importReference.onSelf() && !checkForParent) || (importReference.onParent() && checkForParent))
             {
-                compConfig.getImportReferences().add(AnnotationUtils.getNgImportReference(importReference.value(), importReference.reference()));
+                compConfig.getImportReferences().add(
+                        AnnotationUtils.getNgImportReference(importReference.value(), importReference.reference(),
+                                importReference.direct(), importReference.wrapValueInBraces()
+                        )
+                );
             }
         });
     }
@@ -847,9 +851,7 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
         AnnotationUtils.getAnnotation(component.getClass(), NgComponentReference.class).forEach(importReference -> {
             if ((importReference.onSelf() && !checkForParent) || (importReference.onParent() && checkForParent))
             {
-                List<NgImportReference> irs = new ImportsStatementsComponent()
-                {
-                }.putRelativeLinkInMap(compConfig.getRootComponent().getClass(), importReference);
+                List<NgImportReference> irs = retrieveRelativePathForReference(importReference);
                 for (NgImportReference ir : irs)
                 {
                     compConfig.getImportReferences().add(AnnotationUtils.getNgImportReference(ir.value(), ir.reference()));
@@ -883,6 +885,14 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                 }
             }
         });
+    }
+
+    private List<NgImportReference> retrieveRelativePathForReference(NgComponentReference importReference)
+    {
+        List<NgImportReference> irs = new ImportsStatementsComponent()
+        {
+        }.putRelativeLinkInMap(compConfig.getRootComponent().getClass(), importReference);
+        return irs;
     }
 
     private void processClassToComponent(Class<?> componentClass, IComponentHierarchyBase<GlobalChildren, ?> component, boolean checkForParent)
@@ -941,9 +951,7 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                 //reference
                 if (ImportsStatementsComponent.class.isAssignableFrom(configClass))
                 {
-                    List<NgImportReference> ngImportReferences = new ImportsStatementsComponent()
-                    {
-                    }.putRelativeLinkInMap(compConfig.getRootComponent().getClass(), reference);
+                    List<NgImportReference> ngImportReferences = retrieveRelativePathForReference(reference);
                     for (NgImportReference ngImportReference : ngImportReferences)
                     {
                         compConfig.getImportReferences().add(AnnotationUtils.getNgImportReference(ngImportReference.value(), ngImportReference.reference()));
@@ -1175,9 +1183,7 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                     //rootComponent.get().addConfiguration(AnnotationUtils.getNgField("@Input('" + a.value() + "') " + a.value() + (a.mandatory() ? "!" : "?") + " : " + (a.type() == null ? "any" : a.type().getSimpleName())));
                     if (a.type() != null && !a.type().isAnnotationPresent(NgIgnoreImportReference.class))
                     {
-                        List<NgImportReference> inputReferences = new ImportsStatementsComponent()
-                        {
-                        }.putRelativeLinkInMap(compConfig.getRootComponent().getClass(), AnnotationUtils.getNgComponentReference(a.type()));
+                        List<NgImportReference> inputReferences = retrieveRelativePathForReference(AnnotationUtils.getNgComponentReference(a.type()));
 
                         for (NgImportReference inputReference : inputReferences)
                         {
