@@ -16,6 +16,7 @@ import com.jwebmp.core.base.angular.client.annotations.angularconfig.NgScript;
 import com.jwebmp.core.base.angular.client.annotations.angularconfig.NgStyleSheet;
 import com.jwebmp.core.base.angular.client.annotations.boot.NgBootImportProvider;
 import com.jwebmp.core.base.angular.client.annotations.boot.NgBootImportReference;
+import com.jwebmp.core.base.angular.client.annotations.references.NgIgnoreRender;
 import com.jwebmp.core.base.angular.client.annotations.references.NgImportReference;
 import com.jwebmp.core.base.angular.client.annotations.typescript.TsDependencies;
 import com.jwebmp.core.base.angular.client.annotations.typescript.TsDependency;
@@ -507,6 +508,7 @@ public class JWebMPTypeScriptCompiler
 
             scan.getClassesWithAnnotation(NgModule.class)
                     .stream()
+                    .filter(a -> a.loadClass().getAnnotationsByType(NgIgnoreRender.class).length == 0)
                     //.filter(packageFilterClassInfo)
                     .forEach(a -> {
                         vertx.executeBlocking(() -> {
@@ -900,6 +902,10 @@ public class JWebMPTypeScriptCompiler
             for (Class<?> aClass : classes)
             {
                 File classFile = null;
+                if (aClass.isAnnotationPresent(NgIgnoreRender.class))
+                {
+                    continue;
+                }
                 classFile = getFile(appClass, aClass, ".ts");
                 if (!completedFiles.contains(classFile))
                 {
