@@ -1,6 +1,7 @@
 package com.jwebmp.core.base.angular.implementations.configurations;
 
 import com.google.common.base.Strings;
+import com.guicedee.client.IGuiceContext;
 import com.jwebmp.core.base.angular.client.annotations.angular.NgComponent;
 import com.jwebmp.core.base.angular.client.annotations.angular.NgDirective;
 import com.jwebmp.core.base.angular.client.annotations.angular.NgServiceProvider;
@@ -41,17 +42,13 @@ public class ConfigureImportReferences extends AbstractReferences<ComponentConfi
     public void onComponentConfigured(IComponentHierarchyBase<GlobalChildren, ?> parent, IComponentHierarchyBase<GlobalChildren, ?> component)
     {
         compConfig.setRootComponent(component);
-        this.componentString = component.toString(0);
         onComponentConfigured(parent, component, false);
     }
 
     private void onComponentConfigured(IComponentHierarchyBase<GlobalChildren, ?> parent, IComponentHierarchyBase<GlobalChildren, ?> component, boolean checkForParent)
     {
         Class<?> componentClass = component.getClass();
-        processClassToComponent(componentClass, component, checkForParent);
-
         var disconnectedChildren = new ArrayList<>(component.getChildren());
-
         for (GlobalChildren child : disconnectedChildren)
         {
             IComponentHierarchyBase<?, ?> childComponent = (IComponentHierarchyBase<?, ?>) child;
@@ -64,7 +61,7 @@ public class ConfigureImportReferences extends AbstractReferences<ComponentConfi
                     var cRef = AnnotationUtils.getNgComponentReference((Class<? extends IComponent<?>>) child.getClass());
                     if (compConfig.getRootComponent() instanceof ImportsStatementsComponent<?> imp)
                     {
-                        List<NgImportReference> ngImportReferences = imp.putRelativeLinkInMap(((INgComponent<?>) compConfig.getRootComponent()).getClass(), cRef);
+                        List<NgImportReference> ngImportReferences = imp.putRelativeLinkInMap(compConfig.getRootComponent().getClass(), cRef);
                         for (NgImportReference ngImportReference : ngImportReferences)
                         {
                             compConfig.getImportReferences().add((AnnotationUtils.getNgImportReference(ngImportReference.value(), ngImportReference.reference())));
@@ -89,6 +86,8 @@ public class ConfigureImportReferences extends AbstractReferences<ComponentConfi
                 onComponentConfigured(component, (IComponentHierarchyBase<GlobalChildren, ?>) child, false);
             }
         }
+        this.componentString = component.toString(0);
+        processClassToComponent(componentClass, component, checkForParent);
         configureAngularLifeCycleMethods(componentClass, component, checkForParent);
         processComponentConfigurations(component, checkForParent);
 
@@ -127,6 +126,32 @@ public class ConfigureImportReferences extends AbstractReferences<ComponentConfi
         var outputs = AnnotationUtils.getAnnotation(component.getClass(), NgOutput.class);
         outputs.addAll(component.getConfigurations(NgOutput.class, false));
 
+        var imrs = AnnotationUtils.getAnnotation(component.getClass(), NgImportReference.class);
+        for (NgImportReference imr : imrs)
+        {
+            if (imr.onParent())
+            {
+                replacementTag.addConfiguration(AnnotationUtils.getNgImportReference(imr.value(), imr.reference(), imr.onSelf(), imr.onParent(), imr.direct(), imr.wrapValueInBraces()));
+            }
+        }
+        var ims = AnnotationUtils.getAnnotation(component.getClass(), NgImportModule.class);
+        for (NgImportModule im : ims)
+        {
+            if (im.onParent())
+            {
+                replacementTag.addConfiguration(AnnotationUtils.getNgImportModule(im.value()));
+            }
+        }
+        var cmfs = AnnotationUtils.getAnnotation(component.getClass(), NgComponentReference.class);
+        for (NgComponentReference cmf : cmfs)
+        {
+            if (cmf.onParent())
+            {
+                replacementTag.addConfiguration(AnnotationUtils.getNgComponentReference((Class<? extends IComponent<?>>) cmf.value()));
+            }
+        }
+
+
         Set<NgOutput> uniqueOutValues = new HashSet<>();
         for (NgOutput a : outputs)
         {
@@ -157,11 +182,11 @@ public class ConfigureImportReferences extends AbstractReferences<ComponentConfi
         }
         for (IConfiguration configuration : component.getConfigurations())
         {
-            if (configuration instanceof NgComponentReference ngComponentReference && component instanceof ImportsStatementsComponent<?> imp && compConfig instanceof INgComponent)
+            if (configuration instanceof NgComponentReference ngComponentReference && component instanceof ImportsStatementsComponent<?> imp && component instanceof INgComponent)
             {
                 if ((ngComponentReference.onSelf() && !checkForParent) || (ngComponentReference.onParent() && checkForParent))
                 {
-                    List<NgImportReference> ngImportReferences = imp.putRelativeLinkInMap(((INgComponent<?>) compConfig.getRootComponent()).getClass(), ngComponentReference);
+                    List<NgImportReference> ngImportReferences = imp.putRelativeLinkInMap(compConfig.getRootComponent().getClass(), ngComponentReference);
                     for (NgImportReference ngImportReference : ngImportReferences)
                     {
                         compConfig.getImportReferences().add((AnnotationUtils.getNgImportReference(ngImportReference.value(), ngImportReference.reference())));
@@ -179,7 +204,7 @@ public class ConfigureImportReferences extends AbstractReferences<ComponentConfi
                             ngImportReferences = new ImportsStatementsComponent()
                     {
                     }
-                            .putRelativeLinkInMap(((INgComponent<?>) compConfig.getRootComponent()).getClass(), ngComponentReference);
+                            .putRelativeLinkInMap(compConfig.getRootComponent().getClass(), ngComponentReference);
                     for (NgImportReference ngImportReference : ngImportReferences)
                     {
                         compConfig.getImportReferences().add((AnnotationUtils.getNgImportReference(ngImportReference.value(), ngImportReference.reference())));
@@ -193,7 +218,7 @@ public class ConfigureImportReferences extends AbstractReferences<ComponentConfi
                             ngImportReferences = new ImportsStatementsComponent()
                     {
                     }
-                            .putRelativeLinkInMap(((INgComponent<?>) compConfig.getRootComponent()).getClass(), ngComponentReference);
+                            .putRelativeLinkInMap(compConfig.getRootComponent().getClass(), ngComponentReference);
                     for (NgImportReference ngImportReference : ngImportReferences)
                     {
                         compConfig.getImportReferences().add((AnnotationUtils.getNgImportReference(ngImportReference.value(), ngImportReference.reference())));
@@ -695,6 +720,33 @@ public class ConfigureImportReferences extends AbstractReferences<ComponentConfi
                 {
                     compConfig.getImportReferences().add(AnnotationUtils.getNgImportReference("inject", "@angular/core"));
                     processClassToComponent(importReference.value(), component, true);
+                }
+
+                //service provider component references
+                if (
+                        INgServiceProvider.class.isAssignableFrom(importReference.value())
+                )
+                {
+                    var gi = IGuiceContext.get(importReference.value());
+                    var anno = gi.getClass().getDeclaredAnnotationsByType(NgServiceProvider.class)[0];
+
+                    //get relative link
+                    var s = new ImportsStatementsComponent()
+                    {
+                    };
+                    var componentReference = AnnotationUtils.getNgComponentReference((Class<? extends IComponent<?>>) importReference.value());
+                    List<NgImportReference> refs = s.putRelativeLinkInMap(compConfig.getRootComponent().getClass(), componentReference);
+                    for (NgImportReference ref : refs)
+                    {
+                        compConfig.getImportReferences().add(AnnotationUtils.getNgImportReference(ref.value(), ref.reference(), ref.direct(), ref.wrapValueInBraces()));
+                    }
+
+                    //add the field reference to this component
+                    compConfig.getInjects().add(AnnotationUtils.getNgInject(
+                            anno.referenceName(), AnnotationUtils.getTsFilename(importReference.value())
+                    ));
+
+
                 }
             }
         });
