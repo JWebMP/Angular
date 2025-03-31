@@ -147,6 +147,14 @@ public class ConfigureImportReferences extends AbstractReferences<ComponentConfi
 
     private void processComponentConfigurations(IComponentHierarchyBase<GlobalChildren, ?> component, boolean checkForParent)
     {
+        if (component.getClass().getDeclaredAnnotationsByType(NgComponent.class).length > 0)
+        {
+            var anno = component.getClass().getDeclaredAnnotationsByType(NgComponent.class)[0];
+            if (!Strings.isNullOrEmpty(anno.providedIn()))
+            {
+                compConfig.getImportReferences().add(AnnotationUtils.getNgImportReference("Injectable", "@angular/core"));
+            }
+        }
         for (IConfiguration configuration : component.getConfigurations())
         {
             if (configuration instanceof NgComponentReference ngComponentReference && component instanceof ImportsStatementsComponent<?> imp && compConfig instanceof INgComponent)
@@ -929,6 +937,11 @@ public class ConfigureImportReferences extends AbstractReferences<ComponentConfi
                 compConfig.getImportModules().add(AnnotationUtils.getNgImportModule("DecimalPipe"));
             }
         }
+        if (!Strings.isNullOrEmpty(componentString) && componentString.contains("| number"))
+        {
+            compConfig.getImportReferences().add(AnnotationUtils.getNgImportReference("DecimalPipe", "@angular/common"));
+            compConfig.getImportModules().add(AnnotationUtils.getNgImportModule("DecimalPipe"));
+        }
         for (String value : component.asAttributeBase().getAttributes().values())
         {
             if (!Strings.isNullOrEmpty(value) && value.contains("| date"))
@@ -937,6 +950,11 @@ public class ConfigureImportReferences extends AbstractReferences<ComponentConfi
                 compConfig.getImportModules().add(AnnotationUtils.getNgImportModule("DatePipe"));
             }
         }
+        if (!Strings.isNullOrEmpty(componentString) && componentString.contains("| date"))
+        {
+            compConfig.getImportReferences().add(AnnotationUtils.getNgImportReference("DatePipe", "@angular/common"));
+            compConfig.getImportModules().add(AnnotationUtils.getNgImportModule("DatePipe"));
+        }
         for (String value : component.asAttributeBase().getAttributes().values())
         {
             if (!Strings.isNullOrEmpty(value) && value.contains("| currency"))
@@ -944,6 +962,11 @@ public class ConfigureImportReferences extends AbstractReferences<ComponentConfi
                 compConfig.getImportReferences().add(AnnotationUtils.getNgImportReference("CurrencyPipe", "@angular/common"));
                 compConfig.getImportModules().add(AnnotationUtils.getNgImportModule("CurrencyPipe"));
             }
+        }
+        if (!Strings.isNullOrEmpty(componentString) && componentString.contains("| currency"))
+        {
+            compConfig.getImportReferences().add(AnnotationUtils.getNgImportReference("CurrencyPipe", "@angular/common"));
+            compConfig.getImportModules().add(AnnotationUtils.getNgImportModule("CurrencyPipe"));
         }
         for (String value : component.asAttributeBase().getAttributes().keySet())
         {

@@ -23,6 +23,9 @@ import com.jwebmp.core.base.angular.client.annotations.typescript.TsDependency;
 import com.jwebmp.core.base.angular.client.annotations.typescript.TsDevDependencies;
 import com.jwebmp.core.base.angular.client.annotations.typescript.TsDevDependency;
 import com.jwebmp.core.base.angular.client.services.AnnotationHelper;
+import com.jwebmp.core.base.angular.client.services.DataServiceReferences;
+import com.jwebmp.core.base.angular.client.services.ServiceProviderConfiguration;
+import com.jwebmp.core.base.angular.client.services.ServiceProviderReferences;
 import com.jwebmp.core.base.angular.client.services.interfaces.*;
 import com.jwebmp.core.base.angular.modules.services.base.EnvironmentModule;
 import com.jwebmp.core.base.angular.services.NGApplication;
@@ -40,6 +43,7 @@ import lombok.extern.log4j.Log4j2;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.SystemUtils;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.File;
 import java.io.IOException;
@@ -512,9 +516,10 @@ public class JWebMPTypeScriptCompiler
                     //.filter(packageFilterClassInfo)
                     .forEach(a -> {
                         vertx.executeBlocking(() -> {
+                            LogManager.getLogger("TypescriptCompiler").debug("Rendering NgModule [{}]", a.getSimpleName());
                             processNgModuleFiles(currentApp, a, scan, appClass, app, finalSrcDirectory);
                             return true;
-                        }, false);
+                        }, true);
                     });
 
             //components load through the child hierarchy of the app --
@@ -531,10 +536,11 @@ public class JWebMPTypeScriptCompiler
                 // Process the filtered components
                 standaloneComponents.distinct().forEach(aClass -> {
                     vertx.executeBlocking(() -> {
+                        LogManager.getLogger("TypescriptCompiler").debug("Rendering NgComponent [{}]", aClass.getSimpleName());
                         var callScoper = IGuiceContext.get(CallScoper.class);
                         boolean x = processStandaloneComponent(currentApp, application, aClass, callScoper, app, appClass, finalSrcDirectory);
                         return x;
-                    }, false);
+                    }, true);
                 });
             }
 
@@ -543,9 +549,10 @@ public class JWebMPTypeScriptCompiler
                     //.filter(packageFilterClassInfo)
                     .forEach(a -> {
                         vertx.executeBlocking(() -> {
+                            LogManager.getLogger("TypescriptCompiler").debug("Rendering NgDirective [{}]", a.getSimpleName());
                             processNgDirectiveFiles(currentApp, a, scan, appClass, finalSrcDirectory);
                             return true;
-                        }, false);
+                        }, true);
                     });
 
             scan.getClassesWithAnnotation(NgDataService.class)
@@ -553,9 +560,11 @@ public class JWebMPTypeScriptCompiler
                     //.filter(packageFilterClassInfo)
                     .forEach(a -> {
                         vertx.executeBlocking(() -> {
+                            LogManager.getLogger("TypescriptCompiler").debug("Rendering NgDataService [{}]", a.getSimpleName());
                             processNgDataServiceFiles(currentApp, a, scan, appClass, finalSrcDirectory);
+                            DataServiceReferences.clearThread();
                             return true;
-                        }, false);
+                        }, true);
                     });
 
 
@@ -564,9 +573,10 @@ public class JWebMPTypeScriptCompiler
                     //.filter(packageFilterClassInfo)
                     .forEach(a -> {
                         vertx.executeBlocking(() -> {
+                            LogManager.getLogger("TypescriptCompiler").debug("Rendering NgProvider [{}]", a.getSimpleName());
                             processNgProviderFiles(currentApp, a, scan, appClass, finalSrcDirectory);
                             return true;
-                        }, false);
+                        }, true);
                     });
 
             scan.getClassesWithAnnotation(NgDataType.class)
@@ -574,9 +584,10 @@ public class JWebMPTypeScriptCompiler
                     //.filter(packageFilterClassInfo)
                     .forEach(a -> {
                         vertx.executeBlocking(() -> {
+                            LogManager.getLogger("TypescriptCompiler").debug("Rendering NgDataType [{}]", a.getSimpleName());
                             processNgDataTypeFiles(currentApp, a, scan, appClass, finalSrcDirectory);
                             return true;
-                        }, false);
+                        }, true);
                     });
 
             scan.getClassesWithAnnotation(NgServiceProvider.class)
@@ -584,9 +595,11 @@ public class JWebMPTypeScriptCompiler
                     //.filter(packageFilterClassInfo)
                     .forEach(a -> {
                         vertx.executeBlocking(() -> {
+                            LogManager.getLogger("TypescriptCompiler").debug("Rendering NgServiceProvider [{}]", a.getSimpleName());
                             processNgServiceProviderFiles(currentApp, a, scan, appClass, finalSrcDirectory);
+                            ServiceProviderReferences.clearThread();
                             return true;
-                        }, false);
+                        }, true);
                     });
 
             vertx.executeBlocking(() -> {
