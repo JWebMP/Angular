@@ -47,11 +47,20 @@ public class ConfigureImportReferences extends AbstractReferences<ComponentConfi
 
     private void onComponentConfigured(IComponentHierarchyBase<GlobalChildren, ?> parent, IComponentHierarchyBase<GlobalChildren, ?> component, boolean checkForParent)
     {
-        if (parent == null && !(component instanceof IComponent<?>))
+        if (parent == null && !(component instanceof INgComponent<?>))
         {
             return;
         }
         Class<?> componentClass = component.getClass();
+
+        this.componentString = component.toString(0);
+
+        processClass(componentClass, checkForParent);
+
+        processClassToComponent(componentClass, component, checkForParent);
+        configureAngularLifeCycleMethods(componentClass, component, checkForParent);
+        processComponentConfigurations(component, checkForParent);
+        
         var disconnectedChildren = new ArrayList<>(component.getChildren());
         for (GlobalChildren child : disconnectedChildren)
         {
@@ -72,10 +81,10 @@ public class ConfigureImportReferences extends AbstractReferences<ComponentConfi
                         {
                             compConfig.getImportReferences().add((AnnotationUtils.getNgImportReference(ngImportReference.value(), ngImportReference.reference())));
                         }*/
-                        updateTag(component.getChildren(), childComponent);
+
                         onComponentConfigured(component, (IComponentHierarchyBase<GlobalChildren, ?>) child, true);
                         //replace the tag with the angular component reference
-
+                        updateTag(component.getChildren(), childComponent);
                     }
                 }
                 else
@@ -92,13 +101,7 @@ public class ConfigureImportReferences extends AbstractReferences<ComponentConfi
                 onComponentConfigured(component, (IComponentHierarchyBase<GlobalChildren, ?>) child, false);
             }
         }
-        this.componentString = component.toString(0);
 
-        processClass(componentClass, checkForParent);
-
-        processClassToComponent(componentClass, component, checkForParent);
-        configureAngularLifeCycleMethods(componentClass, component, checkForParent);
-        processComponentConfigurations(component, checkForParent);
 
         if (parent == null)
         {
