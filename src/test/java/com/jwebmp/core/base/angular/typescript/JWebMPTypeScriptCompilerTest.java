@@ -34,6 +34,6 @@ public class JWebMPTypeScriptCompilerTest
             //compiler.renderAppTS(app);
             System.out.println("================");
         }
-        Thread.sleep(Duration.ofSeconds(2L));
+        Thread.sleep(Duration.ofSeconds(15L));
     }
 }

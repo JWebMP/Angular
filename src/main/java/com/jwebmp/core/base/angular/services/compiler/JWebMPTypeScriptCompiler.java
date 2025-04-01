@@ -22,10 +22,7 @@ import com.jwebmp.core.base.angular.client.annotations.typescript.TsDependencies
 import com.jwebmp.core.base.angular.client.annotations.typescript.TsDependency;
 import com.jwebmp.core.base.angular.client.annotations.typescript.TsDevDependencies;
 import com.jwebmp.core.base.angular.client.annotations.typescript.TsDevDependency;
-import com.jwebmp.core.base.angular.client.services.AnnotationHelper;
-import com.jwebmp.core.base.angular.client.services.DataServiceReferences;
-import com.jwebmp.core.base.angular.client.services.ServiceProviderConfiguration;
-import com.jwebmp.core.base.angular.client.services.ServiceProviderReferences;
+import com.jwebmp.core.base.angular.client.services.*;
 import com.jwebmp.core.base.angular.client.services.interfaces.*;
 import com.jwebmp.core.base.angular.modules.services.base.EnvironmentModule;
 import com.jwebmp.core.base.angular.services.NGApplication;
@@ -551,6 +548,7 @@ public class JWebMPTypeScriptCompiler
                         vertx.executeBlocking(() -> {
                             LogManager.getLogger("TypescriptCompiler").debug("Rendering NgDirective [{}]", a.getSimpleName());
                             processNgDirectiveFiles(currentApp, a, scan, appClass, finalSrcDirectory);
+                            DirectiveReferences.clearThread();
                             return true;
                         }, true);
                     });
