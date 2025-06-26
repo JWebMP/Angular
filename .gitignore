@@ -21,3 +21,4 @@ flatter.pom**/*.classpath
 /.idea/
 webroot
 /webroot/
+/logs/

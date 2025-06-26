@@ -18,12 +18,12 @@ package com.jwebmp.core.base.angular.implementations;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
+import com.guicedee.client.CallScopeProperties;
+import com.guicedee.client.CallScopeSource;
 import com.guicedee.client.CallScoper;
 import com.guicedee.client.IGuiceContext;
 import com.guicedee.guicedinjection.interfaces.IGuiceModule;
 import com.guicedee.guicedinjection.properties.GlobalProperties;
-import com.guicedee.guicedservlets.websockets.options.CallScopeProperties;
-import com.guicedee.guicedservlets.websockets.options.CallScopeSource;
 import com.guicedee.guicedservlets.websockets.options.IGuicedWebSocket;
 import com.guicedee.guicedservlets.websockets.options.WebSocketMessageReceiver;
 import com.guicedee.vertx.web.spi.VertxRouterConfigurator;
@@ -86,15 +86,15 @@ public class AngularTSSiteBinder
         {
             var callScopeProperties = IGuiceContext.get(CallScopeProperties.class);
             String requestContextId = callScopeProperties.getProperties()
-                    .get("RequestContextId")
-                    .toString();
+                                                         .get("RequestContextId")
+                                                         .toString();
             messageReceived.setBroadcastGroup(requestContextId);
             if (IGuicedWebSocket.getMessagesListeners()
-                    .containsKey(messageReceived.getAction()))
+                                .containsKey(messageReceived.getAction()))
             {
                 IGuicedWebSocket.getMessagesListeners()
-                        .get(messageReceived.getAction())
-                        .receiveMessage(messageReceived);
+                                .get(messageReceived.getAction())
+                                .receiveMessage(messageReceived);
             }
             else
             {
@@ -117,8 +117,8 @@ public class AngularTSSiteBinder
                 .toInstance(new EnvironmentModule());
 
         for (ClassInfo classInfo : IGuiceContext.instance()
-                .getScanResult()
-                .getClassesWithAnnotation(NgApp.class))
+                                                .getScanResult()
+                                                .getClassesWithAnnotation(NgApp.class))
         {
             if (classInfo.isAbstract() || classInfo.isInterface())
             {
@@ -176,20 +176,20 @@ public class AngularTSSiteBinder
         }
         log.debug("Configuring route - {}", newPath);
         router.route(newPath)
-                .handler(StaticHandler.create(FileSystemAccess.ROOT, staticFileLocationPath)
-                        .setAlwaysAsyncFS(true)
-                        .setCacheEntryTimeout(604800)
-                        .setCachingEnabled(true)
-                        .setDefaultContentEncoding("UTF-8")
-                        .setDirectoryListing(false)
-                        .setEnableFSTuning(true)
-                        .setIncludeHidden(false)
-                        .setMaxAgeSeconds(604800)
-                        .setSendVaryHeader(true)
-                );
+              .handler(StaticHandler.create(FileSystemAccess.ROOT, staticFileLocationPath)
+                                    .setAlwaysAsyncFS(true)
+                                    .setCacheEntryTimeout(604800)
+                                    .setCachingEnabled(true)
+                                    .setDefaultContentEncoding("UTF-8")
+                                    .setDirectoryListing(false)
+                                    .setEnableFSTuning(true)
+                                    .setIncludeHidden(false)
+                                    .setMaxAgeSeconds(604800)
+                                    .setSendVaryHeader(true)
+              );
 
         if (route.getChildren() != null && !route.getChildren()
-                .isEmpty())
+                                                 .isEmpty())
         {
             for (DefinedRoute<?> child : route.getChildren())
             {
@@ -210,7 +210,8 @@ public class AngularTSSiteBinder
     {
         if (event.type() == BridgeEventType.SEND || event.type() == BridgeEventType.PUBLISH)
         {
-            String address = event.getRawMessage().getString("address"); // Address message was received from
+            String address = event.getRawMessage()
+                                  .getString("address"); // Address message was received from
             //System.out.println("Message received at address: " + address);
         }
         event.complete(true); // Allow the event to proceed
@@ -226,7 +227,7 @@ public class AngularTSSiteBinder
             try
             {
                 String staticFileLocationPath = AppUtils.getDistPath((Class<? extends INgApp<?>>) app.getClass())
-                        .getCanonicalPath();
+                                                        .getCanonicalPath();
 
                 //bind sockjs event bridge
 
@@ -247,77 +248,91 @@ public class AngularTSSiteBinder
                         .route("/eventbus/*")
                         .subRouter(sockJSHandler.bridge(bridgeOptions, event -> handleBridgeEvent(event)));
 
-                vertx.eventBus().consumer("incoming", handler -> {
-                    var o = handler.body();
-                    if (o instanceof JsonObject jo)
-                    {
-                        String jsonString = jo.toString();
-                        var mr = jo.mapTo(WebSocketMessageReceiver.class);
-                        if (mr.getData().containsKey("guid"))
-                        {
-                            mr.setWebSocketSessionId(mr.getData().get("guid").toString());
-                        }
-                        if (mr.getData().containsKey("dataService"))
-                        {
-                            mr.setBroadcastGroup(mr.getData().get("dataService").toString());
-                        }
-                        workerExecutor.executeBlocking(() -> {
-                                    // Blocking code here
-                                    CallScoper callScoper = IGuiceContext.get(CallScoper.class);
-                                    callScoper.enter();
-                                    try
-                                    {
-                                        CallScopeProperties props = IGuiceContext.get(CallScopeProperties.class);
-                                        props.setSource(CallScopeSource.WebSocket);
-                                        props.getProperties()
-                                                .put("RequestContextId", mr.getWebSocketSessionId());
-                                        receiveMessage(mr);
-                                        AjaxResponse<?> ar = IGuiceContext.get(AjaxResponse.class);
-                                        return ar;
-                                    }
-                                    finally
-                                    {
-                                        callScoper.exit(); // Always exit the scope
-                                    }
-                                })
-                                .onComplete(complete -> {
-                                    //System.out.println("Message processing completed successfully.");
-                                    var ajaxResponse = complete.result();
-                                    DeliveryOptions options = new DeliveryOptions()
-                                            .addHeader("Content-Type", "application/json");
+                vertx.eventBus()
+                     .consumer("incoming", handler -> {
+                         var o = handler.body();
+                         if (o instanceof JsonObject jo)
+                         {
+                             String jsonString = jo.toString();
+                             var mr = jo.mapTo(WebSocketMessageReceiver.class);
+                             if (mr.getData()
+                                   .containsKey("guid"))
+                             {
+                                 mr.setWebSocketSessionId(mr.getData()
+                                                            .get("guid")
+                                                            .toString());
+                             }
+                             if (mr.getData()
+                                   .containsKey("dataService"))
+                             {
+                                 mr.setBroadcastGroup(mr.getData()
+                                                        .get("dataService")
+                                                        .toString());
+                             }
+                             workerExecutor.executeBlocking(() -> {
+                                               // Blocking code here
+                                               CallScoper callScoper = IGuiceContext.get(CallScoper.class);
+                                               callScoper.enter();
+                                               try
+                                               {
+                                                   CallScopeProperties props = IGuiceContext.get(CallScopeProperties.class);
+                                                   props.setSource(CallScopeSource.WebSocket);
+                                                   props.getProperties()
+                                                        .put("RequestContextId", mr.getWebSocketSessionId());
+                                                   receiveMessage(mr);
+                                                   AjaxResponse<?> ar = IGuiceContext.get(AjaxResponse.class);
+                                                   return ar;
+                                               }
+                                               finally
+                                               {
+                                                   callScoper.exit(); // Always exit the scope
+                                               }
+                                           })
+                                           .onComplete(complete -> {
+                                               //System.out.println("Message processing completed successfully.");
+                                               var ajaxResponse = complete.result();
+                                               DeliveryOptions options = new DeliveryOptions()
+                                                       .addHeader("Content-Type", "application/json");
 
-                                    if (ajaxResponse.getSessionStorage() != null && !ajaxResponse.getSessionStorage().isEmpty())
-                                    {
-                                        // send session storage updates
-                                        vertx.eventBus().publish("SessionStorage", ajaxResponse.getSessionStorage());
-                                    }
-                                    if (ajaxResponse.getLocalStorage() != null && !ajaxResponse.getLocalStorage().isEmpty())
-                                    {
-                                        // send local storage updates
-                                        vertx.eventBus().publish("LocalStorage", ajaxResponse.getLocalStorage());
-                                    }
-                                    if (ajaxResponse.getDataReturns() != null)
-                                    {
-                                        handler.reply("{}");
-                                        //String listenerName = ajaxResponse.getDataReturns().get("listenerName").toString();
-                                        ajaxResponse.getDataReturns().forEach((key, value) -> {
-                                            if (value instanceof DynamicData dd)
-                                            {
-                                                for (Object object : dd.getOut())
-                                                {
-                                                    vertx.eventBus().publish(key, object);
-                                                }
-                                            }
-                                            else
-                                            {
-                                                vertx.eventBus().publish(key, value);
-                                            }
-                                        });
-                                    }
-                                    else
-                                    {
-                                        handler.reply(complete.result(), options);
-                                    }
+                                               if (ajaxResponse.getSessionStorage() != null && !ajaxResponse.getSessionStorage()
+                                                                                                            .isEmpty())
+                                               {
+                                                   // send session storage updates
+                                                   vertx.eventBus()
+                                                        .publish("SessionStorage", ajaxResponse.getSessionStorage());
+                                               }
+                                               if (ajaxResponse.getLocalStorage() != null && !ajaxResponse.getLocalStorage()
+                                                                                                          .isEmpty())
+                                               {
+                                                   // send local storage updates
+                                                   vertx.eventBus()
+                                                        .publish("LocalStorage", ajaxResponse.getLocalStorage());
+                                               }
+                                               if (ajaxResponse.getDataReturns() != null)
+                                               {
+                                                   handler.reply("{}");
+                                                   //String listenerName = ajaxResponse.getDataReturns().get("listenerName").toString();
+                                                   ajaxResponse.getDataReturns()
+                                                               .forEach((key, value) -> {
+                                                                   if (value instanceof DynamicData dd)
+                                                                   {
+                                                                       for (Object object : dd.getOut())
+                                                                       {
+                                                                           vertx.eventBus()
+                                                                                .publish(key, object);
+                                                                       }
+                                                                   }
+                                                                   else
+                                                                   {
+                                                                       vertx.eventBus()
+                                                                            .publish(key, value);
+                                                                   }
+                                                               });
+                                               }
+                                               else
+                                               {
+                                                   handler.reply(complete.result(), options);
+                                               }
 
                                     /*if (!ajaxResponse.getDataReturns().isEmpty())
                                     {
@@ -325,17 +340,17 @@ public class AngularTSSiteBinder
                                             vertx.eventBus().publish(key, value);
                                         });
                                     }*/
-                                    //vertx.eventBus().publish()
-                                    //handler.reply(complete.result(), options);
-                                })
-                                .onFailure(res -> {
-                                    System.err.println("Failed to process message: " + res.getMessage());
-                                    handler.fail(500, res.getMessage()); // Notify sender of fa
+                                               //vertx.eventBus().publish()
+                                               //handler.reply(complete.result(), options);
+                                           })
+                                           .onFailure(res -> {
+                                               System.err.println("Failed to process message: " + res.getMessage());
+                                               handler.fail(500, res.getMessage()); // Notify sender of fa
 
-                                });
-                        //   handler.reply("{}");
-                    }
-                });
+                                           });
+                             //   handler.reply("{}");
+                         }
+                     });
 
 
 
@@ -408,17 +423,17 @@ public class AngularTSSiteBinder
                 }
                 log.debug("Configuring parent route - {}", staticFileLocationPath);
                 router.get("/*")
-                        .handler(StaticHandler.create(FileSystemAccess.ROOT, staticFileLocationPath)
-                                .setAlwaysAsyncFS(false)
-                                .setCacheEntryTimeout(604800)
-                                .setCachingEnabled(false)
-                                .setDefaultContentEncoding("UTF-8")
-                                .setDirectoryListing(false)
-                                .setEnableFSTuning(false)
-                                .setIncludeHidden(false)
-                                .setMaxAgeSeconds(604800)
-                                .setSendVaryHeader(false)
-                        );
+                      .handler(StaticHandler.create(FileSystemAccess.ROOT, staticFileLocationPath)
+                                            .setAlwaysAsyncFS(false)
+                                            .setCacheEntryTimeout(604800)
+                                            .setCachingEnabled(false)
+                                            .setDefaultContentEncoding("UTF-8")
+                                            .setDirectoryListing(false)
+                                            .setEnableFSTuning(false)
+                                            .setIncludeHidden(false)
+                                            .setMaxAgeSeconds(604800)
+                                            .setSendVaryHeader(false)
+                      );
             }
             catch (IOException e)
             {

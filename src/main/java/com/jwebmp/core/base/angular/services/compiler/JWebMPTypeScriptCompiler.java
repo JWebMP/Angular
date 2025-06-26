@@ -2,9 +2,9 @@ package com.jwebmp.core.base.angular.services.compiler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
+import com.guicedee.client.CallScopeProperties;
 import com.guicedee.client.CallScoper;
 import com.guicedee.client.IGuiceContext;
-import com.guicedee.guicedservlets.websockets.options.CallScopeProperties;
 import com.guicedee.vertx.spi.VertXPreStartup;
 import com.jwebmp.core.Page;
 import com.jwebmp.core.base.ComponentHierarchyBase;
@@ -69,13 +69,15 @@ public class JWebMPTypeScriptCompiler
         String packageName = a.getPackageName();
         return packageName.startsWith("com.jwebmp") ||
                 packageName.startsWith("com.guicedee") ||
-                packageName.startsWith(app.getClass().getPackageName());
+                packageName.startsWith(app.getClass()
+                                          .getPackageName());
     };
     private final Predicate<ClassInfo> packageFilterClassInfo = a -> {
         String packageName = a.getPackageName();
         return packageName.startsWith("com.jwebmp") ||
                 packageName.startsWith("com.guicedee") ||
-                packageName.startsWith(app.getClass().getPackageName());
+                packageName.startsWith(app.getClass()
+                                          .getPackageName());
     };
 
     public static ThreadLocal<File> getCurrentAppFile()
@@ -90,7 +92,7 @@ public class JWebMPTypeScriptCompiler
         this.app = app;
         IComponent.app.set(app);
         this.ngApp = app.getClass()
-                .getAnnotation(NgApp.class);
+                        .getAnnotation(NgApp.class);
         File appPath = AppUtils.getAppPath((Class<? extends INgApp<?>>) app.getClass());
         currentAppFile.set(appPath);
         log.info("Application [{}] is compiling to {}. Change with env property \"jwebmp\"", ngApp.value(), appPath.getPath());
@@ -103,8 +105,8 @@ public class JWebMPTypeScriptCompiler
         if (allApps.isEmpty())
         {
             for (ClassInfo classInfo : IGuiceContext.instance()
-                    .getScanResult()
-                    .getClassesWithAnnotation(NgApp.class))
+                                                    .getScanResult()
+                                                    .getClassesWithAnnotation(NgApp.class))
             {
                 if (classInfo.isAbstract() || classInfo.isInterfaceOrAnnotation())
                 {
@@ -190,29 +192,29 @@ public class JWebMPTypeScriptCompiler
     {
         StringBuilder sb = new StringBuilder();
         ngApp = app.getClass()
-                .getAnnotation(NgApp.class);
+                   .getAnnotation(NgApp.class);
         Class<? extends INgApp<?>> appClass = (Class<? extends INgApp<?>>) appNgApp.getClass();
         AppUtils.getAppPath(appClass);
         INgApp<?> app = appNgApp;
         IComponent.app.set(app);
         ScanResult scan = IGuiceContext.instance()
-                .getScanResult();
+                                       .getScanResult();
         CallScoper scoper = IGuiceContext.get(CallScoper.class);
 
         var vertx = VertXPreStartup.getVertx();
 
         try
         {
-            scoper.enter();
+            // scoper.enter();
 
             IGuiceContext.get(EnvironmentModule.class)
-                    .getEnvironmentOptions()
-                    .setAppClass(appClass.getCanonicalName());
+                         .getEnvironmentOptions()
+                         .setAppClass(appClass.getCanonicalName());
 
             IGuiceContext.get(EnvironmentModule.class)
-                    .getEnvironmentOptions()
-                    .setProduction(app.getRunningEnvironment()
-                            .equals(DevelopmentEnvironments.Production));
+                         .getEnvironmentOptions()
+                         .setProduction(app.getRunningEnvironment()
+                                           .equals(DevelopmentEnvironments.Production));
 
             File npmrcFile = AppUtils.getAppNpmrcPath(appClass, true);
             Set<NpmrcConfigurator> npmrcConfigurators = IGuiceContext.loaderToSetNoInjection(ServiceLoader.load(NpmrcConfigurator.class));
@@ -221,7 +223,7 @@ public class JWebMPTypeScriptCompiler
             {
                 Set<String> lines = npmrcConfigurator.lines();
                 lines.forEach(a -> npmrcString.append(a.trim())
-                        .append('\n'));
+                                              .append('\n'));
             }
             FileUtils.writeStringToFile(npmrcFile, npmrcString.toString(), UTF_8);
 
@@ -234,11 +236,38 @@ public class JWebMPTypeScriptCompiler
             Map<String, String> overrideDependencies = new TreeMap<>();
 
             scan.getClassesWithAnnotation(TsDependency.class)
-                    .stream()
-                    .forEach(a -> {
-                        TsDependency annotation = a.loadClass()
-                                .getAnnotation(TsDependency.class);
-                        if (annotation != null)
+                .stream()
+                .forEach(a -> {
+                    TsDependency annotation = a.loadClass()
+                                               .getAnnotation(TsDependency.class);
+                    if (annotation != null)
+                    {
+                        var annotation1 = getNamedTSDependency(annotation);
+                        dependencies.putIfAbsent(annotation1.value(), annotation1.version());
+                        if (annotation1.overrides())
+                        {
+                            overrideDependencies.put(annotation1.value(), annotation1.version());
+                        }
+                    }
+                });
+            scan.getClassesWithAnnotation(TsDevDependency.class)
+                .stream()
+                .forEach(a -> {
+                    TsDevDependency annotation = a.loadClass()
+                                                  .getAnnotation(TsDevDependency.class);
+                    if (annotation != null)
+                    {
+                        devDependencies.put(annotation.value(), annotation.version());
+                    }
+                });
+            scan.getClassesWithAnnotation(TsDependencies.class)
+                .stream()
+                .forEach(a -> {
+                    TsDependencies annotations = a.loadClass()
+                                                  .getAnnotation(TsDependencies.class);
+                    if (annotations != null)
+                    {
+                        for (TsDependency annotation : annotations.value())
                         {
                             var annotation1 = getNamedTSDependency(annotation);
                             dependencies.putIfAbsent(annotation1.value(), annotation1.version());
@@ -247,48 +276,21 @@ public class JWebMPTypeScriptCompiler
                                 overrideDependencies.put(annotation1.value(), annotation1.version());
                             }
                         }
-                    });
-            scan.getClassesWithAnnotation(TsDevDependency.class)
-                    .stream()
-                    .forEach(a -> {
-                        TsDevDependency annotation = a.loadClass()
-                                .getAnnotation(TsDevDependency.class);
-                        if (annotation != null)
+                    }
+                });
+            scan.getClassesWithAnnotation(TsDevDependencies.class)
+                .stream()
+                .forEach(a -> {
+                    TsDevDependencies annotations = a.loadClass()
+                                                     .getAnnotation(TsDevDependencies.class);
+                    if (annotations != null)
+                    {
+                        for (TsDevDependency annotation : annotations.value())
                         {
                             devDependencies.put(annotation.value(), annotation.version());
                         }
-                    });
-            scan.getClassesWithAnnotation(TsDependencies.class)
-                    .stream()
-                    .forEach(a -> {
-                        TsDependencies annotations = a.loadClass()
-                                .getAnnotation(TsDependencies.class);
-                        if (annotations != null)
-                        {
-                            for (TsDependency annotation : annotations.value())
-                            {
-                                var annotation1 = getNamedTSDependency(annotation);
-                                dependencies.putIfAbsent(annotation1.value(), annotation1.version());
-                                if (annotation1.overrides())
-                                {
-                                    overrideDependencies.put(annotation1.value(), annotation1.version());
-                                }
-                            }
-                        }
-                    });
-            scan.getClassesWithAnnotation(TsDevDependencies.class)
-                    .stream()
-                    .forEach(a -> {
-                        TsDevDependencies annotations = a.loadClass()
-                                .getAnnotation(TsDevDependencies.class);
-                        if (annotations != null)
-                        {
-                            for (TsDevDependency annotation : annotations.value())
-                            {
-                                devDependencies.put(annotation.value(), annotation.version());
-                            }
-                        }
-                    });
+                    }
+                });
 
             ObjectMapper om = IGuiceContext.get(DefaultObjectMapper);
             vertx.executeBlocking(() -> {
@@ -313,7 +315,7 @@ public class JWebMPTypeScriptCompiler
 
             Map<String, String> namedAssets = new HashMap<>();
             List<NgAsset> assets = IGuiceContext.get(AnnotationHelper.class)
-                    .getGlobalAnnotations(NgAsset.class);
+                                                .getGlobalAnnotations(NgAsset.class);
 
             for (NgAsset ngAsset : assets)
             {
@@ -338,7 +340,7 @@ public class JWebMPTypeScriptCompiler
 
             Map<String, String> namedStylesheets = new LinkedHashMap<>();
             List<NgStyleSheet> ngStyleSheets = IGuiceContext.get(AnnotationHelper.class)
-                    .getGlobalAnnotations(NgStyleSheet.class);
+                                                            .getGlobalAnnotations(NgStyleSheet.class);
             ngStyleSheets.sort(new Comparator<NgStyleSheet>()
             {
                 @Override
@@ -381,7 +383,7 @@ public class JWebMPTypeScriptCompiler
             Map<String, String> namedScripts = new LinkedHashMap<>();
 
             List<NgScript> allAnnotations = IGuiceContext.get(AnnotationHelper.class)
-                    .getGlobalAnnotations(NgScript.class);
+                                                         .getGlobalAnnotations(NgScript.class);
             allAnnotations.sort(new Comparator<NgScript>()
             {
                 @Override
@@ -430,19 +432,21 @@ public class JWebMPTypeScriptCompiler
             {
             }.putRelativeLinkInMap(appDirectory, bootComponentClass);
 
-            sb.append("import {%s} from '%s';\n".formatted(importReferences.getFirst().value(), importReferences.getFirst().reference()));
+            sb.append("import {%s} from '%s';\n".formatted(importReferences.getFirst()
+                                                                           .value(), importReferences.getFirst()
+                                                                                                     .reference()));
 
             //   sb.append(app.renderImports());
 
             sb.append("""
-                            import {bootstrapApplication} from '@angular/platform-browser';
-                            import {appConfig} from './app/app.config';
-                            
-                            bootstrapApplication(""")
-                    .append(ngApp.bootComponent()
-                            .getSimpleName())
-                    .append("\n")
-                    .append(", appConfig).catch((err) => console.error(err));");
+                      import {bootstrapApplication} from '@angular/platform-browser';
+                      import {appConfig} from './app/app.config';
+                      
+                      bootstrapApplication(""")
+              .append(ngApp.bootComponent()
+                           .getSimpleName())
+              .append("\n")
+              .append(", appConfig).catch((err) => console.error(err));");
 
 
             log.debug("Writing out angular main.ts file - {}", AppUtils.getAppMainTSPath(appClass, false));
@@ -471,22 +475,22 @@ public class JWebMPTypeScriptCompiler
             for (Resource resource : scan.getResourcesMatchingWildcard("assets/**"))
             {
                 AppUtils.saveAsset(appClass, resource.getURL()
-                        .openStream(), resource.getPath());
+                                                     .openStream(), resource.getPath());
             }
             for (Resource resource : scan.getResourcesMatchingWildcard("src/assets/**"))
             {
                 AppUtils.saveAsset(appClass, resource.getURL()
-                        .openStream(), resource.getPath());
+                                                     .openStream(), resource.getPath());
             }
             for (Resource resource : scan.getResourcesMatchingWildcard("src/public/**"))
             {
                 AppUtils.saveAsset(appClass, resource.getURL()
-                        .openStream(), resource.getPath());
+                                                     .openStream(), resource.getPath());
             }
             for (Resource resource : scan.getResourcesMatchingWildcard("public/**"))
             {
                 AppUtils.saveAsset(appClass, resource.getURL()
-                        .openStream(), resource.getPath());
+                                                     .openStream(), resource.getPath());
             }
 
             log.info("Loading resources from assets directory");
@@ -495,7 +499,7 @@ public class JWebMPTypeScriptCompiler
                 vertx.executeBlocking(() -> {
                     String assetLocation = allResource.getPathRelativeToClasspathElement();
                     InputStream fileStream = allResource.getURL()
-                            .openStream();
+                                                        .openStream();
                     AppUtils.saveAppResourceFile(appClass, fileStream, assetLocation);
                     return true;
                 }, false);
@@ -506,86 +510,87 @@ public class JWebMPTypeScriptCompiler
             var currentApp = currentAppFile.get();
 
             scan.getClassesWithAnnotation(NgModule.class)
-                    .stream()
-                    //.filter(packageFilterClassInfo)
-                    .forEach(a -> {
-                        vertx.executeBlocking(() -> {
-                            processNgModuleFiles(currentApp, a, scan, appClass, app, finalSrcDirectory);
-                            return true;
-                        }, false);
-                    });
+                .stream()
+                //.filter(packageFilterClassInfo)
+                .forEach(a -> {
+                    vertx.executeBlocking(() -> {
+                        processNgModuleFiles(currentApp, a, scan, appClass, app, finalSrcDirectory);
+                        return true;
+                    }, false);
+                });
 
             //components load through the child hierarchy of the app --
             if (app instanceof NGApplication<?> application)
             {
                 var standaloneComponents = scan.getClassesWithAnnotation(NgComponent.class)
-                        .stream()
-                        .filter(a -> !a.isAbstract() && !a.isInterface())
-                        .filter(a -> a.loadClass()
-                                .getAnnotation(NgComponent.class)
-                                .standalone());
+                                               .stream()
+                                               .filter(a -> !a.isAbstract() && !a.isInterface())
+                                               .filter(a -> a.loadClass()
+                                                             .getAnnotation(NgComponent.class)
+                                                             .standalone());
                 //.filter(packageFilterClassInfo);
 
                 // Process the filtered components
-                standaloneComponents.distinct().forEach(aClass -> {
-                    vertx.executeBlocking(() -> {
-                        var callScoper = IGuiceContext.get(CallScoper.class);
-                        boolean x = processStandaloneComponent(currentApp, application, aClass, callScoper, app, appClass, finalSrcDirectory);
-                        return x;
-                    }, false);
-                });
+                standaloneComponents.distinct()
+                                    .forEach(aClass -> {
+                                        vertx.executeBlocking(() -> {
+                                            var callScoper = IGuiceContext.get(CallScoper.class);
+                                            boolean x = processStandaloneComponent(currentApp, application, aClass, callScoper, app, appClass, finalSrcDirectory);
+                                            return x;
+                                        }, false);
+                                    });
             }
 
             scan.getClassesWithAnnotation(NgDirective.class)
-                    .stream()
-                    //.filter(packageFilterClassInfo)
-                    .forEach(a -> {
-                        vertx.executeBlocking(() -> {
-                            processNgDirectiveFiles(currentApp, a, scan, appClass, finalSrcDirectory);
-                            return true;
-                        }, false);
-                    });
+                .stream()
+                //.filter(packageFilterClassInfo)
+                .forEach(a -> {
+                    vertx.executeBlocking(() -> {
+                        processNgDirectiveFiles(currentApp, a, scan, appClass, finalSrcDirectory);
+                        return true;
+                    }, false);
+                });
 
             scan.getClassesWithAnnotation(NgDataService.class)
-                    .stream()
-                    //.filter(packageFilterClassInfo)
-                    .forEach(a -> {
-                        vertx.executeBlocking(() -> {
-                            processNgDataServiceFiles(currentApp, a, scan, appClass, finalSrcDirectory);
-                            return true;
-                        }, false);
-                    });
+                .stream()
+                //.filter(packageFilterClassInfo)
+                .forEach(a -> {
+                    vertx.executeBlocking(() -> {
+                        processNgDataServiceFiles(currentApp, a, scan, appClass, finalSrcDirectory);
+                        return true;
+                    }, false);
+                });
 
 
             scan.getClassesWithAnnotation(NgProvider.class)
-                    .stream()
-                    //.filter(packageFilterClassInfo)
-                    .forEach(a -> {
-                        vertx.executeBlocking(() -> {
-                            processNgProviderFiles(currentApp, a, scan, appClass, finalSrcDirectory);
-                            return true;
-                        }, false);
-                    });
+                .stream()
+                //.filter(packageFilterClassInfo)
+                .forEach(a -> {
+                    vertx.executeBlocking(() -> {
+                        processNgProviderFiles(currentApp, a, scan, appClass, finalSrcDirectory);
+                        return true;
+                    }, false);
+                });
 
             scan.getClassesWithAnnotation(NgDataType.class)
-                    .stream()
-                    //.filter(packageFilterClassInfo)
-                    .forEach(a -> {
-                        vertx.executeBlocking(() -> {
-                            processNgDataTypeFiles(currentApp, a, scan, appClass, finalSrcDirectory);
-                            return true;
-                        }, false);
-                    });
+                .stream()
+                //.filter(packageFilterClassInfo)
+                .forEach(a -> {
+                    vertx.executeBlocking(() -> {
+                        processNgDataTypeFiles(currentApp, a, scan, appClass, finalSrcDirectory);
+                        return true;
+                    }, false);
+                });
 
             scan.getClassesWithAnnotation(NgServiceProvider.class)
-                    .stream()
-                    //.filter(packageFilterClassInfo)
-                    .forEach(a -> {
-                        vertx.executeBlocking(() -> {
-                            processNgServiceProviderFiles(currentApp, a, scan, appClass, finalSrcDirectory);
-                            return true;
-                        }, false);
-                    });
+                .stream()
+                //.filter(packageFilterClassInfo)
+                .forEach(a -> {
+                    vertx.executeBlocking(() -> {
+                        processNgServiceProviderFiles(currentApp, a, scan, appClass, finalSrcDirectory);
+                        return true;
+                    }, false);
+                });
 
             vertx.executeBlocking(() -> {
                 renderAngularApplicationFiles(currentApp, appClass, namedAssets, app, om);
@@ -595,7 +600,7 @@ public class JWebMPTypeScriptCompiler
         }
         finally
         {
-            scoper.exit();
+            //   scoper.exit();
         }
         log.debug("Angular App Ready");
         return sb;
@@ -604,8 +609,8 @@ public class JWebMPTypeScriptCompiler
     private void renderAngularApplicationFiles(File currentApp, Class<? extends INgApp<?>> appClass, Map<String, String> namedAssets, INgApp<?> app, ObjectMapper om) throws IOException
     {
         currentAppFile.set(currentApp);
-        CallScoper scoper = IGuiceContext.get(CallScoper.class);
-        scoper.enter();
+        // CallScoper scoper = IGuiceContext.get(CallScoper.class);
+        // scoper.enter();
         try
         {
             log.debug("Registering Assets...");
@@ -641,11 +646,11 @@ public class JWebMPTypeScriptCompiler
 
             angularTemplate = angularTemplate.replace("/*BuildAssets*/", assetsAngular19);
             angularTemplate = angularTemplate.replace("/*BuildStylesSCSS*/", om.writerWithDefaultPrettyPrinter()
-                    .writeValueAsString(stylesGlobal));
+                                                                               .writeValueAsString(stylesGlobal));
             angularTemplate = angularTemplate.replace("/*BuildScripts*/", om.writerWithDefaultPrettyPrinter()
-                    .writeValueAsString(scripts));
+                                                                            .writeValueAsString(scripts));
             angularTemplate = angularTemplate.replace("/*MainTSFile*/", om.writerWithDefaultPrettyPrinter()
-                    .writeValueAsString("src/main.ts"));
+                                                                          .writeValueAsString("src/main.ts"));
 
             File angularFile = AppUtils.getAngularJsonPath(appClass, true);// new File(appBaseDirectory.getCanonicalPath() + "/angular.json");
             FileUtils.writeStringToFile(angularFile, angularTemplate, UTF_8, false);
@@ -656,14 +661,14 @@ public class JWebMPTypeScriptCompiler
         }
         finally
         {
-            scoper.exit();
+            //   scoper.exit();
         }
     }
 
     private void processNgServiceProviderFiles(File currentApp, ClassInfo a, ScanResult scan, Class<? extends INgApp<?>> appClass, File finalSrcDirectory)
     {
-        CallScoper scoper = IGuiceContext.get(CallScoper.class);
-        scoper.enter();
+        //  CallScoper scoper = IGuiceContext.get(CallScoper.class);
+        //  scoper.enter();
         currentAppFile.set(currentApp);
         try
         {
@@ -702,15 +707,15 @@ public class JWebMPTypeScriptCompiler
         }
         finally
         {
-            scoper.exit();
+            //    scoper.exit();
         }
     }
 
     private void processNgDataTypeFiles(File currentApp, ClassInfo a, ScanResult scan, Class<? extends INgApp<?>> appClass, File finalSrcDirectory)
     {
         currentAppFile.set(currentApp);
-        CallScoper scoper = IGuiceContext.get(CallScoper.class);
-        scoper.enter();
+        // CallScoper scoper = IGuiceContext.get(CallScoper.class);
+        // scoper.enter();
         try
         {
             Set<Class<?>> classes = new HashSet<>();
@@ -751,8 +756,8 @@ public class JWebMPTypeScriptCompiler
     private void processNgProviderFiles(File currentApp, ClassInfo a, ScanResult scan, Class<? extends INgApp<?>> appClass, File finalSrcDirectory)
     {
         currentAppFile.set(currentApp);
-        CallScoper scoper = IGuiceContext.get(CallScoper.class);
-        scoper.enter();
+        // CallScoper scoper = IGuiceContext.get(CallScoper.class);
+        //  scoper.enter();
         try
         {
             Set<Class<?>> classes = new HashSet<>();
@@ -793,8 +798,8 @@ public class JWebMPTypeScriptCompiler
     private void processNgDataServiceFiles(File currentApp, ClassInfo a, ScanResult scan, Class<? extends INgApp<?>> appClass, File finalSrcDirectory)
     {
         currentAppFile.set(currentApp);
-        CallScoper scoper = IGuiceContext.get(CallScoper.class);
-        scoper.enter();
+        //  CallScoper scoper = IGuiceContext.get(CallScoper.class);
+        //  scoper.enter();
         try
         {
             Set<Class<?>> classes = new HashSet<>();
@@ -835,8 +840,8 @@ public class JWebMPTypeScriptCompiler
     private void processNgDirectiveFiles(File currentApp, ClassInfo a, ScanResult scan, Class<? extends INgApp<?>> appClass, File finalSrcDirectory)
     {
         currentAppFile.set(currentApp);
-        CallScoper scoper = IGuiceContext.get(CallScoper.class);
-        scoper.enter();
+        //    CallScoper scoper = IGuiceContext.get(CallScoper.class);
+        //    scoper.enter();
         try
         {
             Set<Class<?>> classes = new HashSet<>();
@@ -877,8 +882,8 @@ public class JWebMPTypeScriptCompiler
     private void processNgModuleFiles(File currentApp, ClassInfo a, ScanResult scan, Class<? extends INgApp<?>> appClass, INgApp<?> app, File finalSrcDirectory)
     {
         currentAppFile.set(currentApp);
-        CallScoper scoper = IGuiceContext.get(CallScoper.class);
-        scoper.enter();
+        //CallScoper scoper = IGuiceContext.get(CallScoper.class);
+        //  scoper.enter();
         try
         {
             Set<Class<?>> classes = new HashSet<>();
@@ -920,8 +925,8 @@ public class JWebMPTypeScriptCompiler
     private void processAppConfigFile(File file, ScanResult scan, Class<? extends INgApp<?>> appClass) throws IOException
     {
         currentAppFile.set(file);
-        CallScoper scoper = IGuiceContext.get(CallScoper.class);
-        scoper.enter();
+        //  CallScoper scoper = IGuiceContext.get(CallScoper.class);
+        //  scoper.enter();
         try (var is = ResourceLocator.class.getResourceAsStream("app.config.json"))
         {
             String bootAppString = IOUtils.toString(is, UTF_8);
@@ -931,7 +936,7 @@ public class JWebMPTypeScriptCompiler
             for (ClassInfo classInfo : ir)
             {
                 var a = classInfo.loadClass()
-                        .getAnnotationsByType(NgBootImportReference.class);
+                                 .getAnnotationsByType(NgBootImportReference.class);
                 for (NgBootImportReference ngBootImportReference : a)
                 {
                     String importString = "import {" + ngBootImportReference.value() + "} from '" + ngBootImportReference.reference() + "'";
@@ -939,16 +944,17 @@ public class JWebMPTypeScriptCompiler
                 }
             }
             imports.forEach(a -> bootImportsString.append(a)
-                    .append("\n"));
+                                                  .append("\n"));
 
             StringBuilder bootImportProviders = new StringBuilder();
             for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgBootImportProvider.class))
             {
                 var a = classInfo.loadClass()
-                        .getAnnotationsByType(NgBootImportProvider.class);
+                                 .getAnnotationsByType(NgBootImportProvider.class);
                 for (NgBootImportProvider ngBootImportProvider : a)
                 {
-                    bootImportProviders.append(ngBootImportProvider.value()).append(",\n");
+                    bootImportProviders.append(ngBootImportProvider.value())
+                                       .append(",\n");
                 }
                 //.append(",");
             }
@@ -961,7 +967,7 @@ public class JWebMPTypeScriptCompiler
         }
         finally
         {
-            scoper.exit();
+            //      scoper.exit();
 
         }
     }
@@ -972,7 +978,7 @@ public class JWebMPTypeScriptCompiler
         File polyfillFile = AppUtils.getAppPolyfillsPath(appClass, true);// new File(srcDirectory.getCanonicalPath() + "/polyfills.ts");
         StringBuilder polyfills = new StringBuilder();
         for (NgPolyfill globalAnnotation : IGuiceContext.get(AnnotationHelper.class)
-                .getGlobalAnnotations(NgPolyfill.class))
+                                                        .getGlobalAnnotations(NgPolyfill.class))
         {
             String newString = globalAnnotation.value();
             polyfills.append("import \"" + newString + "\";\n");
@@ -997,7 +1003,7 @@ public class JWebMPTypeScriptCompiler
         FileUtils.writeStringToFile(gitIgnoreFile, gitIgnoreFileAbs, UTF_8, false);
 
         File packageLockFile = new File(AppUtils.getAppPath(appClass)
-                .getCanonicalPath() + "/package-lock.json");
+                                                .getCanonicalPath() + "/package-lock.json");
         if (packageLockFile.exists() && packageLockFile.isFile())
         {
             packageLockFile.delete();
@@ -1007,24 +1013,24 @@ public class JWebMPTypeScriptCompiler
     private boolean processPackageJsonFile(File file, Class<? extends INgApp<?>> appClass, String packageTemplate, ObjectMapper om, Map<String, String> dependencies, Map<String, String> devDependencies, Map<String, String> overrideDependencies, File packageJsonFile) throws IOException
     {
         currentAppFile.set(file);
-        CallScoper callScoper = IGuiceContext.get(CallScoper.class);
-        callScoper.enter();
+        //   CallScoper callScoper = IGuiceContext.get(CallScoper.class);
+        //   callScoper.enter();
         try
         {
             String appName = AppUtils.getAppName(appClass);
             packageTemplate = packageTemplate.replace("/*appName*/", appName);
             packageTemplate = packageTemplate.replace("/*dependencies*/", om.writerWithDefaultPrettyPrinter()
-                    .writeValueAsString(dependencies));
+                                                                            .writeValueAsString(dependencies));
             packageTemplate = packageTemplate.replace("/*devDependencies*/", om.writerWithDefaultPrettyPrinter()
-                    .writeValueAsString(devDependencies));
+                                                                               .writeValueAsString(devDependencies));
             packageTemplate = packageTemplate.replace("/*overrideDependencies*/", om.writerWithDefaultPrettyPrinter()
-                    .writeValueAsString(overrideDependencies));
+                                                                                    .writeValueAsString(overrideDependencies));
 
             FileUtils.writeStringToFile(packageJsonFile, packageTemplate, UTF_8, false);
         }
         finally
         {
-            callScoper.exit();
+            //      callScoper.exit();
         }
         return true;
     }
@@ -1034,8 +1040,8 @@ public class JWebMPTypeScriptCompiler
         currentAppFile.set(currentApp);
         try
         {
-            callScoper.enter();
-            var scopeProperties = IGuiceContext.get(CallScopeProperties.class);
+            //callScoper.enter();
+            //var scopeProperties = IGuiceContext.get(CallScopeProperties.class);
             //scopeProperties.setSource(CallScopeSource.Http)
             IComponent.app.set(application);
             File appPath = AppUtils.getAppPath((Class<? extends INgApp<?>>) app.getClass());
@@ -1055,14 +1061,16 @@ public class JWebMPTypeScriptCompiler
                     classFile = getFile(appClass, childClass, ".ts");
                     var htmlFile = getFile(appClass, clazz, ".html");
                     var cssFile = getFile(appClass, clazz, ".scss");
-                    if (!classFile.getCanonicalPath().replace('\\', '/').contains("src/app/"))
+                    if (!classFile.getCanonicalPath()
+                                  .replace('\\', '/')
+                                  .contains("src/app/"))
                     {
                         log.error("Unable to write out component file - {}", classFile.getCanonicalPath());
                         return false;
                     }
                     StringBuilder cssString = ngComponent.cast()
-                            .asStyleBase()
-                            .renderCss(1);
+                                                         .asStyleBase()
+                                                         .renderCss(1);
 
                     if (!completedFiles.contains(classFile))
                     {
@@ -1090,7 +1098,7 @@ public class JWebMPTypeScriptCompiler
         }
         finally
         {
-            callScoper.exit();
+            //   callScoper.exit();
         }
         return true;
     }
@@ -1103,10 +1111,10 @@ public class JWebMPTypeScriptCompiler
         List<ComponentHierarchyBase> comps = new ArrayList<>(body.getChildren());
 
         body.getChildren()
-                .clear();
+            .clear();
         List<NgComponent> annotations = IGuiceContext.get(AnnotationHelper.class)
-                .getAnnotationFromClass(app.getAnnotation()
-                        .bootComponent(), NgComponent.class);
+                                                     .getAnnotationFromClass(app.getAnnotation()
+                                                                                .bootComponent(), NgComponent.class);
         if (annotations.isEmpty())
         {
             throw new RuntimeException("No components found to render for boot index, the boot module specified does not have a @NgComponent");
@@ -1114,7 +1122,7 @@ public class JWebMPTypeScriptCompiler
         else
         {
             body.add(new DivSimple<>().setTag(annotations.get(0)
-                    .value()));
+                                                         .value()));
         }
         p.setBody(body);
         sb.append(p.toString(0));
@@ -1133,7 +1141,7 @@ public class JWebMPTypeScriptCompiler
                 //processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
                 processBuilder.inheritIO();
                 processBuilder.environment()
-                        .putAll(System.getenv());
+                              .putAll(System.getenv());
                 processBuilder = processBuilder.directory(appBaseDirectory);
                 Process p = processBuilder.start();
                 p.waitFor();
@@ -1151,7 +1159,7 @@ public class JWebMPTypeScriptCompiler
                 processBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
                 processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
                 processBuilder.environment()
-                        .putAll(System.getenv());
+                              .putAll(System.getenv());
                 processBuilder = processBuilder.directory(appBaseDirectory);
                 Process p = processBuilder.start();
                 p.waitFor();
@@ -1177,12 +1185,12 @@ public class JWebMPTypeScriptCompiler
                 ProcessBuilder processBuilder =
 
                         new ProcessBuilder("cmd.exe", "/c", FileUtils.getUserDirectory() + "/AppData/Roaming/npm/npm.cmd", "run", "build" + (IGuiceContext.get(EnvironmentModule.class)
-                                .getEnvironmentOptions()
-                                .isProduction() ? "-prod" : ""));
+                                                                                                                                                          .getEnvironmentOptions()
+                                                                                                                                                          .isProduction() ? "-prod" : ""));
                 processBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
                 processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
                 processBuilder.environment()
-                        .putAll(System.getenv());
+                              .putAll(System.getenv());
                 processBuilder = processBuilder.directory(appBaseDirectory);
                 Process p = processBuilder.start();
 				/*try
@@ -1205,12 +1213,12 @@ public class JWebMPTypeScriptCompiler
             try
             {
                 ProcessBuilder processBuilder = new ProcessBuilder("npm", "run", "build" + (IGuiceContext.get(EnvironmentModule.class)
-                        .getEnvironmentOptions()
-                        .isProduction() ? "-prod" : ""));
+                                                                                                         .getEnvironmentOptions()
+                                                                                                         .isProduction() ? "-prod" : ""));
                 processBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
                 processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
                 processBuilder.environment()
-                        .putAll(System.getenv());
+                              .putAll(System.getenv());
                 processBuilder = processBuilder.directory(appBaseDirectory);
                 Process p = processBuilder.start();
             }

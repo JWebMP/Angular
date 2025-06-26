@@ -2,11 +2,10 @@ package com.jwebmp.core.base.angular;
 
 import com.guicedee.services.jsonrepresentation.IJsonRepresentation;
 import com.jwebmp.core.base.interfaces.IComponentHierarchyBase;
-import jakarta.annotation.Nullable;
 
 public class AngularWebSocket
 {
-    public static void bindToGroup(IComponentHierarchyBase<?, ?> component, String websocketName, @Nullable IJsonRepresentation<?> data)
+    public static void bindToGroup(IComponentHierarchyBase<?, ?> component, String websocketName, IJsonRepresentation<?> data)
     {
         component.asAttributeBase()
                  .addAttribute("websocketjw", "");

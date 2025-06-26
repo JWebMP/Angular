@@ -1,9 +1,8 @@
 package com.jwebmp.core.base.angular.implementations;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.guicedee.client.CallScopeProperties;
 import com.guicedee.client.IGuiceContext;
-import com.guicedee.guicedservlets.websockets.options.CallScopeProperties;
-import com.guicedee.guicedservlets.websockets.options.IGuicedWebSocket;
 import com.guicedee.guicedservlets.websockets.options.WebSocketMessageReceiver;
 import com.guicedee.guicedservlets.websockets.services.IWebSocketMessageReceiver;
 import com.guicedee.services.jsonrepresentation.IJsonRepresentation;
@@ -55,14 +54,20 @@ public abstract class WebSocketAbstractCallReceiver
                 ajaxCallIntercepter.intercept(ajaxCall, ajaxResponse);
             }
             ajaxResponse = action(ajaxCall, ajaxResponse);
-            if (ajaxResponse != null && !ajaxCall.getSessionStorage().containsKey("contextId"))
+            if (ajaxResponse != null && !ajaxCall.getSessionStorage()
+                                                 .containsKey("contextId"))
             {
-                if (properties.getProperties().containsKey("RequestContextId"))
+                if (properties.getProperties()
+                              .containsKey("RequestContextId"))
                 {
-                    ajaxResponse.getSessionStorage().put("contextId", properties.getProperties().get("RequestContextId").toString());
+                    ajaxResponse.getSessionStorage()
+                                .put("contextId", properties.getProperties()
+                                                            .get("RequestContextId")
+                                                            .toString());
                 }
             }
-        } catch (Exception T)
+        }
+        catch (Exception T)
         {
             ajaxResponse.setSuccess(false);
             AjaxResponseReaction<?> arr = new AjaxResponseReaction<>("Unknown Error",
@@ -73,7 +78,8 @@ public abstract class WebSocketAbstractCallReceiver
             ajaxResponse.addReaction(arr);
             //  output = ajaxResponse.toString();
             WebSocketAbstractCallReceiver.log.log(Level.SEVERE, "Unknown in ajax reply\n", T);
-        } catch (Throwable T)
+        }
+        catch (Throwable T)
         {
             ajaxResponse.setSuccess(false);
             AjaxResponseReaction<?> arr = new AjaxResponseReaction<>("Unknown Error",
