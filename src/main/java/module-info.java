@@ -13,6 +13,7 @@ import com.guicedee.guicedservlets.websockets.services.IWebSocketMessageReceiver
 import com.guicedee.vertx.web.spi.VertxRouterConfigurator;
 import com.jwebmp.core.base.angular.client.services.spi.*;
 import com.jwebmp.core.base.angular.implementations.*;
+
 import com.jwebmp.core.base.angular.implementations.configurations.ConfigureImportReferences;
 import com.jwebmp.core.base.angular.modules.listeners.OnClickListener;
 import com.jwebmp.core.base.angular.services.RenderedAssets;
@@ -40,9 +41,10 @@ module com.jwebmp.core.angular {
 
     requires org.apache.commons.io;
 
-    requires org.apache.commons.text;
-    requires org.apache.commons.lang3;
-    requires io.vertx.eventbusbridge;
+    requires transitive org.apache.commons.text;
+    requires transitive org.apache.commons.lang3;
+    requires transitive io.vertx.eventbusbridge;
+    requires transitive io.vertx.stomp;
 
     provides com.guicedee.guicedinjection.interfaces.IGuiceScanModuleInclusions with AngularScanModuleInclusion;
     provides IGuiceConfigurator with SearchPathConfigurator;
@@ -59,6 +61,7 @@ module com.jwebmp.core.angular {
 
     provides IWebSocketMessageReceiver with WebSocketAjaxCallReceiver, WebSocketDataRequestCallReceiver, WebSocketDataSendCallReceiver,
             WSAddToGroupMessageReceiver, WSRemoveFromWebsocketGroupMessageReceiver;
+    provides com.guicedee.vertx.web.spi.VertxHttpServerOptionsConfigurator with AngularTSSiteBinder;
 
     uses IWebSocketAuthDataProvider;
     uses RenderedAssets;

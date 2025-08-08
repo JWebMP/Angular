@@ -16,6 +16,7 @@
  */
 package com.jwebmp.core.base.angular.implementations;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
 import com.guicedee.client.CallScopeProperties;
@@ -26,6 +27,9 @@ import com.guicedee.guicedinjection.interfaces.IGuiceModule;
 import com.guicedee.guicedinjection.properties.GlobalProperties;
 import com.guicedee.guicedservlets.websockets.options.IGuicedWebSocket;
 import com.guicedee.guicedservlets.websockets.options.WebSocketMessageReceiver;
+import com.guicedee.services.jsonrepresentation.IJsonRepresentation;
+import com.guicedee.vertx.spi.VertXPreStartup;
+import com.guicedee.vertx.web.spi.VertxHttpServerOptionsConfigurator;
 import com.guicedee.vertx.web.spi.VertxRouterConfigurator;
 import com.jwebmp.core.annotations.PageConfiguration;
 import com.jwebmp.core.base.ajax.AjaxResponse;
@@ -40,6 +44,7 @@ import com.jwebmp.core.base.angular.services.compiler.JWebMPTypeScriptCompiler;
 import io.github.classgraph.ClassInfo;
 import io.vertx.core.Vertx;
 import io.vertx.core.WorkerExecutor;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.bridge.BridgeEventType;
@@ -51,6 +56,11 @@ import io.vertx.ext.web.handler.sockjs.BridgeEvent;
 import io.vertx.ext.web.handler.sockjs.SockJSBridgeOptions;
 import io.vertx.ext.web.handler.sockjs.SockJSHandler;
 import io.vertx.ext.web.handler.sockjs.SockJSHandlerOptions;
+import io.vertx.ext.stomp.BridgeOptions;
+import io.vertx.ext.stomp.StompServer;
+import io.vertx.ext.stomp.StompServerHandler;
+import io.vertx.ext.stomp.StompServerOptions;
+import io.vertx.core.http.HttpServerOptions;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.io.FileUtils;
 
@@ -65,7 +75,7 @@ import java.io.IOException;
 @Log4j2
 public class AngularTSSiteBinder
         extends AbstractModule
-        implements IGuiceModule<AngularTSSiteBinder>, VertxRouterConfigurator
+        implements IGuiceModule<AngularTSSiteBinder>, VertxRouterConfigurator, VertxHttpServerOptionsConfigurator
 {
     @Inject
     private Vertx vertx;
@@ -212,7 +222,7 @@ public class AngularTSSiteBinder
         {
             String address = event.getRawMessage()
                                   .getString("address"); // Address message was received from
-            //System.out.println("Message received at address: " + address);
+            System.out.println("Message received at address: " + address);
         }
         event.complete(true); // Allow the event to proceed
     }
@@ -248,12 +258,167 @@ public class AngularTSSiteBinder
                         .route("/eventbus/*")
                         .subRouter(sockJSHandler.bridge(bridgeOptions, event -> handleBridgeEvent(event)));
 
+                // Configure STOMP server
+                StompServerOptions stompOptions = new StompServerOptions()
+                        .setWebsocketBridge(true)
+                        .setWebsocketPath("/eventbus");
+
+                log.info("Configuring STOMP server with WebSocket bridge at /eventbus");
+                BridgeOptions stompBridgeOptions = new BridgeOptions()
+                        .addInboundPermitted(new PermittedOptions().setAddressRegex("/toBus.*"))
+                        .addOutboundPermitted(new PermittedOptions().setAddressRegex("/toStomp.*"));
+
+                log.info("STOMP bridge configured with inbound pattern /toBus.* and outbound pattern /toStomp.*");
+
+                StompServer stompServer = StompServer.create(vertx, stompOptions)
+                                                     .handler(StompServerHandler.create(vertx)
+                                                                                .bridge(stompBridgeOptions));
+
+                // Configure WebSocket for STOMP
+                HttpServerOptions httpOptions = new HttpServerOptions()
+                        .setWebSocketSubProtocols(java.util.Arrays.asList("v10.stomp", "v11.stomp", "v12.stomp"));
+
+
+                // Register WebSocket handlers
+                log.info("Registering WebSocket handler for STOMP at /eventbus/*");
+                router.route("/eventbus/*")
+                      .handler(ctx -> {
+                          log.info("Received WebSocket connection request from: " + ctx.request()
+                                                                                       .remoteAddress());
+                          ctx.request()
+                             .toWebSocket()
+                             .onSuccess(ws -> {
+                                 log.info("WebSocket connection established, passing to STOMP handler");
+                                 stompServer.webSocketHandler()
+                                            .handle(ws);
+                             })
+                             .onFailure(err -> {
+                                 log.error("Failed to establish WebSocket connection: " + err.getMessage(), err);
+                             });
+                      });
+
+                // This executes when a websocket message is received via STOMP
+                log.info("Registering event bus consumer for STOMP messages at /toBus/incoming");
                 vertx.eventBus()
-                     .consumer("incoming", handler -> {
+                     .consumer("/toBus/incoming", handler -> {
                          var o = handler.body();
-                         if (o instanceof JsonObject jo)
+                         log.info("Received message on /toBus/incoming: " + o);
+
+                         if (o instanceof Buffer buffer)
+                         {
+                             String message = o.toString();
+                             WebSocketMessageReceiver<?> mr;
+                             try
+                             {
+                                 mr = IJsonRepresentation.getObjectMapper()
+                                                         .readerFor(WebSocketMessageReceiver.class)
+                                                         .readValue(message);
+                             }
+                             catch (JsonProcessingException e)
+                             {
+                                 throw new RuntimeException(e);
+                             }
+                             if (mr.getData()
+                                   .containsKey("guid"))
+                             {
+                                 mr.setWebSocketSessionId(mr.getData()
+                                                            .get("guid")
+                                                            .toString());
+                             }
+                             if (mr.getData()
+                                   .containsKey("dataService"))
+                             {
+                                 mr.setBroadcastGroup(mr.getData()
+                                                        .get("dataService")
+                                                        .toString());
+                             }
+
+                             WebSocketMessageReceiver<?> finalMr = mr;
+                             workerExecutor.executeBlocking(() -> {
+                                               // Blocking code here
+                                               CallScoper callScoper = IGuiceContext.get(CallScoper.class);
+                                               callScoper.enter();
+                                               try
+                                               {
+                                                   CallScopeProperties props = IGuiceContext.get(CallScopeProperties.class);
+                                                   props.setSource(CallScopeSource.WebSocket);
+                                                   props.getProperties()
+                                                        .put("RequestContextId", finalMr.getWebSocketSessionId());
+                                                   receiveMessage(finalMr);
+                                                   AjaxResponse<?> ar = IGuiceContext.get(AjaxResponse.class);
+                                                   return ar;
+                                               }
+                                               finally
+                                               {
+                                                   callScoper.exit(); // Always exit the scope
+                                               }
+                                           })
+                                           .onComplete(complete -> {
+                                               //System.out.println("Message processing completed successfully.");
+                                               var ajaxResponse = complete.result();
+                                               DeliveryOptions options = new DeliveryOptions()
+                                                       .addHeader("Content-Type", "application/json");
+
+                                               if (ajaxResponse.getSessionStorage() != null && !ajaxResponse.getSessionStorage()
+                                                                                                            .isEmpty())
+                                               {
+                                                   // send session storage updates
+                                                   vertx.eventBus()
+                                                        .publish("SessionStorage", ajaxResponse.getSessionStorage());
+                                               }
+                                               if (ajaxResponse.getLocalStorage() != null && !ajaxResponse.getLocalStorage()
+                                                                                                          .isEmpty())
+                                               {
+                                                   // send local storage updates
+                                                   vertx.eventBus()
+                                                        .publish("LocalStorage", ajaxResponse.getLocalStorage());
+                                               }
+                                               if (ajaxResponse.getDataReturns() != null)
+                                               {
+                                                   handler.reply("{}");
+                                                   //String listenerName = ajaxResponse.getDataReturns().get("listenerName").toString();
+                                                   ajaxResponse.getDataReturns()
+                                                               .forEach((key, value) -> {
+                                                                   if (value instanceof DynamicData dd)
+                                                                   {
+                                                                       for (Object object : dd.getOut())
+                                                                       {
+                                                                           vertx.eventBus()
+                                                                                .publish(key, object);
+                                                                       }
+                                                                   }
+                                                                   else
+                                                                   {
+                                                                       vertx.eventBus()
+                                                                            .publish(key, value);
+                                                                   }
+                                                               });
+                                               }
+                                               else
+                                               {
+                                                   handler.reply(complete.result(), options);
+                                               }
+
+                                    /*if (!ajaxResponse.getDataReturns().isEmpty())
+                                    {
+                                        ajaxResponse.getDataReturns().forEach((key, value) -> {
+                                            vertx.eventBus().publish(key, value);
+                                        });
+                                    }*/
+                                               //vertx.eventBus().publish()
+                                               //handler.reply(complete.result(), options);
+                                           })
+                                           .onFailure(res -> {
+                                               System.err.println("Failed to process message: " + res.getMessage());
+                                               handler.fail(500, res.getMessage()); // Notify sender of fa
+
+                                           });
+                             //   handler.reply("{}");
+                         }
+                         else if (o instanceof JsonObject jo)
                          {
                              String jsonString = jo.toString();
+                             log.info("Processing JSON message: " + jsonString);
                              var mr = jo.mapTo(WebSocketMessageReceiver.class);
                              if (mr.getData()
                                    .containsKey("guid"))
@@ -441,5 +606,12 @@ public class AngularTSSiteBinder
             }
         }
         return router;
+    }
+
+    @Override
+    public HttpServerOptions builder(HttpServerOptions builder)
+    {
+        builder.setWebSocketSubProtocols(java.util.Arrays.asList("v10.stomp", "v11.stomp", "v12.stomp"));
+        return builder;
     }
 }
