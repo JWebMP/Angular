@@ -339,7 +339,8 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                                           ngComponentReference.type(),
                                           ngComponentReference.attributeReference(),
                                           ngComponentReference.renderAttributeReference(),
-                                          ngComponentReference.additionalData()
+                                          ngComponentReference.additionalData(),
+                                          ngComponentReference.array()
                                   ));
             }
             else if (configuration instanceof NgOutput ngComponentReference)
@@ -881,7 +882,8 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                                                  ngMethod.type(),
                                                  ngMethod.attributeReference(),
                                                  ngMethod.renderAttributeReference(),
-                                                 ngMethod.additionalData()
+                                                 ngMethod.additionalData(),
+                                                 ngMethod.array()
                                          ));
                            }
                        });
@@ -1033,13 +1035,35 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                                                && !importReference.referenceOnly()
                                )
                                {
-                                   compConfig.getInjects()
-                                             .add(
-                                                     AnnotationUtils.getNgInject(
-                                                             AnnotationUtils.getTsVarName(importReference.value()),
-                                                             AnnotationUtils.getTsFilename(importReference.value())
-                                                     )
-                                             );
+                                   try
+                                   {
+                                       Class renderer = Class.forName("com.jwebmp.plugins.aggrid.cellrenderers.DefaultCellRenderer");
+                                       if (component.getClass()
+                                                    .isAssignableFrom(renderer))
+                                       {
+                                           System.out.println("Here");
+                                       }
+                                       else
+                                       {
+                                           compConfig.getInjects()
+                                                     .add(
+                                                             AnnotationUtils.getNgInject(
+                                                                     AnnotationUtils.getTsVarName(importReference.value()),
+                                                                     AnnotationUtils.getTsFilename(importReference.value())
+                                                             )
+                                                     );
+                                       }
+                                   }
+                                   catch (ClassNotFoundException cnfe)
+                                   {
+                                       compConfig.getInjects()
+                                                 .add(
+                                                         AnnotationUtils.getNgInject(
+                                                                 AnnotationUtils.getTsVarName(importReference.value()),
+                                                                 AnnotationUtils.getTsFilename(importReference.value())
+                                                         )
+                                                 );
+                                   }
                                }
                                if (
                                        INgDirective.class.isAssignableFrom(importReference.value())
@@ -1121,11 +1145,14 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
             var configClass = reference.value();
             if (configClass.isAnnotationPresent(NgComponent.class))
             {
-                //component
-                compConfig.getImportModules()
-                          .add(AnnotationUtils.getNgImportModule(AnnotationUtils.getTsFilename(configClass)));
-                compConfig.getInjects()
-                          .add(AnnotationUtils.getNgInject(AnnotationUtils.getTsVarName(configClass), AnnotationUtils.getTsFilename(configClass)));
+                if (!reference.referenceOnly())
+                {
+                    //component
+                    compConfig.getImportModules()
+                              .add(AnnotationUtils.getNgImportModule(AnnotationUtils.getTsFilename(configClass)));
+                    compConfig.getInjects()
+                              .add(AnnotationUtils.getNgInject(AnnotationUtils.getTsVarName(configClass), AnnotationUtils.getTsFilename(configClass)));
+                }
                 //reference
                 if (ImportsStatementsComponent.class.isAssignableFrom(configClass))
                 {
@@ -1350,6 +1377,31 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                                      .getAttributes()
                                      .values())
         {
+            if (!Strings.isNullOrEmpty(value) && value.contains("| json"))
+            {
+                compConfig.getImportReferences()
+                          .add(AnnotationUtils.getNgImportReference("JsonPipe", "@angular/common"));
+                compConfig.getImportModules()
+                          .add(AnnotationUtils.getNgImportModule("JsonPipe"));
+            }
+        }
+        if (!Strings.isNullOrEmpty(component.asBase()
+                                            .getText(0)
+                                            .toString()) && component.asBase()
+                                                                     .getText(0)
+                                                                     .toString()
+                                                                     .contains("| json"))
+        {
+            compConfig.getImportReferences()
+                      .add(AnnotationUtils.getNgImportReference("JsonPipe", "@angular/common"));
+            compConfig.getImportModules()
+                      .add(AnnotationUtils.getNgImportModule("JsonPipe"));
+        }
+
+        for (String value : component.asAttributeBase()
+                                     .getAttributes()
+                                     .values())
+        {
             if (!Strings.isNullOrEmpty(value) && value.contains("| date"))
             {
                 compConfig.getImportReferences()
@@ -1418,7 +1470,7 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                     compConfig.getImportReferences()
                               .add(AnnotationUtils.getNgImportReference("input", "@angular/core"));
                     compConfig.getInputs()
-                              .add(AnnotationUtils.getNgInput(a.value(), a.mandatory(), a.type(), a.attributeReference(), a.renderAttributeReference(), a.additionalData()));
+                              .add(AnnotationUtils.getNgInput(a.value(), a.mandatory(), a.type(), a.attributeReference(), a.renderAttributeReference(), a.additionalData(), a.array()));
 
                     //rootComponent.get().addConfiguration(AnnotationUtils.getNgField("@Input('" + a.value() + "') " + a.value() + (a.mandatory() ? "!" : "?") + " : " + (a.type() == null ? "any" : a.type().getSimpleName())));
                     if (a.type() != null && !a.type()

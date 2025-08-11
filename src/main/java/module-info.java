@@ -1,3 +1,4 @@
+import com.jwebmp.core.base.angular.client.services.TypescriptIndexPageConfigurator;
 import com.jwebmp.core.base.angular.modules.listeners.OnClickListener;
 import com.guicedee.guicedinjection.interfaces.*;
 import com.guicedee.vertx.web.spi.*;
@@ -67,6 +68,8 @@ module com.jwebmp.core.angular {
     uses RenderedAssets;
     uses NpmrcConfigurator;
     uses com.jwebmp.core.base.angular.modules.services.angular.WebSocketGroupAdd;
+
+    uses TypescriptIndexPageConfigurator;
 
     exports com.jwebmp.core.base.angular.modules.directives;
     exports com.jwebmp.core.base.angular.components.modules;

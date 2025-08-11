@@ -22,6 +22,7 @@ import com.jwebmp.core.base.angular.client.annotations.typescript.TsDependency;
 import com.jwebmp.core.base.angular.client.annotations.typescript.TsDevDependencies;
 import com.jwebmp.core.base.angular.client.annotations.typescript.TsDevDependency;
 import com.jwebmp.core.base.angular.client.services.AnnotationHelper;
+import com.jwebmp.core.base.angular.client.services.TypescriptIndexPageConfigurator;
 import com.jwebmp.core.base.angular.client.services.interfaces.*;
 import com.jwebmp.core.base.angular.modules.services.base.EnvironmentModule;
 import com.jwebmp.core.base.angular.services.NGApplication;
@@ -1110,6 +1111,7 @@ public class JWebMPTypeScriptCompiler
         Body body = p.getBody();
         List<ComponentHierarchyBase> comps = new ArrayList<>(body.getChildren());
 
+
         body.getChildren()
             .clear();
         List<NgComponent> annotations = IGuiceContext.get(AnnotationHelper.class)
@@ -1125,6 +1127,10 @@ public class JWebMPTypeScriptCompiler
                                                          .value()));
         }
         p.setBody(body);
+
+        Set<TypescriptIndexPageConfigurator> indexPageConfigurators = IGuiceContext.loaderToSet(ServiceLoader.load(TypescriptIndexPageConfigurator.class));
+        indexPageConfigurators.forEach(a -> a.configure(p));
+
         sb.append(p.toString(0));
 
         return sb;
