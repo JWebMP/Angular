@@ -1035,35 +1035,13 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                                                && !importReference.referenceOnly()
                                )
                                {
-                                   try
-                                   {
-                                       Class renderer = Class.forName("com.jwebmp.plugins.aggrid.cellrenderers.DefaultCellRenderer");
-                                       if (component.getClass()
-                                                    .isAssignableFrom(renderer))
-                                       {
-                                           System.out.println("Here");
-                                       }
-                                       else
-                                       {
-                                           compConfig.getInjects()
-                                                     .add(
-                                                             AnnotationUtils.getNgInject(
-                                                                     AnnotationUtils.getTsVarName(importReference.value()),
-                                                                     AnnotationUtils.getTsFilename(importReference.value())
-                                                             )
-                                                     );
-                                       }
-                                   }
-                                   catch (ClassNotFoundException cnfe)
-                                   {
-                                       compConfig.getInjects()
-                                                 .add(
-                                                         AnnotationUtils.getNgInject(
-                                                                 AnnotationUtils.getTsVarName(importReference.value()),
-                                                                 AnnotationUtils.getTsFilename(importReference.value())
-                                                         )
-                                                 );
-                                   }
+                                   compConfig.getInjects()
+                                             .add(
+                                                     AnnotationUtils.getNgInject(
+                                                             AnnotationUtils.getTsVarName(importReference.value()),
+                                                             AnnotationUtils.getTsFilename(importReference.value())
+                                                     )
+                                             );
                                }
                                if (
                                        INgDirective.class.isAssignableFrom(importReference.value())
@@ -1361,11 +1339,28 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
 
     private void addPipes(IComponentHierarchyBase<?, ?> component, boolean checkForParent)
     {
+        for (String key : component.asAttributeBase()
+                                   .getAttributes()
+                                   .keySet())
+        {
+            if (!(Strings.isNullOrEmpty(key) && key.contains("[(ngModel)]")))
+            {
+                compConfig.getImportReferences()
+                          .add(AnnotationUtils.getNgImportReference("FormsModule", "@angular/forms"));
+                compConfig.getImportModules()
+                          .add(AnnotationUtils.getNgImportModule("FormsModule"));
+            }
+        }
+
+
         for (String value : component.asAttributeBase()
                                      .getAttributes()
                                      .values())
         {
-            if (!Strings.isNullOrEmpty(value) && value.contains("| number"))
+            if (!(Strings.isNullOrEmpty(value) && value.contains("| number")) || component.asBase()
+                                                                                          .getText(0)
+                                                                                          .toString()
+                                                                                          .contains("| number"))
             {
                 compConfig.getImportReferences()
                           .add(AnnotationUtils.getNgImportReference("DecimalPipe", "@angular/common"));
@@ -1373,6 +1368,7 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                           .add(AnnotationUtils.getNgImportModule("DecimalPipe"));
             }
         }
+
         for (String value : component.asAttributeBase()
                                      .getAttributes()
                                      .values())
@@ -1385,6 +1381,7 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                           .add(AnnotationUtils.getNgImportModule("JsonPipe"));
             }
         }
+
         if (!Strings.isNullOrEmpty(component.asBase()
                                             .getText(0)
                                             .toString()) && component.asBase()
@@ -1410,6 +1407,7 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                           .add(AnnotationUtils.getNgImportModule("DatePipe"));
             }
         }
+
         for (String value : component.asAttributeBase()
                                      .getAttributes()
                                      .values())
@@ -1422,6 +1420,7 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                           .add(AnnotationUtils.getNgImportModule("CurrencyPipe"));
             }
         }
+
         for (String value : component.asAttributeBase()
                                      .getAttributes()
                                      .keySet())
@@ -1434,6 +1433,7 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                           .add(AnnotationUtils.getNgImportModule("RouterModule"));
             }
         }
+
     }
 
 
