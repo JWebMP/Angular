@@ -4,6 +4,7 @@ import com.google.common.base.Strings;
 import com.jwebmp.core.base.angular.client.annotations.angular.NgComponent;
 import com.jwebmp.core.base.angular.client.annotations.angular.NgDirective;
 import com.jwebmp.core.base.angular.client.annotations.angular.NgServiceProvider;
+import com.jwebmp.core.base.angular.client.annotations.components.NgComponentTagAttribute;
 import com.jwebmp.core.base.angular.client.annotations.components.NgInput;
 import com.jwebmp.core.base.angular.client.annotations.components.NgOutput;
 import com.jwebmp.core.base.angular.client.annotations.constructors.NgConstructorBody;
@@ -109,6 +110,21 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                       .getAttributes()
                       .putAll(component.asAttributeBase()
                                        .getOverrideAttributes());
+
+        var componentTags = AnnotationUtils.getAnnotation(component.getClass(), NgComponentTagAttribute.class);
+        for (NgComponentTagAttribute componentTag : componentTags)
+        {
+            if (!Strings.isNullOrEmpty(componentTag.key()) &&
+                    !componentTag.key()
+                                 .startsWith("(") &&
+                    !componentTag.key()
+                                 .endsWith(")")
+            )
+            {
+                replacementTag.asAttributeBase()
+                              .addAttribute(componentTag.key(), componentTag.value());
+            }
+        }
 
         var inputs = AnnotationUtils.getAnnotation(component.getClass(), NgInput.class);
         inputs.addAll(component.getConfigurations(NgInput.class, false));
@@ -1380,6 +1396,15 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                 compConfig.getImportModules()
                           .add(AnnotationUtils.getNgImportModule("JsonPipe"));
             }
+
+
+            if (!Strings.isNullOrEmpty(value) && value.contains("| async"))
+            {
+                compConfig.getImportReferences()
+                          .add(AnnotationUtils.getNgImportReference("AsyncPipe", "@angular/common"));
+                compConfig.getImportModules()
+                          .add(AnnotationUtils.getNgImportModule("AsyncPipe"));
+            }
         }
 
         if (!Strings.isNullOrEmpty(component.asBase()
@@ -1393,6 +1418,18 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                       .add(AnnotationUtils.getNgImportReference("JsonPipe", "@angular/common"));
             compConfig.getImportModules()
                       .add(AnnotationUtils.getNgImportModule("JsonPipe"));
+        }
+        if (!Strings.isNullOrEmpty(component.asBase()
+                                            .getText(0)
+                                            .toString()) && component.asBase()
+                                                                     .getText(0)
+                                                                     .toString()
+                                                                     .contains("| async"))
+        {
+            compConfig.getImportReferences()
+                      .add(AnnotationUtils.getNgImportReference("AsyncPipe", "@angular/common"));
+            compConfig.getImportModules()
+                      .add(AnnotationUtils.getNgImportModule("AsyncPipe"));
         }
 
         for (String value : component.asAttributeBase()

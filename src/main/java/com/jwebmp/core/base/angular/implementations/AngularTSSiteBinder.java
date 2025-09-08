@@ -241,7 +241,8 @@ public class AngularTSSiteBinder
 
                 //bind sockjs event bridge
 
-                SockJSBridgeOptions bridgeOptions = new SockJSBridgeOptions();
+
+                /*SockJSBridgeOptions bridgeOptions = new SockJSBridgeOptions();
                 bridgeOptions.setPingTimeout(60000);
                 bridgeOptions.setMaxAddressLength(64 * 1024);
                 bridgeOptions.setReplyTimeout(20000);
@@ -257,7 +258,7 @@ public class AngularTSSiteBinder
                 router
                         .route("/eventbus/*")
                         .subRouter(sockJSHandler.bridge(bridgeOptions, event -> handleBridgeEvent(event)));
-
+*/
                 // Configure STOMP server
                 StompServerOptions stompOptions = new StompServerOptions()
                         .setWebsocketBridge(true)
@@ -353,6 +354,7 @@ public class AngularTSSiteBinder
                                                    callScoper.exit(); // Always exit the scope
                                                }
                                            })
+                                           .onFailure(res -> log.fatal("Failed to execute websocker receiver : " + res.getMessage()))
                                            .onComplete(complete -> {
                                                //System.out.println("Message processing completed successfully.");
                                                var ajaxResponse = complete.result();
@@ -409,7 +411,7 @@ public class AngularTSSiteBinder
                                                //handler.reply(complete.result(), options);
                                            })
                                            .onFailure(res -> {
-                                               System.err.println("Failed to process message: " + res.getMessage());
+                                               log.fatal("Failed to process message: " + res.getMessage());
                                                handler.fail(500, res.getMessage()); // Notify sender of fa
 
                                            });
@@ -453,6 +455,7 @@ public class AngularTSSiteBinder
                                                    callScoper.exit(); // Always exit the scope
                                                }
                                            })
+                                           .onFailure(res -> log.fatal("Failed to execute websocker receiver : " + res.getMessage()))
                                            .onComplete(complete -> {
                                                //System.out.println("Message processing completed successfully.");
                                                var ajaxResponse = complete.result();
@@ -509,11 +512,16 @@ public class AngularTSSiteBinder
                                                //handler.reply(complete.result(), options);
                                            })
                                            .onFailure(res -> {
-                                               System.err.println("Failed to process message: " + res.getMessage());
+                                               log.fatal("Failed to process message: " + res.getMessage());
                                                handler.fail(500, res.getMessage()); // Notify sender of fa
 
                                            });
                              //   handler.reply("{}");
+                         }
+                         else
+                         {
+                             log.fatal("Failed to process message: " + o.toString() + " - " + o.getClass()
+                                                                                               .getCanonicalName());
                          }
                      });
 

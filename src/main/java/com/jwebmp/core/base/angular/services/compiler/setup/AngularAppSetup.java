@@ -484,7 +484,15 @@ public class AngularAppSetup
                                  .getAnnotationsByType(NgBootImportReference.class);
                 for (NgBootImportReference ngBootImportReference : a)
                 {
-                    String importString = "import {" + ngBootImportReference.value() + "} from '" + ngBootImportReference.reference() + "'";
+                    String importString;
+                    if (ngBootImportReference.direct() || !ngBootImportReference.wrapValueInBraces())
+                    {
+                        importString = "import " + ngBootImportReference.value() + " from '" + ngBootImportReference.reference() + "'";
+                    }
+                    else
+                    {
+                        importString = "import {" + ngBootImportReference.value() + "} from '" + ngBootImportReference.reference() + "'";
+                    }
                     imports.add(importString);
                 }
             }
