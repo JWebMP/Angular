@@ -4,12 +4,12 @@ import com.jwebmp.core.base.ajax.AjaxCall;
 import com.jwebmp.core.base.ajax.AjaxResponse;
 import com.jwebmp.core.base.angular.client.annotations.angular.NgComponent;
 import com.jwebmp.core.base.angular.client.annotations.components.NgInput;
-import com.jwebmp.core.base.angular.client.annotations.references.NgComponentReference;
 import com.jwebmp.core.base.angular.client.annotations.structures.NgField;
 import com.jwebmp.core.base.angular.client.services.interfaces.INgComponent;
 import com.jwebmp.core.base.html.DivSimple;
 import com.jwebmp.core.base.html.Paragraph;
 import com.jwebmp.core.events.click.ClickAdapter;
+import io.smallrye.mutiny.Uni;
 
 @NgComponent("cmp-test-me")
 @NgField("notOnParent : any;")
@@ -30,9 +30,10 @@ public class ComponentTestTypeChild extends DivSimple<ComponentTestTypeChild>
     public static class TestClickAdapter extends ClickAdapter<TestClickAdapter>
     {
         @Override
-        public void onClick(AjaxCall<?> call, AjaxResponse<?> response)
+        public Uni<Void> onClick(AjaxCall<?> call, AjaxResponse<?> response)
         {
-
+            return Uni.createFrom()
+                      .voidItem();
         }
     }
 

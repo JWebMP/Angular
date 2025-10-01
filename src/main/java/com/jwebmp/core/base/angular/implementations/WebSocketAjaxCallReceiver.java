@@ -34,7 +34,6 @@ public class WebSocketAjaxCallReceiver
 
     @Override
     public void receiveMessage(WebSocketMessageReceiver message) throws SecurityException {
-        String output;
         AjaxResponse<?> ajaxResponse = get(AjaxResponse.class);
         try {
             AjaxCall<?> ajaxCall = get(AjaxCall.class);
@@ -51,16 +50,47 @@ public class WebSocketAjaxCallReceiver
             for (AjaxCallIntercepter<?> ajaxCallIntercepter : get(AjaxCallInterceptorKey)) {
                 ajaxCallIntercepter.intercept(ajaxCall, ajaxResponse);
             }
-            triggerEvent.fireEvent(ajaxCall, ajaxResponse);
 
-            output = ajaxResponse.toString();
+            // Subscribe to ensure the Uni chain executes and then broadcast the result
+            triggerEvent.fireEvent(ajaxCall, ajaxResponse)
+                        .subscribe()
+                        .with(
+                                unused -> {
+                                    try {
+                                        get(IGuicedWebSocket.class).broadcastMessage(message.getBroadcastGroup(), ajaxResponse.toString());
+                                    } catch (Exception e) {
+                                        throw new RuntimeException(e);
+                                    }
+                                },
+                                failure -> {
+                                    try {
+                                        AjaxResponse<?> err = new AjaxResponse<>();
+                                        err.setSuccess(false);
+                                        AjaxResponseReaction<?> arr = new AjaxResponseReaction<>(
+                                                "Unknown Error",
+                                                "An AJAX call resulted in an unknown server error<br>" + failure.getMessage() + "<br>" +
+                                                        EscapeChars.forHTML(ExceptionUtils.getStackTrace(failure)),
+                                                ReactionType.DialogDisplay);
+                                        arr.setResponseType(AjaxResponseType.Danger);
+                                        err.addReaction(arr);
+                                        get(IGuicedWebSocket.class).broadcastMessage(message.getBroadcastGroup(), err.toString());
+                                        WebSocketAjaxCallReceiver.log.log(Level.SEVERE, "Unknown in ajax reply\n", failure);
+                                    } catch (Exception e) {
+                                        throw new RuntimeException(e);
+                                    }
+                                }
+                        );
         } catch (InvalidRequestException ie) {
             ajaxResponse.setSuccess(false);
             AjaxResponseReaction<?> arr = new AjaxResponseReaction<>("Invalid Request Value", "A value in the request was found to be incorrect.<br>" + ie.getMessage(),
                     ReactionType.DialogDisplay);
             arr.setResponseType(AjaxResponseType.Danger);
             ajaxResponse.addReaction(arr);
-            output = ajaxResponse.toString();
+            try {
+                get(IGuicedWebSocket.class).broadcastMessage(message.getBroadcastGroup(), ajaxResponse.toString());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
             WebSocketAjaxCallReceiver.log.log(Level.SEVERE, "[SessionID]-[" + message.getData()
                     .get("sessionid")
                     + "];" + "[Exception]-[Invalid Request]", ie);
@@ -71,7 +101,11 @@ public class WebSocketAjaxCallReceiver
                             EscapeChars.forHTML(ExceptionUtils.getStackTrace(T)), ReactionType.DialogDisplay);
             arr.setResponseType(AjaxResponseType.Danger);
             ajaxResponse.addReaction(arr);
-            output = ajaxResponse.toString();
+            try {
+                get(IGuicedWebSocket.class).broadcastMessage(message.getBroadcastGroup(), ajaxResponse.toString());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
             WebSocketAjaxCallReceiver.log.log(Level.SEVERE, "Unknown in ajax reply\n", T);
         } catch (Throwable T) {
             ajaxResponse.setSuccess(false);
@@ -80,14 +114,12 @@ public class WebSocketAjaxCallReceiver
                             EscapeChars.forHTML(ExceptionUtils.getStackTrace(T)), ReactionType.DialogDisplay);
             arr.setResponseType(AjaxResponseType.Danger);
             ajaxResponse.addReaction(arr);
-            output = ajaxResponse.toString();
+            try {
+                get(IGuicedWebSocket.class).broadcastMessage(message.getBroadcastGroup(), ajaxResponse.toString());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
             WebSocketAjaxCallReceiver.log.log(Level.SEVERE, "Unknown in ajax reply\n", T);
-        }
-
-        try {
-            get(IGuicedWebSocket.class).broadcastMessage(message.getBroadcastGroup(), output);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
         }
     }
 

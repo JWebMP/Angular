@@ -31,18 +31,14 @@ public class OnClickListenerDirective implements INgDirective<OnClickListenerDir
                         \t
                                 @HostListener('click', ['$event'])
                                     onClick(event: PointerEvent) {
+                                        // If the element has a confirm attribute, do not fire here;
+                                        // confirmation handling is done elsewhere.
                                         if(this.confirm)
                                         {
-                                            if(confirm(this.confirmMessage))
-                                            {
-                                                let elementId: string = (event.target as Element).id;
-                                                this.eventBusService.send('ajax', {eventClass: this.clickClassName}, 'onClick', event, this.elementRef);
-                                            }
+                                            return;
                                         }
-                                        else {
-                                            let elementId: string = (event.target as Element).id;
-                                            this.eventBusService.send('ajax', {eventClass: this.clickClassName}, 'onClick', event, this.elementRef);
-                                        }
+                                        let elementId: string = (event.target as Element).id;
+                                        this.eventBusService.send('ajax', {eventClass: this.clickClassName}, 'onClick', event, this.elementRef);
                                     }
                         """);
 

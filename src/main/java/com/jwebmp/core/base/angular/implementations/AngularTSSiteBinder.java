@@ -260,8 +260,17 @@ public class AngularTSSiteBinder
                         .subRouter(sockJSHandler.bridge(bridgeOptions, event -> handleBridgeEvent(event)));
 */
                 // Configure STOMP server
+
+                JsonObject heartbeats = new JsonObject()
+                        // server -> client heartbeat period in ms
+                        .put("x", 10000)
+                        // client -> server expected heartbeat period in ms
+                        .put("y", 10000);
+
+
                 StompServerOptions stompOptions = new StompServerOptions()
                         .setWebsocketBridge(true)
+                        .setHeartbeat(heartbeats)
                         .setWebsocketPath("/eventbus");
 
                 log.info("Configuring STOMP server with WebSocket bridge at /eventbus");
@@ -303,7 +312,7 @@ public class AngularTSSiteBinder
                 vertx.eventBus()
                      .consumer("/toBus/incoming", handler -> {
                          var o = handler.body();
-                         log.info("Received message on /toBus/incoming: " + o);
+                         log.trace("Received message on /toBus/incoming: " + o);
 
                          if (o instanceof Buffer buffer)
                          {

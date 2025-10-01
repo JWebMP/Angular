@@ -8,6 +8,7 @@ import com.jwebmp.core.base.ajax.ReactionType;
 import com.jwebmp.core.base.angular.services.compiler.JWebMPTypeScriptCompiler;
 import com.jwebmp.core.base.interfaces.IComponentHierarchyBase;
 import com.jwebmp.core.events.click.ClickAdapter;
+import io.smallrye.mutiny.Uni;
 import lombok.extern.log4j.Log4j2;
 
 import java.io.IOException;
@@ -25,7 +26,7 @@ public class RebuildAppClickEvent extends ClickAdapter<RebuildAppClickEvent>
     }
 
     @Override
-    public void onClick(AjaxCall<?> call, AjaxResponse<?> response)
+    public Uni<Void> onClick(AjaxCall<?> call, AjaxResponse<?> response)
     {
         try
         {
@@ -36,6 +37,8 @@ public class RebuildAppClickEvent extends ClickAdapter<RebuildAppClickEvent>
             log.error("Failed to compile TS", e);
         }
         response.addReaction(new AjaxResponseReaction<>("/", ReactionType.RedirectUrl));
+        return Uni.createFrom()
+                  .voidItem();
     }
 
 }
