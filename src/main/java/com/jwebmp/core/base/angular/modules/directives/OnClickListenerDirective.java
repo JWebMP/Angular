@@ -12,9 +12,6 @@ import java.util.List;
 @NgImportReference(value = "HostListener", reference = "@angular/core")
 
 @NgImportReference(value = "inject", reference = "@angular/core")
-
-@NgField("@Input(\"confirm\") confirm : boolean = false;")
-@NgField("@Input(\"confirmMessage\") confirmMessage : string = 'Are you sure?';")
 public class OnClickListenerDirective implements INgDirective<OnClickListenerDirective>
 {
     public OnClickListenerDirective()
@@ -31,10 +28,10 @@ public class OnClickListenerDirective implements INgDirective<OnClickListenerDir
                         \t
                                 @HostListener('click', ['$event'])
                                     onClick(event: PointerEvent) {
-                                        // If the element has a confirm attribute, do not fire here;
-                                        // confirmation handling is done elsewhere.
-                                        if(this.confirm)
-                                        {
+                                        // If the clicked HTML element has a 'confirm' attribute, do not fire here;
+                                        // confirmation handling is done elsewhere (handled by other code paths).
+                                        const targetEl = (event.target as Element);
+                                        if (targetEl && 'hasAttribute' in targetEl && targetEl.hasAttribute('confirm')) {
                                             return;
                                         }
                                         let elementId: string = (event.target as Element).id;

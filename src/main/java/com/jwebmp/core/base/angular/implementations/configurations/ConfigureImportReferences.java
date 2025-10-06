@@ -459,21 +459,21 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                               .add(AnnotationUtils.getNgInject(ngComponentReference.referenceName(), ngComponentReference.value()));
                 }
             }
-            else if (configuration instanceof NgModal ngComponentReference)
+            else if (configuration instanceof NgModel ngComponentReference)
             {
                 if (ngComponentReference.onSelf() && !checkForParent)
                 {
                     compConfig.getImportReferences()
-                              .add(AnnotationUtils.getNgImportReference("modal", "@angular/core"));
-                    compConfig.getModals()
-                              .add(AnnotationUtils.getNgModal(ngComponentReference.value(), ngComponentReference.referenceName()));
+                              .add(AnnotationUtils.getNgImportReference("model", "@angular/core"));
+                    compConfig.getModels()
+                              .add(AnnotationUtils.getNgModel(ngComponentReference.value(), ngComponentReference.referenceName(), ngComponentReference.dataType(), ngComponentReference.mandatory()));
                 }
                 if (ngComponentReference.onParent() && checkForParent)
                 {
                     compConfig.getImportReferences()
-                              .add(AnnotationUtils.getNgImportReference("modal", "@angular/core"));
-                    compConfig.getModals()
-                              .add(AnnotationUtils.getNgModal(ngComponentReference.value(), ngComponentReference.referenceName()));
+                              .add(AnnotationUtils.getNgImportReference("model", "@angular/core"));
+                    compConfig.getModels()
+                              .add(AnnotationUtils.getNgModel(ngComponentReference.value(), ngComponentReference.referenceName(), ngComponentReference.dataType(), ngComponentReference.mandatory()));
                 }
             }
             else if (configuration instanceof NgSignal ngComponentReference)
@@ -857,14 +857,14 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                        });
     }
 
-    private void addModals(Class<?> component, boolean checkForParent)
+    private void addModels(Class<?> component, boolean checkForParent)
     {
-        AnnotationUtils.getAnnotation(component, NgModal.class)
+        AnnotationUtils.getAnnotation(component, NgModel.class)
                        .forEach(ngMethod -> {
                            if ((ngMethod.onSelf() && !checkForParent) || (ngMethod.onParent() && checkForParent))
                            {
-                               compConfig.getModals()
-                                         .add(AnnotationUtils.getNgModal(ngMethod.referenceName(), ngMethod.value()));
+                               compConfig.getModels()
+                                         .add(AnnotationUtils.getNgModel(ngMethod.referenceName(), ngMethod.value(), ngMethod.dataType(), ngMethod.mandatory()));
                            }
                        });
     }
@@ -1113,7 +1113,7 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
         addImportModules(componentClass, checkForParent);
         addImportProviders(componentClass, checkForParent);
         addInjects(componentClass, checkForParent);
-        addModals(componentClass, checkForParent);
+        addModels(componentClass, checkForParent);
         addSignals(componentClass, checkForParent);
         addInputs(componentClass, checkForParent);
         addOutputs(componentClass, checkForParent);
