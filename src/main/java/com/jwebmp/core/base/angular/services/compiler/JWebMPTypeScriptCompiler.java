@@ -33,6 +33,7 @@ import com.jwebmp.core.base.html.Body;
 import com.jwebmp.core.base.html.DivSimple;
 import com.jwebmp.core.base.interfaces.IComponentHierarchyBase;
 import com.jwebmp.core.base.servlets.enumarations.DevelopmentEnvironments;
+import com.jwebmp.core.services.IPage;
 import io.github.classgraph.ClassInfo;
 import io.github.classgraph.Resource;
 import io.github.classgraph.ScanResult;
@@ -1137,7 +1138,38 @@ public class JWebMPTypeScriptCompiler
         p.setBody(body);
 
         Set<TypescriptIndexPageConfigurator> indexPageConfigurators = IGuiceContext.loaderToSet(ServiceLoader.load(TypescriptIndexPageConfigurator.class));
-        indexPageConfigurators.forEach(a -> a.configure(p));
+        for (TypescriptIndexPageConfigurator a : indexPageConfigurators)
+        {
+            p = (Page<?>) a.configure(p);
+        }
+
+        // Iterate through standard page configurators and allow them to adjust the page specifically for Angular compilation
+        Set<com.jwebmp.core.services.IPageConfigurator> pageConfigurators = IGuiceContext.loaderToSet(ServiceLoader.load(com.jwebmp.core.services.IPageConfigurator.class));
+        for (com.jwebmp.core.services.IPageConfigurator configurator : pageConfigurators)
+        {
+            try
+            {
+                // Respect service enablement if implemented
+                boolean enabled = true;
+                try
+                {
+                    enabled = configurator.enabled();
+                }
+                catch (Throwable ignored)
+                {
+                    // If not supported, assume enabled
+                }
+                if (enabled)
+                {
+                    p = (Page) configurator.configureAngular(p);
+                }
+            }
+            catch (Throwable t)
+            {
+                log.warn("IPageConfigurator ({} ) failed during configureAngular on boot index page", configurator.getClass()
+                                                                                                                  .getName(), t);
+            }
+        }
 
         sb.append(p.toString(0));
 

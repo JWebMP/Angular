@@ -24,6 +24,7 @@ import com.jwebmp.core.databind.IOnComponentAdded;
 import com.jwebmp.core.databind.IOnComponentHtmlRender;
 import com.jwebmp.core.events.services.IOnClickService;
 import com.jwebmp.core.base.angular.implementations.configurations.*;
+import com.jwebmp.core.services.IPageConfigurator;
 
 
 module com.jwebmp.core.angular {
@@ -70,6 +71,7 @@ module com.jwebmp.core.angular {
     uses com.jwebmp.core.base.angular.modules.services.angular.WebSocketGroupAdd;
 
     uses TypescriptIndexPageConfigurator;
+    uses IPageConfigurator;
 
     exports com.jwebmp.core.base.angular.modules.directives;
     exports com.jwebmp.core.base.angular.components.modules;

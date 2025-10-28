@@ -3,6 +3,7 @@ package com.jwebmp.core.base.angular.implementations;
 import com.google.inject.Inject;
 import com.guicedee.guicedinjection.interfaces.IGuicePostStartup;
 import com.jwebmp.core.base.angular.client.services.interfaces.INgApp;
+import com.jwebmp.core.base.angular.services.AngularTsProcessingConfig;
 import com.jwebmp.core.base.angular.services.compiler.JWebMPTypeScriptCompiler;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -31,6 +32,12 @@ public class AngularTSPostStartup implements IGuicePostStartup<AngularTSPostStar
     @Override
     public List<Future<Boolean>> postLoad()
     {
+        // Skip TypeScript rendering if globally disabled, but still allow the server to start
+        if (!AngularTsProcessingConfig.isEnabled())
+        {
+            log.info("Angular TypeScript processing is disabled; skipping TS render on post-startup. Web server will still start and serve routes.");
+            return List.of(Future.succeededFuture(true));
+        }
         return List.of(vertx.executeBlocking(() -> {
             for (INgApp<?> app : JWebMPTypeScriptCompiler.getAllApps())
             {
