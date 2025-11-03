@@ -604,8 +604,11 @@ public class AngularTSSiteBinder
                     bindRouteToPath(router, path, staticFileLocationPath, siteHostingLocation, route);
                 }
                 log.debug("Configuring parent route - {}", staticFileLocationPath);
-                router.get("/*")
-                      .handler(StaticHandler.create(FileSystemAccess.ROOT, staticFileLocationPath)
+
+                // 1) Explicit /assets/* mount from the dist assets directory
+                String assetsStaticDir = staticFileLocationPath + File.separator + "assets";
+                router.get("/assets/*")
+                      .handler(StaticHandler.create(FileSystemAccess.ROOT, assetsStaticDir)
                                             .setAlwaysAsyncFS(false)
                                             .setCacheEntryTimeout(604800)
                                             .setCachingEnabled(false)
@@ -616,6 +619,37 @@ public class AngularTSSiteBinder
                                             .setMaxAgeSeconds(604800)
                                             .setSendVaryHeader(false)
                       );
+
+                // 2) Real-file handler with root aliasing for assets:
+                // Try to serve from dist root first; if not found, fall back to dist/assets
+                router.getWithRegex("^/.+\\.[^/]+$")
+                      .handler(ctx -> {
+                          String normalized = ctx.normalizedPath();
+                          if (normalized == null) {
+                              ctx.next();
+                              return;
+                          }
+                          // Strip leading '/'
+                          String rel = normalized.startsWith("/") ? normalized.substring(1) : normalized;
+                          File primary = new File(staticFileLocationPath, rel);
+                          if (primary.exists() && primary.isFile()) {
+                              ctx.response().sendFile(primary.getAbsolutePath());
+                              return;
+                          }
+                          File assetsFile = new File(assetsStaticDir, rel);
+                          if (assetsFile.exists() && assetsFile.isFile()) {
+                              ctx.response().sendFile(assetsFile.getAbsolutePath());
+                              return;
+                          }
+                          // Not a real file in root or assets; allow SPA fallback to handle
+                          ctx.next();
+                      });
+
+                // 3) SPA fallback: for any path that is not a file (no extension) and not under known backend/ws prefixes,
+                // serve index.html so Angular Router can handle client-side routes (including parameterized ones).
+                router.getWithRegex("^/(?!api/|eventbus|sockjs|stomp|assets/|media/|.*\\.[^/]+).*$")
+                      .handler(ctx -> ctx.response()
+                                             .sendFile(staticFileLocationPath + File.separator + "index.html"));
             }
             catch (IOException e)
             {
