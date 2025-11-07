@@ -615,7 +615,7 @@ public class JWebMPTypeScriptCompiler
         // scoper.enter();
         try
         {
-            log.debug("Registering Assets...");
+            log.trace("Registering Assets...");
             List<String> assetList = AppUtils.getAssetList(appClass);
             if (assetList != null)
             {
