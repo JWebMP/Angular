@@ -9,6 +9,7 @@ import com.guicedee.services.jsonrepresentation.IJsonRepresentation;
 import com.jwebmp.core.base.ajax.*;
 import com.jwebmp.core.utilities.EscapeChars;
 import com.jwebmp.interception.services.AjaxCallIntercepter;
+import io.smallrye.mutiny.Uni;
 import lombok.extern.java.Log;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
@@ -26,7 +27,7 @@ public abstract class WebSocketAbstractCallReceiver
 {
     public abstract String getMessageDirector();
 
-    public abstract AjaxResponse<?> action(AjaxCall<?> call, AjaxResponse<?> response);
+    public abstract Uni<AjaxResponse<?>> action(AjaxCall<?> call, AjaxResponse<?> response);
 
     @Override
     public Set<String> messageNames()
@@ -37,80 +38,62 @@ public abstract class WebSocketAbstractCallReceiver
     }
 
     @Override
-    public void receiveMessage(WebSocketMessageReceiver message) throws SecurityException
+    public Uni<Void> receiveMessage(WebSocketMessageReceiver message) throws SecurityException
     {
-        String output = "";
-        AjaxResponse<?> ajaxResponse = get(AjaxResponse.class);
-        try
-        {
-            AjaxCall<?> ajaxCall = get(AjaxCall.class);
-            ObjectMapper om = IJsonRepresentation.getObjectMapper();
-            String originalValues = om.writeValueAsString(message.getData());
-            CallScopeProperties properties = IGuiceContext.get(CallScopeProperties.class);
-            AjaxCall<?> call = om.readValue(originalValues, AjaxCall.class);
-            ajaxCall.fromCall(call);
-            for (AjaxCallIntercepter<?> ajaxCallIntercepter : get(AjaxCallInterceptorKey))
-            {
-                ajaxCallIntercepter.intercept(ajaxCall, ajaxResponse);
-            }
-            ajaxResponse = action(ajaxCall, ajaxResponse);
-            if (ajaxResponse != null && !ajaxCall.getSessionStorage()
-                                                 .containsKey("contextId"))
-            {
-                if (properties.getProperties()
-                              .containsKey("RequestContextId"))
-                {
-                    ajaxResponse.getSessionStorage()
-                                .put("contextId", properties.getProperties()
-                                                            .get("RequestContextId")
-                                                            .toString());
-                }
-            }
-        }
-        catch (Exception T)
-        {
-            ajaxResponse.setSuccess(false);
-            AjaxResponseReaction<?> arr = new AjaxResponseReaction<>("Unknown Error",
-                    "An AJAX call resulted in an unknown server error<br>" + T.getMessage() + "<br>" +
-
-                            EscapeChars.forHTML(ExceptionUtils.getStackTrace(T)), ReactionType.DialogDisplay);
-            arr.setResponseType(AjaxResponseType.Danger);
-            ajaxResponse.addReaction(arr);
-            //  output = ajaxResponse.toString();
-            WebSocketAbstractCallReceiver.log.log(Level.SEVERE, "Unknown in ajax reply\n", T);
-        }
-        catch (Throwable T)
-        {
-            ajaxResponse.setSuccess(false);
-            AjaxResponseReaction<?> arr = new AjaxResponseReaction<>("Unknown Error",
-                    "An AJAX call resulted in an internal server error<br>" + T.getMessage() + "<br>" +
-                            EscapeChars.forHTML(ExceptionUtils.getStackTrace(T)), ReactionType.DialogDisplay);
-            arr.setResponseType(AjaxResponseType.Danger);
-            ajaxResponse.addReaction(arr);
-            //  output = ajaxResponse.toString();
-            WebSocketAbstractCallReceiver.log.log(Level.SEVERE, "Unknown in ajax reply\n", T);
-        }
-  /*      if (ajaxResponse != null)
-        {
-            IGuicedWebSocket socket = get(IGuicedWebSocket.class);
-            try
-            {
-                if (ajaxResponse.getDataReturns() != null)
-                {
-                    if (ajaxResponse.getDataReturns().containsKey("listenerName"))
-                    {
-                        String listenerName = ajaxResponse.getDataReturns().get("listenerName").toString();
-                        socket.broadcastMessage(listenerName, ajaxResponse.toJson());
-                    } else
-                    {
-                        socket.broadcastMessage(message.getBroadcastGroup(), ajaxResponse.toJson());
-                    }
-                } else
-                    socket.broadcastMessage(message.getBroadcastGroup(), ajaxResponse.toJson());
-            } catch (Exception e)
-            {
-                throw new RuntimeException(e);
-            }
-        }*/
+        return Uni.createFrom()
+                  .item(message)
+                  .onItem()
+                  .transformToUni(m -> {
+                      AjaxResponse<?> ajaxResponse = get(AjaxResponse.class);
+                      try
+                      {
+                          AjaxCall<?> ajaxCall = get(AjaxCall.class);
+                          ObjectMapper om = IJsonRepresentation.getObjectMapper();
+                          String originalValues = om.writeValueAsString(m.getData());
+                          CallScopeProperties properties = IGuiceContext.get(CallScopeProperties.class);
+                          AjaxCall<?> call = om.readValue(originalValues, AjaxCall.class);
+                          ajaxCall.fromCall(call);
+                          for (AjaxCallIntercepter<?> ajaxCallIntercepter : get(AjaxCallInterceptorKey))
+                          {
+                              ajaxCallIntercepter.intercept(ajaxCall, ajaxResponse);
+                          }
+                          return action(ajaxCall, ajaxResponse)
+                                  .onItem().invoke(resp -> {
+                                      if (resp != null && !ajaxCall.getSessionStorage().containsKey("contextId"))
+                                      {
+                                          if (properties.getProperties().containsKey("RequestContextId"))
+                                          {
+                                              resp.getSessionStorage()
+                                                  .put("contextId", properties.getProperties()
+                                                                              .get("RequestContextId")
+                                                                              .toString());
+                                          }
+                                      }
+                                  })
+                                  .replaceWithVoid();
+                      }
+                      catch (Exception T)
+                      {
+                          ajaxResponse.setSuccess(false);
+                          AjaxResponseReaction<?> arr = new AjaxResponseReaction<>("Unknown Error",
+                                  "An AJAX call resulted in an unknown server error<br>" + T.getMessage() + "<br>" +
+                                          EscapeChars.forHTML(ExceptionUtils.getStackTrace(T)), ReactionType.DialogDisplay);
+                          arr.setResponseType(AjaxResponseType.Danger);
+                          ajaxResponse.addReaction(arr);
+                          WebSocketAbstractCallReceiver.log.log(Level.SEVERE, "Unknown in ajax reply\n", T);
+                          return Uni.createFrom().voidItem();
+                      }
+                      catch (Throwable T)
+                      {
+                          ajaxResponse.setSuccess(false);
+                          AjaxResponseReaction<?> arr = new AjaxResponseReaction<>("Unknown Error",
+                                  "An AJAX call resulted in an internal server error<br>" + T.getMessage() + "<br>" +
+                                          EscapeChars.forHTML(ExceptionUtils.getStackTrace(T)), ReactionType.DialogDisplay);
+                          arr.setResponseType(AjaxResponseType.Danger);
+                          ajaxResponse.addReaction(arr);
+                          WebSocketAbstractCallReceiver.log.log(Level.SEVERE, "Unknown in ajax reply\n", T);
+                          return Uni.createFrom().voidItem();
+                      }
+                  });
     }
 }

@@ -67,6 +67,8 @@ import org.apache.commons.io.FileUtils;
 import java.io.File;
 import java.io.IOException;
 
+import io.smallrye.mutiny.Uni;
+
 /**
  * @author GedMarc
  * @version 1.0
@@ -80,41 +82,57 @@ public class AngularTSSiteBinder
     @Inject
     private Vertx vertx;
 
-    private WorkerExecutor workerExecutor;
-
     private File siteHostingLocation;
 
-    @Inject
-    void setup()
+    public Uni<AjaxResponse<?>> receiveMessage(WebSocketMessageReceiver<?> messageReceived)
     {
-        workerExecutor = vertx.createSharedWorkerExecutor("angular-site-worker-pool");
-    }
+        return Uni.createFrom()
+                  .item(messageReceived)
+                  .onItem()
+                  .transformToUni(m -> {
+                      CallScoper callScoper = IGuiceContext.get(CallScoper.class);
+                      callScoper.enter();
+                      try
+                      {
+                          var callScopeProperties = IGuiceContext.get(CallScopeProperties.class);
+                          callScopeProperties.setSource(CallScopeSource.WebSocket);
+                          callScopeProperties.getProperties()
+                                             .put("RequestContextId", m.getWebSocketSessionId());
+                          String requestContextId = String.valueOf(callScopeProperties.getProperties()
+                                                                                      .get("RequestContextId"));
+                          m.setBroadcastGroup(requestContextId);
 
-    public void receiveMessage(WebSocketMessageReceiver<?> messageReceived)
-    {
-        try
-        {
-            var callScopeProperties = IGuiceContext.get(CallScopeProperties.class);
-            String requestContextId = callScopeProperties.getProperties()
-                                                         .get("RequestContextId")
-                                                         .toString();
-            messageReceived.setBroadcastGroup(requestContextId);
-            if (IGuicedWebSocket.getMessagesListeners()
-                                .containsKey(messageReceived.getAction()))
-            {
-                IGuicedWebSocket.getMessagesListeners()
-                                .get(messageReceived.getAction())
-                                .receiveMessage(messageReceived);
-            }
-            else
-            {
-                log.warn("No web socket action registered for {}", messageReceived.getAction());
-            }
-        }
-        catch (Exception e)
-        {
-            log.error("ERROR Message Received - Message={}", messageReceived.toString(), e);
-        }
+                          if (IGuicedWebSocket.getMessagesListeners()
+                                              .containsKey(m.getAction()))
+                          {
+                              return IGuicedWebSocket.getMessagesListeners()
+                                                     .get(m.getAction())
+                                                     .receiveMessage(m)
+                                                     .onFailure()
+                                                     .invoke(err -> log.error("ERROR Message Received - Message={}", m.toString(), err))
+                                                     .onItem()
+                                                     .transform(v -> (AjaxResponse<?>) IGuiceContext.get(AjaxResponse.class))
+                                                     .eventually(() -> {
+                                                         callScoper.exit();
+                                                     });
+                          }
+                          else
+                          {
+                              log.warn("No web socket action registered for {}", m.getAction());
+                              AjaxResponse<?> ar = IGuiceContext.get(AjaxResponse.class);
+                              return Uni.createFrom()
+                                        .item(ar)
+                                        .eventually(() -> {callScoper.exit();});
+                          }
+                      }
+                      catch (Exception e)
+                      {
+                          log.error("ERROR Message Received - Message={}", messageReceived.toString(), e);
+                          callScoper.exit();
+                          return Uni.createFrom()
+                                    .failure(e);
+                      }
+                  });
     }
 
     /**
@@ -239,28 +257,6 @@ public class AngularTSSiteBinder
                 String staticFileLocationPath = AppUtils.getDistPath((Class<? extends INgApp<?>>) app.getClass())
                                                         .getCanonicalPath();
 
-                //bind sockjs event bridge
-
-
-                /*SockJSBridgeOptions bridgeOptions = new SockJSBridgeOptions();
-                bridgeOptions.setPingTimeout(60000);
-                bridgeOptions.setMaxAddressLength(64 * 1024);
-                bridgeOptions.setReplyTimeout(20000);
-                SockJSHandlerOptions handlerOptions = new SockJSHandlerOptions();
-                handlerOptions.setHeartbeatInterval(30000);
-                handlerOptions.setRegisterWriteHandler(true);
-
-                bridgeOptions.addInboundPermitted(new PermittedOptions().setAddressRegex(".*"));
-                bridgeOptions.addOutboundPermitted(new PermittedOptions().setAddressRegex(".*"));
-
-                SockJSHandler sockJSHandler = SockJSHandler.create(vertx, handlerOptions);
-                // mount the bridge on the router
-                router
-                        .route("/eventbus/*")
-                        .subRouter(sockJSHandler.bridge(bridgeOptions, event -> handleBridgeEvent(event)));
-*/
-                // Configure STOMP server
-
                 JsonObject heartbeats = new JsonObject()
                         // server -> client heartbeat period in ms
                         .put("x", 10000)
@@ -283,11 +279,6 @@ public class AngularTSSiteBinder
                 StompServer stompServer = StompServer.create(vertx, stompOptions)
                                                      .handler(StompServerHandler.create(vertx)
                                                                                 .bridge(stompBridgeOptions));
-
-                // Configure WebSocket for STOMP
-                HttpServerOptions httpOptions = new HttpServerOptions()
-                        .setWebSocketSubProtocols(java.util.Arrays.asList("v10.stomp", "v11.stomp", "v12.stomp"));
-
 
                 // Register WebSocket handlers
                 log.info("Registering WebSocket handler for STOMP at /eventbus/*");
@@ -344,86 +335,51 @@ public class AngularTSSiteBinder
                              }
 
                              WebSocketMessageReceiver<?> finalMr = mr;
-                             workerExecutor.executeBlocking(() -> {
-                                               // Blocking code here
-                                               CallScoper callScoper = IGuiceContext.get(CallScoper.class);
-                                               callScoper.enter();
-                                               try
-                                               {
-                                                   CallScopeProperties props = IGuiceContext.get(CallScopeProperties.class);
-                                                   props.setSource(CallScopeSource.WebSocket);
-                                                   props.getProperties()
-                                                        .put("RequestContextId", finalMr.getWebSocketSessionId());
-                                                   receiveMessage(finalMr);
-                                                   AjaxResponse<?> ar = IGuiceContext.get(AjaxResponse.class);
-                                                   return ar;
-                                               }
-                                               finally
-                                               {
-                                                   callScoper.exit(); // Always exit the scope
-                                               }
-                                           })
-                                           .onFailure(res -> log.fatal("Failed to execute websocker receiver : " + res.getMessage()))
-                                           .onComplete(complete -> {
-                                               //System.out.println("Message processing completed successfully.");
-                                               var ajaxResponse = complete.result();
-                                               DeliveryOptions options = new DeliveryOptions()
-                                                       .addHeader("Content-Type", "application/json");
+                             receiveMessage(finalMr).subscribe()
+                                                    .with(ajaxResponse -> {
+                                                        DeliveryOptions options = new DeliveryOptions()
+                                                                .addHeader("Content-Type", "application/json");
 
-                                               if (ajaxResponse.getSessionStorage() != null && !ajaxResponse.getSessionStorage()
-                                                                                                            .isEmpty())
-                                               {
-                                                   // send session storage updates
-                                                   vertx.eventBus()
-                                                        .publish("SessionStorage", ajaxResponse.getSessionStorage());
-                                               }
-                                               if (ajaxResponse.getLocalStorage() != null && !ajaxResponse.getLocalStorage()
-                                                                                                          .isEmpty())
-                                               {
-                                                   // send local storage updates
-                                                   vertx.eventBus()
-                                                        .publish("LocalStorage", ajaxResponse.getLocalStorage());
-                                               }
-                                               if (ajaxResponse.getDataReturns() != null)
-                                               {
-                                                   handler.reply("{}");
-                                                   //String listenerName = ajaxResponse.getDataReturns().get("listenerName").toString();
-                                                   ajaxResponse.getDataReturns()
-                                                               .forEach((key, value) -> {
-                                                                   if (value instanceof DynamicData dd)
-                                                                   {
-                                                                       for (Object object : dd.getOut())
-                                                                       {
-                                                                           vertx.eventBus()
-                                                                                .publish(key, object);
-                                                                       }
-                                                                   }
-                                                                   else
-                                                                   {
-                                                                       vertx.eventBus()
-                                                                            .publish(key, value);
-                                                                   }
-                                                               });
-                                               }
-                                               else
-                                               {
-                                                   handler.reply(complete.result(), options);
-                                               }
-
-                                    /*if (!ajaxResponse.getDataReturns().isEmpty())
-                                    {
-                                        ajaxResponse.getDataReturns().forEach((key, value) -> {
-                                            vertx.eventBus().publish(key, value);
-                                        });
-                                    }*/
-                                               //vertx.eventBus().publish()
-                                               //handler.reply(complete.result(), options);
-                                           })
-                                           .onFailure(res -> {
-                                               log.fatal("Failed to process message: " + res.getMessage());
-                                               handler.fail(500, res.getMessage()); // Notify sender of fa
-
-                                           });
+                                                        if (ajaxResponse.getSessionStorage() != null && !ajaxResponse.getSessionStorage()
+                                                                                                                     .isEmpty())
+                                                        {
+                                                            vertx.eventBus()
+                                                                 .publish("SessionStorage", ajaxResponse.getSessionStorage());
+                                                        }
+                                                        if (ajaxResponse.getLocalStorage() != null && !ajaxResponse.getLocalStorage()
+                                                                                                                   .isEmpty())
+                                                        {
+                                                            vertx.eventBus()
+                                                                 .publish("LocalStorage", ajaxResponse.getLocalStorage());
+                                                        }
+                                                        if (ajaxResponse.getDataReturns() != null)
+                                                        {
+                                                            handler.reply("{}");
+                                                            ajaxResponse.getDataReturns()
+                                                                        .forEach((key, value) -> {
+                                                                            if (value instanceof DynamicData dd)
+                                                                            {
+                                                                                for (Object object : dd.getOut())
+                                                                                {
+                                                                                    vertx.eventBus()
+                                                                                         .publish(key, object);
+                                                                                }
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                vertx.eventBus()
+                                                                                     .publish(key, value);
+                                                                            }
+                                                                        });
+                                                        }
+                                                        else
+                                                        {
+                                                            handler.reply(ajaxResponse, options);
+                                                        }
+                                                    }, failure -> {
+                                                        log.fatal("Failed to process message: " + failure.getMessage());
+                                                        handler.fail(500, failure.getMessage());
+                                                    });
                              //   handler.reply("{}");
                          }
                          else if (o instanceof JsonObject jo)
@@ -445,86 +401,51 @@ public class AngularTSSiteBinder
                                                         .get("dataService")
                                                         .toString());
                              }
-                             workerExecutor.executeBlocking(() -> {
-                                               // Blocking code here
-                                               CallScoper callScoper = IGuiceContext.get(CallScoper.class);
-                                               callScoper.enter();
-                                               try
-                                               {
-                                                   CallScopeProperties props = IGuiceContext.get(CallScopeProperties.class);
-                                                   props.setSource(CallScopeSource.WebSocket);
-                                                   props.getProperties()
-                                                        .put("RequestContextId", mr.getWebSocketSessionId());
-                                                   receiveMessage(mr);
-                                                   AjaxResponse<?> ar = IGuiceContext.get(AjaxResponse.class);
-                                                   return ar;
-                                               }
-                                               finally
-                                               {
-                                                   callScoper.exit(); // Always exit the scope
-                                               }
-                                           })
-                                           .onFailure(res -> log.fatal("Failed to execute websocker receiver : " + res.getMessage()))
-                                           .onComplete(complete -> {
-                                               //System.out.println("Message processing completed successfully.");
-                                               var ajaxResponse = complete.result();
-                                               DeliveryOptions options = new DeliveryOptions()
-                                                       .addHeader("Content-Type", "application/json");
+                             receiveMessage(mr).subscribe()
+                                               .with(ajaxResponse -> {
+                                                   DeliveryOptions options = new DeliveryOptions()
+                                                           .addHeader("Content-Type", "application/json");
 
-                                               if (ajaxResponse.getSessionStorage() != null && !ajaxResponse.getSessionStorage()
-                                                                                                            .isEmpty())
-                                               {
-                                                   // send session storage updates
-                                                   vertx.eventBus()
-                                                        .publish("SessionStorage", ajaxResponse.getSessionStorage());
-                                               }
-                                               if (ajaxResponse.getLocalStorage() != null && !ajaxResponse.getLocalStorage()
-                                                                                                          .isEmpty())
-                                               {
-                                                   // send local storage updates
-                                                   vertx.eventBus()
-                                                        .publish("LocalStorage", ajaxResponse.getLocalStorage());
-                                               }
-                                               if (ajaxResponse.getDataReturns() != null)
-                                               {
-                                                   handler.reply("{}");
-                                                   //String listenerName = ajaxResponse.getDataReturns().get("listenerName").toString();
-                                                   ajaxResponse.getDataReturns()
-                                                               .forEach((key, value) -> {
-                                                                   if (value instanceof DynamicData dd)
-                                                                   {
-                                                                       for (Object object : dd.getOut())
+                                                   if (ajaxResponse.getSessionStorage() != null && !ajaxResponse.getSessionStorage()
+                                                                                                                .isEmpty())
+                                                   {
+                                                       vertx.eventBus()
+                                                            .publish("SessionStorage", ajaxResponse.getSessionStorage());
+                                                   }
+                                                   if (ajaxResponse.getLocalStorage() != null && !ajaxResponse.getLocalStorage()
+                                                                                                              .isEmpty())
+                                                   {
+                                                       vertx.eventBus()
+                                                            .publish("LocalStorage", ajaxResponse.getLocalStorage());
+                                                   }
+                                                   if (ajaxResponse.getDataReturns() != null)
+                                                   {
+                                                       handler.reply("{}");
+                                                       ajaxResponse.getDataReturns()
+                                                                   .forEach((key, value) -> {
+                                                                       if (value instanceof DynamicData dd)
+                                                                       {
+                                                                           for (Object object : dd.getOut())
+                                                                           {
+                                                                               vertx.eventBus()
+                                                                                    .publish(key, object);
+                                                                           }
+                                                                       }
+                                                                       else
                                                                        {
                                                                            vertx.eventBus()
-                                                                                .publish(key, object);
+                                                                                .publish(key, value);
                                                                        }
-                                                                   }
-                                                                   else
-                                                                   {
-                                                                       vertx.eventBus()
-                                                                            .publish(key, value);
-                                                                   }
-                                                               });
-                                               }
-                                               else
-                                               {
-                                                   handler.reply(complete.result(), options);
-                                               }
-
-                                    /*if (!ajaxResponse.getDataReturns().isEmpty())
-                                    {
-                                        ajaxResponse.getDataReturns().forEach((key, value) -> {
-                                            vertx.eventBus().publish(key, value);
-                                        });
-                                    }*/
-                                               //vertx.eventBus().publish()
-                                               //handler.reply(complete.result(), options);
-                                           })
-                                           .onFailure(res -> {
-                                               log.fatal("Failed to process message: " + res.getMessage());
-                                               handler.fail(500, res.getMessage()); // Notify sender of fa
-
-                                           });
+                                                                   });
+                                                   }
+                                                   else
+                                                   {
+                                                       handler.reply(ajaxResponse, options);
+                                                   }
+                                               }, failure -> {
+                                                   log.fatal("Failed to process message: " + failure.getMessage());
+                                                   handler.fail(500, failure.getMessage());
+                                               });
                              //   handler.reply("{}");
                          }
                          else
@@ -534,69 +455,6 @@ public class AngularTSSiteBinder
                          }
                      });
 
-
-
-/*
-
-                router.get("/*.js")
-                      .handler(StaticHandler.create(FileSystemAccess.ROOT, staticFileLocationPath)
-                                            .setAlwaysAsyncFS(true)
-                                            .setCacheEntryTimeout(604800)
-                                            .setCachingEnabled(true)
-                                            .setDefaultContentEncoding("UTF-8")
-                                            .setDirectoryListing(false)
-                                            .setEnableFSTuning(true)
-                                            .setIncludeHidden(false)
-                                            .setMaxAgeSeconds(604800)
-                                            .setSendVaryHeader(true));
-                String assetsStaticDir = FilenameUtils.concat(staticFileLocationPath, "assets/");
-                router.get("/assets/*")
-                      .handler(StaticHandler.create(FileSystemAccess.ROOT, assetsStaticDir)
-                                            .setAlwaysAsyncFS(true)
-                                            .setCacheEntryTimeout(604800)
-                                            .setCachingEnabled(true)
-                                            .setDefaultContentEncoding("UTF-8")
-                                            .setDirectoryListing(false)
-                                            .setEnableFSTuning(true)
-                                            .setIncludeHidden(false)
-                                            .setMaxAgeSeconds(604800)
-                                            .setSendVaryHeader(true));
-                String mediaStaticDir = FilenameUtils.concat(staticFileLocationPath, "media/");
-                router.get("/media/*")
-                      .handler(StaticHandler.create(FileSystemAccess.ROOT, mediaStaticDir)
-                                            .setAlwaysAsyncFS(true)
-                                            .setCacheEntryTimeout(604800)
-                                            .setCachingEnabled(true)
-                                            .setDefaultContentEncoding("UTF-8")
-                                            .setDirectoryListing(false)
-                                            .setEnableFSTuning(true)
-                                            .setIncludeHidden(false)
-                                            .setMaxAgeSeconds(604800)
-                                            .setSendVaryHeader(true));
-                router.get("/*.css")
-                      .handler(StaticHandler.create(FileSystemAccess.ROOT, staticFileLocationPath)
-                                            .setAlwaysAsyncFS(true)
-                                            .setCacheEntryTimeout(604800)
-                                            .setCachingEnabled(true)
-                                            .setDefaultContentEncoding("UTF-8")
-                                            .setDirectoryListing(false)
-                                            .setEnableFSTuning(true)
-                                            .setIncludeHidden(false)
-                                            .setMaxAgeSeconds(604800)
-                                            .setSendVaryHeader(true));
-                router.get("/*.map")
-                      .handler(StaticHandler.create(FileSystemAccess.ROOT, staticFileLocationPath)
-                                            .setAlwaysAsyncFS(true)
-                                            .setCacheEntryTimeout(604800)
-                                            .setCachingEnabled(true)
-                                            .setDefaultContentEncoding("UTF-8")
-                                            .setDirectoryListing(false)
-                                            .setEnableFSTuning(true)
-                                            .setIncludeHidden(false)
-                                            .setMaxAgeSeconds(604800)
-                                            .setSendVaryHeader(true));
-
-*/
 
                 String path = "";
                 for (DefinedRoute<?> route : AngularRoutingModule.getRoutes(app))
@@ -625,20 +483,25 @@ public class AngularTSSiteBinder
                 router.getWithRegex("^/.+\\.[^/]+$")
                       .handler(ctx -> {
                           String normalized = ctx.normalizedPath();
-                          if (normalized == null) {
+                          if (normalized == null)
+                          {
                               ctx.next();
                               return;
                           }
                           // Strip leading '/'
                           String rel = normalized.startsWith("/") ? normalized.substring(1) : normalized;
                           File primary = new File(staticFileLocationPath, rel);
-                          if (primary.exists() && primary.isFile()) {
-                              ctx.response().sendFile(primary.getAbsolutePath());
+                          if (primary.exists() && primary.isFile())
+                          {
+                              ctx.response()
+                                 .sendFile(primary.getAbsolutePath());
                               return;
                           }
                           File assetsFile = new File(assetsStaticDir, rel);
-                          if (assetsFile.exists() && assetsFile.isFile()) {
-                              ctx.response().sendFile(assetsFile.getAbsolutePath());
+                          if (assetsFile.exists() && assetsFile.isFile())
+                          {
+                              ctx.response()
+                                 .sendFile(assetsFile.getAbsolutePath());
                               return;
                           }
                           // Not a real file in root or assets; allow SPA fallback to handle
@@ -649,7 +512,7 @@ public class AngularTSSiteBinder
                 // serve index.html so Angular Router can handle client-side routes (including parameterized ones).
                 router.getWithRegex("^/(?!api/|eventbus|sockjs|stomp|assets/|media/|.*\\.[^/]+).*$")
                       .handler(ctx -> ctx.response()
-                                             .sendFile(staticFileLocationPath + File.separator + "index.html"));
+                                         .sendFile(staticFileLocationPath + File.separator + "index.html"));
             }
             catch (IOException e)
             {

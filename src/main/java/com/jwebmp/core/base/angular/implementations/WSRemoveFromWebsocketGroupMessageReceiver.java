@@ -1,7 +1,9 @@
 package com.jwebmp.core.base.angular.implementations;
 
+import com.guicedee.guicedservlets.websockets.options.IGuicedWebSocket;
 import com.guicedee.guicedservlets.websockets.options.WebSocketMessageReceiver;
 import com.guicedee.guicedservlets.websockets.services.IWebSocketMessageReceiver;
+import io.smallrye.mutiny.Uni;
 import lombok.extern.java.Log;
 
 import java.util.HashSet;
@@ -15,18 +17,27 @@ public class WSRemoveFromWebsocketGroupMessageReceiver
         implements IWebSocketMessageReceiver
 {
     @Override
-    public void receiveMessage(WebSocketMessageReceiver<?> message) throws SecurityException
+    public Uni<Void> receiveMessage(WebSocketMessageReceiver<?> message) throws SecurityException
     {
-        try
-        {
-            String group = message.getData()
-                    .get("groupName").toString();
-            //	com.guicedee.vertx.websockets.GuicedWebSocket socket = get(com.guicedee.vertx.websockets.GuicedWebSocket.class);
-            //	socket.removeFromGroup(group);
-        } catch (Exception e)
-        {
-            log.log(Level.WARNING, "Unable to check for local storage key", e);
-        }
+        return Uni.createFrom()
+                  .item(message)
+                  .onItem()
+                  .invoke(mr -> {
+                      try
+                      {
+                          Object val = mr.getData().get("groupName");
+                          String group = val != null ? val.toString() : null;
+                          if (group != null && !group.isEmpty())
+                          {
+                              get(IGuicedWebSocket.class).removeFromGroup(group);
+                          }
+                      }
+                      catch (Exception e)
+                      {
+                          log.log(Level.WARNING, "Unable to remove from web socket group", e);
+                      }
+                  })
+                  .replaceWithVoid();
     }
 
     @Override
