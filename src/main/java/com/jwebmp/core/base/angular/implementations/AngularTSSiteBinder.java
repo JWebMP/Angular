@@ -91,48 +91,53 @@ public class AngularTSSiteBinder
                   .onItem()
                   .transformToUni(m -> {
                       CallScoper callScoper = IGuiceContext.get(CallScoper.class);
-                      callScoper.enter();
-                      try
+                      boolean startedScope = callScoper.isStartedScope();
+                      if (!startedScope)
                       {
-                          var callScopeProperties = IGuiceContext.get(CallScopeProperties.class);
+                          callScoper.enter();
+                      }
+                      var callScopeProperties = IGuiceContext.get(CallScopeProperties.class);
+                      if (callScopeProperties.getSource() == null)
+                      {
                           callScopeProperties.setSource(CallScopeSource.WebSocket);
-                          callScopeProperties.getProperties()
-                                             .put("RequestContextId", m.getWebSocketSessionId());
-                          String requestContextId = String.valueOf(callScopeProperties.getProperties()
-                                                                                      .get("RequestContextId"));
-                          m.setBroadcastGroup(requestContextId);
+                      }
 
-                          if (IGuicedWebSocket.getMessagesListeners()
-                                              .containsKey(m.getAction()))
-                          {
-                              return IGuicedWebSocket.getMessagesListeners()
-                                                     .get(m.getAction())
-                                                     .receiveMessage(m)
-                                                     .onFailure()
-                                                     .invoke(err -> log.error("ERROR Message Received - Message={}", m.toString(), err))
-                                                     .onItem()
-                                                     .transform(v -> (AjaxResponse<?>) IGuiceContext.get(AjaxResponse.class))
-                                                     .eventually(() -> {
-                                                         callScoper.exit();
-                                                     });
-                          }
-                          else
-                          {
-                              log.warn("No web socket action registered for {}", m.getAction());
-                              AjaxResponse<?> ar = IGuiceContext.get(AjaxResponse.class);
-                              return Uni.createFrom()
-                                        .item(ar)
-                                        .eventually(() -> {callScoper.exit();});
-                          }
-                      }
-                      catch (Exception e)
+                      callScopeProperties.getProperties()
+                                         .put("RequestContextId", m.getWebSocketSessionId());
+                      String requestContextId = String.valueOf(callScopeProperties.getProperties()
+                                                                                  .get("RequestContextId"));
+                      m.setBroadcastGroup(requestContextId);
+
+                      if (IGuicedWebSocket.getMessagesListeners()
+                                          .containsKey(m.getAction()))
                       {
-                          log.error("ERROR Message Received - Message={}", messageReceived.toString(), e);
-                          callScoper.exit();
-                          return Uni.createFrom()
-                                    .failure(e);
+                          return IGuicedWebSocket.getMessagesListeners()
+                                                 .get(m.getAction())
+                                                 .receiveMessage(m)
+                                                 .onFailure()
+                                                 .invoke(err -> log.error("ERROR Message Received - Message={}", m.toString(), err))
+                                                 .eventually(() -> {
+                                                     if (!startedScope)
+                                                     {
+                                                         callScoper.exit();
+                                                     }
+                                                 });
                       }
-                  });
+                      else
+                      {
+                          log.warn("No web socket action registered for {}", m.getAction());
+                          AjaxResponse<?> ar = IGuiceContext.get(AjaxResponse.class);
+                          return Uni.createFrom()
+                                    .item(new AjaxResponse<>())
+                                    .eventually(() -> {
+                                        if (!startedScope)
+                                        {
+                                            callScoper.exit();
+                                        }
+                                    });
+                      }
+                  })
+                  .replaceWith(new AjaxResponse<>());
     }
 
     /**
@@ -155,13 +160,9 @@ public class AngularTSSiteBinder
 
             Class<?> loadClass = classInfo.loadClass();
             NgApp app = loadClass.getAnnotation(NgApp.class);
-            //  for (NgApp app : IGuiceContext.get(AnnotationHelper.class)
-            //                                .getAnnotationFromClass(loadClass, NgApp.class))
-            //   {
             PageConfiguration pc = loadClass.getAnnotation(PageConfiguration.class);
             String userDir = GlobalProperties.getSystemPropertyOrEnvironment("JWEBMP_ROOT_PATH", new File(System.getProperty("user.dir"))
                     .getPath());
-
             siteHostingLocation = new File(userDir + "/webroot/");
             try
             {
@@ -174,19 +175,7 @@ public class AngularTSSiteBinder
             }
             AngularTSPostStartup.basePath = siteHostingLocation.toPath();
             log.info("Serving Angular TS for defined @NgApp {} at  {}", app.value(), siteHostingLocation.getPath());
-
-            String path = "";
-           /* for (DefinedRoute<?> route : RoutingModule.getRoutes())
-            {
-                bindRouteToPath(path, siteHostingLocation, route);
-            }*/
         }
-        //}
-
-
-        //JWebMPSiteBinder.bindSites = false;
-        //JWebMPJavaScriptDynamicScriptRenderer.renderJavascript = false;
-
     }
 
 
@@ -233,18 +222,6 @@ public class AngularTSSiteBinder
     {
         return Integer.MIN_VALUE + 100;
     }
-
-    private void handleBridgeEvent(BridgeEvent event)
-    {
-        if (event.type() == BridgeEventType.SEND || event.type() == BridgeEventType.PUBLISH)
-        {
-            String address = event.getRawMessage()
-                                  .getString("address"); // Address message was received from
-            System.out.println("Message received at address: " + address);
-        }
-        event.complete(true); // Allow the event to proceed
-    }
-
 
     @Override
     public Router builder(Router router)
@@ -307,7 +284,7 @@ public class AngularTSSiteBinder
 
                          if (o instanceof Buffer buffer)
                          {
-                             String message = o.toString();
+                             String message = buffer.toString();
                              WebSocketMessageReceiver<?> mr;
                              try
                              {
