@@ -13,13 +13,13 @@ public class OnClickListener implements IOnClickService<OnClickListener>
         if (e.getComponent() != null)
         {
             e.getComponent()
-             .cast()
-             .asAttributeBase()
-             .addAttribute("clickClassName", e.getClass()
-                                              .getCanonicalName());
+                    .cast()
+                    .asAttributeBase()
+                    .addAttribute("clickClassName", e.getClass()
+                            .getCanonicalName());
 
             e.getComponent()
-             .addConfiguration(AnnotationUtils.getNgComponentReference(OnClickListenerDirective.class));
+                    .addConfiguration(AnnotationUtils.getNgComponentReference(OnClickListenerDirective.class));
         }
     }
 
