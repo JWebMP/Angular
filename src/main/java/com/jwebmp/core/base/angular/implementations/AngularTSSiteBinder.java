@@ -61,6 +61,7 @@ import io.vertx.ext.stomp.StompServer;
 import io.vertx.ext.stomp.StompServerHandler;
 import io.vertx.ext.stomp.StompServerOptions;
 import io.vertx.core.http.HttpServerOptions;
+import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.io.FileUtils;
 
@@ -152,7 +153,8 @@ public class AngularTSSiteBinder
     /**
      * Method onBind ...
      */
-    @Override
+    @SneakyThrows
+				@Override
     public void configure()
     {
         bind(EnvironmentModule.class)
@@ -169,10 +171,11 @@ public class AngularTSSiteBinder
 
             Class<?> loadClass = classInfo.loadClass();
             NgApp app = loadClass.getAnnotation(NgApp.class);
-            PageConfiguration pc = loadClass.getAnnotation(PageConfiguration.class);
-            String userDir = GlobalProperties.getSystemPropertyOrEnvironment("JWEBMP_ROOT_PATH", new File(System.getProperty("user.dir"))
-                    .getPath());
-            siteHostingLocation = new File(userDir + "/webroot/");
+            /*PageConfiguration pc = loadClass.getAnnotation(PageConfiguration.class);
+            String userDir = GlobalProperties.getSystemPropertyOrEnvironment("jwebmp", new File(System.getProperty("user.dir"))
+                    .getPath());*/
+            // todo find the @NgApp and add as a subdirectory
+            siteHostingLocation = new File(AppUtils.baseUserDirectory.getCanonicalPath() + "/webroot");
             try
             {
                 FileUtils.forceMkdirParent(siteHostingLocation);
