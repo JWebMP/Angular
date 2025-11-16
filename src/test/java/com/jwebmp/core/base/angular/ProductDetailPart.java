@@ -6,8 +6,7 @@ import com.jwebmp.core.base.angular.services.RouterOutlet;
 
 import com.jwebmp.core.base.html.*;
 
-import static com.jwebmp.core.base.angular.components.modules.RouterModule.applyRoute;
-
+import static com.jwebmp.core.base.angular.modules.services.angular.AngularRoutingModule.applyRoute;
 
 @NgComponent(value = "product-detail-part")
 public class ProductDetailPart extends DivSimple<ProductDetailPart>
