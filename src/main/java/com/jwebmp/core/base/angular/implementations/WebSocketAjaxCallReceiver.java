@@ -24,7 +24,7 @@ import static com.jwebmp.interception.services.JWebMPInterceptionBinder.AjaxCall
 
 @Log
 public class WebSocketAjaxCallReceiver
-        implements IWebSocketMessageReceiver
+        implements IWebSocketMessageReceiver<AjaxResponse<?>, WebSocketAjaxCallReceiver>
 {
     @Override
     public Set<String> messageNames()
@@ -35,7 +35,7 @@ public class WebSocketAjaxCallReceiver
     }
 
     @Override
-    public io.smallrye.mutiny.Uni<Void> receiveMessage(WebSocketMessageReceiver message) throws SecurityException
+    public io.smallrye.mutiny.Uni<AjaxResponse<?>> receiveMessage(WebSocketMessageReceiver message) throws SecurityException
     {
         return io.smallrye.mutiny.Uni.createFrom()
                                      .item(message)
@@ -90,7 +90,7 @@ public class WebSocketAjaxCallReceiver
                                                                         throw new RuntimeException(e);
                                                                     }
                                                                 })
-                                                                .replaceWithVoid();
+                                                                .replaceWith(ajaxResponse);
                                          }
                                          catch (InvalidRequestException ie)
                                          {
@@ -111,7 +111,7 @@ public class WebSocketAjaxCallReceiver
                                                                                                                 .get("sessionid")
                                                      + "];" + "[Exception]-[Invalid Request]", ie);
                                              return io.smallrye.mutiny.Uni.createFrom()
-                                                                          .voidItem();
+                                                                          .item(ajaxResponse);
                                          }
                                          catch (Exception T)
                                          {
@@ -131,7 +131,7 @@ public class WebSocketAjaxCallReceiver
                                              }
                                              WebSocketAjaxCallReceiver.log.log(Level.SEVERE, "Unknown in ajax reply\n", T);
                                              return io.smallrye.mutiny.Uni.createFrom()
-                                                                          .voidItem();
+                                                                          .item(ajaxResponse);
                                          }
                                          catch (Throwable T)
                                          {
@@ -151,7 +151,7 @@ public class WebSocketAjaxCallReceiver
                                              }
                                              WebSocketAjaxCallReceiver.log.log(Level.SEVERE, "Unknown in ajax reply\n", T);
                                              return io.smallrye.mutiny.Uni.createFrom()
-                                                                          .voidItem();
+                                                                          .item(ajaxResponse);
                                          }
                                      });
     }

@@ -22,8 +22,8 @@ import static com.guicedee.guicedinjection.interfaces.ObjectBinderKeys.DefaultOb
 import static com.jwebmp.interception.services.JWebMPInterceptionBinder.AjaxCallInterceptorKey;
 
 @Log
-public abstract class WebSocketAbstractCallReceiver
-        implements IWebSocketMessageReceiver
+public abstract class WebSocketAbstractCallReceiver<J extends WebSocketAbstractCallReceiver<J>>
+        implements IWebSocketMessageReceiver<AjaxResponse<?>, J>
 {
     public abstract String getMessageDirector();
 
@@ -38,7 +38,7 @@ public abstract class WebSocketAbstractCallReceiver
     }
 
     @Override
-    public Uni<Void> receiveMessage(WebSocketMessageReceiver message) throws SecurityException
+    public Uni<AjaxResponse<?>> receiveMessage(WebSocketMessageReceiver message) throws SecurityException
     {
         return Uni.createFrom()
                   .item(message)
@@ -58,10 +58,13 @@ public abstract class WebSocketAbstractCallReceiver
                               ajaxCallIntercepter.intercept(ajaxCall, ajaxResponse);
                           }
                           return action(ajaxCall, ajaxResponse)
-                                  .onItem().invoke(resp -> {
-                                      if (resp != null && !ajaxCall.getSessionStorage().containsKey("contextId"))
+                                  .onItem()
+                                  .invoke(resp -> {
+                                      if (resp != null && !ajaxCall.getSessionStorage()
+                                                                   .containsKey("contextId"))
                                       {
-                                          if (properties.getProperties().containsKey("RequestContextId"))
+                                          if (properties.getProperties()
+                                                        .containsKey("RequestContextId"))
                                           {
                                               resp.getSessionStorage()
                                                   .put("contextId", properties.getProperties()
@@ -70,7 +73,7 @@ public abstract class WebSocketAbstractCallReceiver
                                           }
                                       }
                                   })
-                                  .replaceWithVoid();
+                                  .replaceWith(ajaxResponse);
                       }
                       catch (Exception T)
                       {
@@ -81,7 +84,8 @@ public abstract class WebSocketAbstractCallReceiver
                           arr.setResponseType(AjaxResponseType.Danger);
                           ajaxResponse.addReaction(arr);
                           WebSocketAbstractCallReceiver.log.log(Level.SEVERE, "Unknown in ajax reply\n", T);
-                          return Uni.createFrom().voidItem();
+                          return Uni.createFrom()
+                                    .item(ajaxResponse);
                       }
                       catch (Throwable T)
                       {
@@ -92,7 +96,8 @@ public abstract class WebSocketAbstractCallReceiver
                           arr.setResponseType(AjaxResponseType.Danger);
                           ajaxResponse.addReaction(arr);
                           WebSocketAbstractCallReceiver.log.log(Level.SEVERE, "Unknown in ajax reply\n", T);
-                          return Uni.createFrom().voidItem();
+                          return Uni.createFrom()
+                                    .item(ajaxResponse);
                       }
                   });
     }

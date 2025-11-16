@@ -111,9 +111,18 @@ public class AngularTSSiteBinder
                       if (IGuicedWebSocket.getMessagesListeners()
                                           .containsKey(m.getAction()))
                       {
+                          // Use the AjaxResponse returned by the target message listener (may be Void or AjaxResponse)
                           return IGuicedWebSocket.getMessagesListeners()
                                                  .get(m.getAction())
                                                  .receiveMessage(m)
+                                                 .onItem()
+                                                 .transform(resp -> {
+                                                     if (resp instanceof AjaxResponse<?> ar)
+                                                     {
+                                                         return ar;
+                                                     }
+                                                     throw new UnsupportedOperationException("Websocket listener returned void instead of AjaxResponse - " + m.getAction());
+                                                 })
                                                  .onFailure()
                                                  .invoke(err -> log.error("ERROR Message Received - Message={}", m.toString(), err))
                                                  .eventually(() -> {
@@ -128,7 +137,7 @@ public class AngularTSSiteBinder
                           log.warn("No web socket action registered for {}", m.getAction());
                           AjaxResponse<?> ar = IGuiceContext.get(AjaxResponse.class);
                           return Uni.createFrom()
-                                    .item(new AjaxResponse<>())
+                                    .item(ar != null ? ar : new AjaxResponse<>())
                                     .eventually(() -> {
                                         if (!startedScope)
                                         {
@@ -137,7 +146,7 @@ public class AngularTSSiteBinder
                                     });
                       }
                   })
-                  .replaceWith(new AjaxResponse<>());
+                ;
     }
 
     /**
@@ -234,11 +243,13 @@ public class AngularTSSiteBinder
                 String staticFileLocationPath = AppUtils.getDistPath((Class<? extends INgApp<?>>) app.getClass())
                                                         .getCanonicalPath();
 
+                // Configure STOMP heartbeats.
+                // x = server->client send interval; y = expected client->server interval.
+                // Browsers may throttle timers in background tabs; set y=0 to not require client heartbeats
+                // and keep x reasonably frequent so clients detect drops.
                 JsonObject heartbeats = new JsonObject()
-                        // server -> client heartbeat period in ms
-                        .put("x", 10000)
-                        // client -> server expected heartbeat period in ms
-                        .put("y", 10000);
+                        .put("x", 10000) // server sends heartbeat every 10s
+                        .put("y", 0);    // do not expect client heartbeats (avoid idle disconnects)
 
 
                 StompServerOptions stompOptions = new StompServerOptions()
@@ -276,7 +287,7 @@ public class AngularTSSiteBinder
                       });
 
                 // This executes when a websocket message is received via STOMP
-                log.info("Registering event bus consumer for STOMP messages at /toBus/incoming");
+                log.trace("Registering event bus consumer for STOMP messages at /toBus/incoming");
                 vertx.eventBus()
                      .consumer("/toBus/incoming", handler -> {
                          var o = handler.body();
@@ -502,7 +513,12 @@ public class AngularTSSiteBinder
     @Override
     public HttpServerOptions builder(HttpServerOptions builder)
     {
+        // Ensure STOMP sub-protocols are advertised
         builder.setWebSocketSubProtocols(java.util.Arrays.asList("v10.stomp", "v11.stomp", "v12.stomp"));
+        // Do not close idle WebSocket connections at HTTP server level; rely on STOMP heartbeats.
+        // Enable TCP keep-alive at socket level for intermediaries that honor it.
+        builder.setIdleTimeout(0) // 0 = disabled
+               .setTcpKeepAlive(true);
         return builder;
     }
 }

@@ -14,7 +14,7 @@ import static com.guicedee.client.IGuiceContext.get;
 
 @Log
 public class WSRemoveFromWebsocketGroupMessageReceiver
-        implements IWebSocketMessageReceiver
+        implements IWebSocketMessageReceiver<Void, WSRemoveFromWebsocketGroupMessageReceiver>
 {
     @Override
     public Uni<Void> receiveMessage(WebSocketMessageReceiver<?> message) throws SecurityException
@@ -25,7 +25,8 @@ public class WSRemoveFromWebsocketGroupMessageReceiver
                   .invoke(mr -> {
                       try
                       {
-                          Object val = mr.getData().get("groupName");
+                          Object val = mr.getData()
+                                         .get("groupName");
                           String group = val != null ? val.toString() : null;
                           if (group != null && !group.isEmpty())
                           {

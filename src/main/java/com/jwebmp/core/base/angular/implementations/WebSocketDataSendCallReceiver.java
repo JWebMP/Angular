@@ -8,8 +8,7 @@ import com.jwebmp.core.base.angular.client.services.interfaces.INgDataService;
 import io.smallrye.mutiny.Uni;
 
 public class WebSocketDataSendCallReceiver
-        extends WebSocketAbstractCallReceiver
-        implements IWebSocketMessageReceiver
+        extends WebSocketAbstractCallReceiver<WebSocketDataSendCallReceiver>
 {
     @Override
     public String getMessageDirector()
@@ -20,19 +19,20 @@ public class WebSocketDataSendCallReceiver
     @Override
     public Uni<AjaxResponse<?>> action(AjaxCall<?> call, AjaxResponse<?> response)
     {
-        return Uni.createFrom().item(() -> {
-            Class<? extends INgDataService<?>> clazzy = null;
-            try
-            {
-                clazzy = (Class<? extends INgDataService<?>>) Class.forName(call.getClassName());
-            }
-            catch (ClassNotFoundException e)
-            {
-                e.printStackTrace();
-            }
-            INgDataService<?> dataService = IGuiceContext.get(clazzy);
-            dataService.receiveData(call, response);
-            return response;
-        });
+        return Uni.createFrom()
+                  .item(() -> {
+                      Class<? extends INgDataService<?>> clazzy = null;
+                      try
+                      {
+                          clazzy = (Class<? extends INgDataService<?>>) Class.forName(call.getClassName());
+                      }
+                      catch (ClassNotFoundException e)
+                      {
+                          e.printStackTrace();
+                      }
+                      INgDataService<?> dataService = IGuiceContext.get(clazzy);
+                      dataService.receiveData(call, response);
+                      return response;
+                  });
     }
 }
