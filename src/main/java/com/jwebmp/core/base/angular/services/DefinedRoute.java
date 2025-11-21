@@ -78,7 +78,7 @@ public class DefinedRoute<J extends DefinedRoute<J>> implements IJsonRepresentat
     }
 
     @SuppressWarnings("unchecked")
-    public J setPath(String path)
+    public @org.jspecify.annotations.NonNull J setPath(String path)
     {
         this.path = path;
         return (J) this;
@@ -99,7 +99,7 @@ public class DefinedRoute<J extends DefinedRoute<J>> implements IJsonRepresentat
     }
 
     @SuppressWarnings("unchecked")
-    public J setComponentName(String componentName)
+    public @org.jspecify.annotations.NonNull J setComponentName(String componentName)
     {
         this.componentName = componentName;
         return (J) this;
@@ -111,7 +111,7 @@ public class DefinedRoute<J extends DefinedRoute<J>> implements IJsonRepresentat
     }
 
     @SuppressWarnings("unchecked")
-    public J setComponent(Class<? extends IComponent<?>> component)
+    public @org.jspecify.annotations.NonNull J setComponent(Class<? extends IComponent<?>> component)
     {
         this.component = component;
         return (J) this;

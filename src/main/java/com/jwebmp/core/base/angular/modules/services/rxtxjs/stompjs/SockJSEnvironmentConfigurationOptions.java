@@ -24,7 +24,7 @@ public class SockJSEnvironmentConfigurationOptions<J extends SockJSEnvironmentCo
 		return api;
 	}
 	
-	public J setApi(String api)
+	public @org.jspecify.annotations.NonNull J setApi(String api)
 	{
 		this.api = api;
 		return (J) this;

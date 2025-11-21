@@ -22,7 +22,7 @@ public class EnvironmentOptions<J extends EnvironmentOptions<J>> implements IJso
 		return production;
 	}
 	
-	public J setProduction(boolean production)
+	public @org.jspecify.annotations.NonNull J setProduction(boolean production)
 	{
 		this.production = production;
 		return (J) this;
