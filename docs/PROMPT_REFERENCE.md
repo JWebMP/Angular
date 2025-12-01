@@ -1,4 +1,4 @@
-Prompt reference for future AI interactions (forward-only). Load this file before prompting to ensure stack alignment and diagram reuse.
+Prompt reference for future AI interactions (forward-only). Load this file before prompting to ensure stack alignment, stage gates, and diagram reuse.
 
 ## Selected stacks
 - Java 25 LTS; Maven build.
@@ -13,6 +13,8 @@ Prompt reference for future AI interactions (forward-only). Load this file befor
 - Context: docs/architecture/c4-context.md
 - Container: docs/architecture/c4-container.md
 - Component: docs/architecture/c4-component-angular.md
+- Dependency map: docs/architecture/dependency-map.md
+- Interaction/data flows: docs/architecture/interaction-flows.md
 - Sequences: docs/architecture/sequence-typescript-generation.md, docs/architecture/sequence-websocket-stomp.md
 - ERD: docs/architecture/erd-angular-plugin.md
 
@@ -21,5 +23,6 @@ Prompt reference for future AI interactions (forward-only). Load this file befor
 - Prompt Language Alignment: use CRTP (no Lombok @Builder for fluent setters), Log4j2 for logging, Angular naming from `rules/generative/language/angular`.
 
 ## Traceability
-- PACT ↔ GLOSSARY ↔ RULES ↔ GUIDES ↔ IMPLEMENTATION must reference these diagrams.
+- PACT ↔ GLOSSARY ↔ RULES ↔ GUIDES ↔ IMPLEMENTATION must reference these diagrams and the overview/trust notes.
 - Do not place project docs inside `rules/`; keep host docs under repository root/docs.
+- Mermaid MCP server is available for regenerating diagrams; keep sources in Markdown (no rendered images committed).

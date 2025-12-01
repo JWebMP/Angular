@@ -21,10 +21,10 @@ sequenceDiagram
             Compiler->>Compiler: gather annotations/routes/assets
             Compiler->>Compiler: apply ConfigureImportReferences (imports/tags/inputs/outputs)
             Compiler->>Compiler: apply NpmrcConfigurator if provided
-            Compiler->>FS: renderAppTS(app) -> write Angular source/config (no dist build)
+            Compiler->>FS: renderAppTS(app) -> write TS/Angular config + assets
         end
     else disabled
         Post-->>Guice: Skip TS render (log)
     end
-    Guice-->>Dev: Startup complete (Vert.x can serve dist built externally)
+    Guice-->>Dev: Startup complete; Vert.x hosts generated dist
 ```

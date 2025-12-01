@@ -18,34 +18,36 @@ Implementation plan (docs-first). No source code changes performed yet; Stage 4 
 ## Module use-site SPI consumption
 - `module-info.java` declares `uses` for: `AngularScanPackages`, `IWebSocketAuthDataProvider`, `RenderedAssets`, `NpmrcConfigurator`, `WebSocketGroupAdd`, `TypescriptIndexPageConfigurator`, `IPageConfigurator`. Implementations must be available on the module path for runtime discovery.
 
-## Planned changes (Stage 4 execution)
-- Update `README.md` to reflect Rules adoption, architecture docs, and stack selections.
-- Add `.env.example` per `rules/generative/platform/secrets-config/env-variables.md` and document `JWEBMP_PROCESS_ANGULAR_TS` plus Vert.x/STOMP related toggles.
-- Add GitHub Actions workflow (`.github/workflows/maven-package.yml`) referencing shared GuicedEE workflow per requirements; document secrets.
-- Create AI workspace rule mirrors:
-  - `.aiassistant/rules/` summary of RULES sections 4/5 + Document Modularity + Forward-Only.
-  - `.github/copilot-instructions.md`.
-  - `.cursor/rules.md`.
-  - Ensure `rules/` submodule is referenced, not modified.
-- Backlink PACT/RULES/GLOSSARY/GUIDES/IMPLEMENTATION to diagrams and PROMPT reference where missing.
-- Consider MIGRATION.md entry if legacy docs (old README encoding) are superseded.
+- Rules Repository updates (restricted to `rules/generative/frontend/jwebmp/angular/` and necessary upstream indexes; no host docs inside the submodule):
+  - Refresh the parent README in `rules/generative/frontend/jwebmp/angular/` and add cross-links to Angular 20, TypeScript, JWebMP core/client/typescript, GuicedEE, Vert.x, CI/testing rules.
+  - Add modular rule pages outlined in `docs/rules-skeleton.md` (overview, type-generation, hosting-messaging, testing) and a release-notes doc; ensure “see also” links point back to the topic README and enterprise indexes.
+  - Keep existing component `.rules.md` files under this topic (if present); align anchors to Angular 20 terminology and Log4j2/CRTP guidance.
+- Host repository docs:
+  - Update `README.md` with “How to use these rules” and glossary alignment note linking `GLOSSARY.md` and the topic glossaries under `rules/`.
+  - Ensure `GLOSSARY.md` references topic-first precedence and points to rule glossaries; keep minimal local definitions.
+  - Reference diagrams from PACT/RULES/GUIDES/IMPLEMENTATION and the refreshed architecture index.
+- Release/change notes:
+  - Add or update `RELEASE_NOTES.md` and bump changelog entry summarizing forward-only rule changes (Angular 20 enforcement, Vert.x 5 bridge, TypeScriptCompiler migration path).
+  - Note forward-only behavior and removed legacy anchors if any.
+- CI/docs validation:
+  - Run link checks (manual review) across README/rules/guides; ensure new rule files are linked from indexes.
+  - No code/test execution expected unless required to validate doc-generated paths.
 
 ## Build/CI wiring plan
-- Maven verify with Java 25; include flatten plugin defaults; future Jacoco config captured in TODOs.
-- GitHub Actions workflow triggers on push + dispatch; uses GuicedEE shared workflow with required secrets (`USERNAME`, `USER_TOKEN`, `SONA_USERNAME`, `SONA_PASSWORD`).
-- Document CI and env requirements in README and `.env.example`.
+- Keep Maven/Java 25 defaults; no new plugins for this docs-only change set.
+- Verify `.github/workflows/maven-package.yml` stays aligned with GitHub Actions provider rules and references required secrets.
+- Call out CI expectations in README/GUIDES (docs only).
 
 ## Environment/config plan
-- Surface toggles: `JWEBMP_PROCESS_ANGULAR_TS` (TS generation), potential Vert.x host/port if exposed by parent configs, heartbeat values (document defaults).
-- Keep sample `.env.example` minimal and non-secret; instruct loading via system properties/env vars.
+- Document `JWEBMP_PROCESS_ANGULAR_TS` / `jwebmp.process.angular.ts` gating in README/GUIDES; highlight STOMP heartbeat defaults and Vert.x host/port expectations if exposed.
+- Keep `.env.example` minimal (no secrets); ensure env names match rules and guides.
 
 ## Rollout & validation
-- Validate docs link resolution.
-- Run `mvn -q -DskipTests package`? (optional) after Stage 4 if feasible; note if skipped.
-- Manual check: ensure `rules` submodule referenced in README and not polluted with host docs.
-- When implementing new TS generation features, prefer `TypeScriptCompiler` and keep compatibility for existing `JWebMPTypeScriptCompiler` callers until full migration.
+- Validate Markdown links and anchors across README/GLOSSARY/GUIDES/IMPLEMENTATION and new rule pages.
+- Ensure `rules` submodule changes stay within the intended topic directories; no host docs inside submodule.
+- Confirm cross-links to diagrams (`docs/architecture/`), PROMPT reference, and glossary precedence.
 
 ## Risks / unknowns
-- WebSocket/STOMP security not defined; document expectation that listeners enforce auth/validation.
-- Dist path generation uses `AppUtils` and user `webroot`; ensure no unintended directory exposure (documented in overview).
-- Existing README text is encoded/garbled; replacing it could drop prior context (low risk, forward-only).*** End Patch to=functions.apply_patch sulky Json## Test Output Reasoning
+- WebSocket/STOMP security not defined; rules/guides must call out application-layer auth/validation.
+- Dist path generation uses `AppUtils` and user `webroot`; document directory exposure safeguards in hosting rules.
+- Component index drift risk in rules submodule; ensure forward-only removal of stale anchors is well-documented in release notes.
