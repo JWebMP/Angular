@@ -13,8 +13,7 @@
     <packaging>jar</packaging>
     <version>2.0.0-SNAPSHOT</version>
     <name>Angular TS</name>
-    <description>Provides Angular TS Data Binding for JWebMP
-    </description>
+    <description>Generates Angular 20 TypeScript/config from JWebMP annotations and serves the built SPA via Vert.x 5/STOMP</description>
     <url>https://github.com/GedMarc/JWebMP-AngularTS</url>
 
     <properties>
