@@ -3,7 +3,7 @@ package com.jwebmp.core.base.angular.services.compiler.setup;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import com.guicedee.client.IGuiceContext;
-import com.guicedee.client.CallScoper;
+import com.guicedee.client.scopes.CallScoper;
 import com.jwebmp.core.Page;
 import com.jwebmp.core.base.ComponentHierarchyBase;
 import com.jwebmp.core.base.angular.client.AppUtils;
@@ -15,7 +15,6 @@ import com.jwebmp.core.base.angular.client.annotations.typescript.TsDependency;
 import com.jwebmp.core.base.angular.client.annotations.typescript.TsDevDependencies;
 import com.jwebmp.core.base.angular.client.annotations.typescript.TsDevDependency;
 import com.jwebmp.core.base.angular.client.services.AnnotationHelper;
-import com.jwebmp.core.base.angular.client.services.interfaces.IComponent;
 import com.jwebmp.core.base.angular.client.services.interfaces.INgApp;
 import com.jwebmp.core.base.angular.modules.services.base.EnvironmentModule;
 import com.jwebmp.core.base.angular.services.interfaces.NpmrcConfigurator;
@@ -34,7 +33,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 
-import static com.guicedee.guicedinjection.interfaces.ObjectBinderKeys.DefaultObjectMapper;
+import static com.guicedee.client.implementations.ObjectBinderKeys.DefaultObjectMapper;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**

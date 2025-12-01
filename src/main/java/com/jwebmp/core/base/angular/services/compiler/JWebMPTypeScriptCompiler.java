@@ -2,8 +2,7 @@ package com.jwebmp.core.base.angular.services.compiler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
-import com.guicedee.client.CallScopeProperties;
-import com.guicedee.client.CallScoper;
+import com.guicedee.client.scopes.CallScoper;
 import com.guicedee.client.IGuiceContext;
 import com.guicedee.vertx.spi.VertXPreStartup;
 import com.jwebmp.core.Page;
@@ -33,7 +32,6 @@ import com.jwebmp.core.base.html.Body;
 import com.jwebmp.core.base.html.DivSimple;
 import com.jwebmp.core.base.interfaces.IComponentHierarchyBase;
 import com.jwebmp.core.base.servlets.enumarations.DevelopmentEnvironments;
-import com.jwebmp.core.services.IPage;
 import io.github.classgraph.ClassInfo;
 import io.github.classgraph.Resource;
 import io.github.classgraph.ScanResult;
@@ -48,7 +46,7 @@ import java.io.InputStream;
 import java.util.*;
 import java.util.function.Predicate;
 
-import static com.guicedee.guicedinjection.interfaces.ObjectBinderKeys.DefaultObjectMapper;
+import static com.guicedee.client.implementations.ObjectBinderKeys.DefaultObjectMapper;
 import static com.jwebmp.core.base.angular.client.AppUtils.getAppMainTSPath;
 import static com.jwebmp.core.base.angular.client.AppUtils.getFile;
 import static com.jwebmp.core.base.angular.client.services.interfaces.AnnotationUtils.getTsFilename;

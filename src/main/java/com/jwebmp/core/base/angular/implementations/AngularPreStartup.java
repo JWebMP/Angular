@@ -1,6 +1,6 @@
 package com.jwebmp.core.base.angular.implementations;
 
-import com.guicedee.guicedinjection.interfaces.IGuicePreStartup;
+import com.guicedee.client.services.lifecycle.IGuicePreStartup;
 import io.vertx.core.Future;
 
 import java.util.List;

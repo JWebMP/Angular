@@ -1,10 +1,10 @@
 package com.jwebmp.core.base.angular.implementations;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.guicedee.client.CallScopeProperties;
+import com.guicedee.client.scopes.CallScopeProperties;
 import com.guicedee.client.IGuiceContext;
-import com.guicedee.guicedservlets.websockets.options.WebSocketMessageReceiver;
-import com.guicedee.guicedservlets.websockets.services.IWebSocketMessageReceiver;
+import com.guicedee.client.services.websocket.WebSocketMessageReceiver;
+import com.guicedee.client.services.websocket.IWebSocketMessageReceiver;
 import com.guicedee.services.jsonrepresentation.IJsonRepresentation;
 import com.jwebmp.core.base.ajax.*;
 import com.jwebmp.core.utilities.EscapeChars;
@@ -18,7 +18,6 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import static com.guicedee.client.IGuiceContext.get;
-import static com.guicedee.guicedinjection.interfaces.ObjectBinderKeys.DefaultObjectMapper;
 import static com.jwebmp.interception.services.JWebMPInterceptionBinder.AjaxCallInterceptorKey;
 
 @Log

@@ -1,6 +1,6 @@
 package com.jwebmp.core.base.angular.services;
 
-import com.guicedee.client.CallScopeProperties;
+import com.guicedee.client.scopes.CallScopeProperties;
 import com.guicedee.client.IGuiceContext;
 import lombok.extern.log4j.Log4j2;
 

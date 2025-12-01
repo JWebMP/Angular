@@ -1,29 +1,19 @@
+import com.guicedee.client.services.lifecycle.IGuicePostStartup;
+import com.guicedee.client.services.config.IGuiceScanModuleInclusions;
 import com.jwebmp.core.base.angular.client.services.TypescriptIndexPageConfigurator;
 import com.jwebmp.core.base.angular.modules.listeners.OnClickListener;
-import com.guicedee.guicedinjection.interfaces.*;
-import com.guicedee.vertx.web.spi.*;
-import com.guicedee.vertx.spi.*;
 import com.jwebmp.core.base.angular.implementations.*;
-import com.guicedee.guicedservlets.websockets.services.*;
 import com.jwebmp.core.base.angular.services.interfaces.*;
-import com.guicedee.guicedinjection.interfaces.IGuiceConfigurator;
-import com.guicedee.guicedinjection.interfaces.IGuiceModule;
-import com.guicedee.guicedinjection.interfaces.IGuicePreStartup;
-import com.guicedee.guicedservlets.websockets.services.IWebSocketAuthDataProvider;
-import com.guicedee.guicedservlets.websockets.services.IWebSocketMessageReceiver;
+import com.guicedee.client.services.lifecycle.IGuiceConfigurator;
+import com.guicedee.client.services.lifecycle.IGuiceModule;
+import com.guicedee.client.services.lifecycle.IGuicePreStartup;
+import com.guicedee.client.services.websocket.IWebSocketAuthDataProvider;
+import com.guicedee.client.services.websocket.IWebSocketMessageReceiver;
 import com.guicedee.vertx.web.spi.VertxRouterConfigurator;
-import com.jwebmp.core.base.angular.client.services.spi.*;
-import com.jwebmp.core.base.angular.implementations.*;
 
 import com.jwebmp.core.base.angular.implementations.configurations.ConfigureImportReferences;
-import com.jwebmp.core.base.angular.modules.listeners.OnClickListener;
 import com.jwebmp.core.base.angular.services.RenderedAssets;
-import com.jwebmp.core.base.angular.services.interfaces.*;
-import com.jwebmp.core.databind.IAfterRenderComplete;
-import com.jwebmp.core.databind.IOnComponentAdded;
-import com.jwebmp.core.databind.IOnComponentHtmlRender;
 import com.jwebmp.core.events.services.IOnClickService;
-import com.jwebmp.core.base.angular.implementations.configurations.*;
 import com.jwebmp.core.services.IPageConfigurator;
 
 
@@ -48,14 +38,14 @@ module com.jwebmp.core.angular {
     requires transitive io.vertx.eventbusbridge;
     requires transitive io.vertx.stomp;
 
-    provides com.guicedee.guicedinjection.interfaces.IGuiceScanModuleInclusions with AngularScanModuleInclusion;
+    provides IGuiceScanModuleInclusions with AngularScanModuleInclusion;
     provides IGuiceConfigurator with SearchPathConfigurator;
 
     provides IGuicePreStartup with AngularPreStartup;
     provides IGuiceModule with AngularTSSiteBinder;
     provides VertxRouterConfigurator with AngularTSSiteBinder;
 
-    provides com.guicedee.guicedinjection.interfaces.IGuicePostStartup with AngularTSPostStartup;
+    provides IGuicePostStartup with AngularTSPostStartup;
 
     provides com.jwebmp.core.databind.IOnComponentConfigured with ConfigureImportReferences;
 

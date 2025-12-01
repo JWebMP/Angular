@@ -19,7 +19,7 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.Set;
 
-import static com.guicedee.guicedinjection.interfaces.ObjectBinderKeys.DefaultObjectMapper;
+import static com.guicedee.client.implementations.ObjectBinderKeys.DefaultObjectMapper;
 
 /**
  * Tests for the AssetManager class

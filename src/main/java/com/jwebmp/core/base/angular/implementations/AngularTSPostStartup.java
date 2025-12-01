@@ -1,19 +1,16 @@
 package com.jwebmp.core.base.angular.implementations;
 
 import com.google.inject.Inject;
-import com.guicedee.guicedinjection.interfaces.IGuicePostStartup;
+import com.guicedee.client.services.lifecycle.IGuicePostStartup;
 import com.jwebmp.core.base.angular.client.services.interfaces.INgApp;
 import com.jwebmp.core.base.angular.services.AngularTsProcessingConfig;
 import com.jwebmp.core.base.angular.services.compiler.JWebMPTypeScriptCompiler;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import lombok.extern.java.Log;
 import lombok.extern.log4j.Log4j2;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 import static com.jwebmp.core.base.angular.client.services.interfaces.AnnotationUtils.getTsFilename;
 import static com.jwebmp.core.base.angular.client.services.interfaces.IComponent.getClassDirectory;

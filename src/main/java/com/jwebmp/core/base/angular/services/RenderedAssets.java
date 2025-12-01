@@ -1,6 +1,6 @@
 package com.jwebmp.core.base.angular.services;
 
-import com.guicedee.guicedinjection.interfaces.*;
+import com.guicedee.client.services.IDefaultService;
 
 import java.util.*;
 

@@ -1,6 +1,6 @@
 package com.jwebmp.core.base.angular.services.compiler.processors;
 
-import com.guicedee.client.CallScoper;
+import com.guicedee.client.scopes.CallScoper;
 import com.guicedee.client.IGuiceContext;
 import com.jwebmp.core.base.angular.client.AppUtils;
 import com.jwebmp.core.base.angular.client.annotations.angular.*;
@@ -17,7 +17,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 

@@ -38,6 +38,11 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
         this.componentString = component.toString(0);
         onComponentConfigured(parent, component, false);
     }
+				
+				private boolean isStandaloneComponent(IComponentHierarchyBase<?,?> component)
+				{
+						return INgComponent.class.isAssignableFrom(component.getClass()) && component.getClass().isAnnotationPresent(NgComponent.class);
+				}
 
     private void onComponentConfigured(IComponentHierarchyBase<GlobalChildren, ?> parent, IComponentHierarchyBase<GlobalChildren, ?> component, boolean checkForParent)
     {
@@ -66,12 +71,12 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                             compConfig.getImportReferences()
                                       .add((AnnotationUtils.getNgImportReference(ngImportReference.value(), ngImportReference.reference())));
                         }
-                        onComponentConfigured(component, (IComponentHierarchyBase<GlobalChildren, ?>) child, true);
                         compConfig.getImportModules()
                                   .add(AnnotationUtils.getNgImportModule(ngImportReferences.getFirst()
                                                                                            .value()));
                         //replace the tag with the angular component reference
                         updateTag(component.getChildren(), childComponent);
+																								//onComponentConfigured(component, (IComponentHierarchyBase<GlobalChildren, ?>) childComponent, true);
                     }
                 }
                 else

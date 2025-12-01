@@ -1,7 +1,6 @@
 package com.jwebmp.core.base.angular.implementations;
 
 import com.guicedee.client.IGuiceContext;
-import com.guicedee.guicedservlets.websockets.services.IWebSocketMessageReceiver;
 import com.jwebmp.core.base.ajax.AjaxCall;
 import com.jwebmp.core.base.ajax.AjaxResponse;
 import com.jwebmp.core.base.angular.client.services.interfaces.INgDataService;

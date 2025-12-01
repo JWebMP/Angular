@@ -2,7 +2,7 @@ package com.jwebmp.core.base.angular.services.compiler.assets;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
-import com.guicedee.client.CallScoper;
+import com.guicedee.client.scopes.CallScoper;
 import com.guicedee.client.IGuiceContext;
 import com.jwebmp.core.base.angular.client.AppUtils;
 import com.jwebmp.core.base.angular.client.annotations.angularconfig.NgAsset;
@@ -22,7 +22,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
-import static com.guicedee.guicedinjection.interfaces.ObjectBinderKeys.DefaultObjectMapper;
 import static com.jwebmp.core.base.angular.client.services.interfaces.IComponent.currentAppFile;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
