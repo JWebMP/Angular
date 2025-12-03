@@ -7,7 +7,7 @@ sequenceDiagram
     participant Post as AngularTSPostStartup
     participant Flag as AngularTsProcessingConfig
     participant Compiler as JWebMPTypeScriptCompiler
-    participant FS as "File System dist webroot"
+    participant FS as File System dist webroot
 
     Dev->>Guice: Launch app (Maven/Vert.x)
     Guice->>Pre: onStartup()
@@ -26,5 +26,5 @@ sequenceDiagram
     else disabled
         Post-->>Guice: Skip TS render (log)
     end
-    Guice-->>Dev: Startup complete; Vert.x hosts generated dist
+    Guice-->>Dev: Startup complete Vert.x hosts generated dist
 ```
