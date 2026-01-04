@@ -500,18 +500,19 @@ public class AngularTSSiteBinder
 								String assetsStaticDir = staticFileLocationPath + File.separator + "assets";
 								router
 									.get("/assets/*")
-									.handler(StaticHandler
-																			.create(FileSystemAccess.ROOT, assetsStaticDir)
-																			.setAlwaysAsyncFS(false)
-																			.setCacheEntryTimeout(604800)
-																			.setCachingEnabled(false)
-																			.setDefaultContentEncoding("UTF-8")
-																			.setDirectoryListing(false)
-																			.setEnableFSTuning(false)
-																			.setIncludeHidden(false)
-																			.setMaxAgeSeconds(604800)
-																			.setSendVaryHeader(false)
-									);
+         .handler(StaticHandler
+                                                                            .create(FileSystemAccess.ROOT, assetsStaticDir)
+                                                                            .setCacheEntryTimeout(604800)
+                   .setCachingEnabled(true)
+                   .setDefaultContentEncoding("UTF-8")
+                   .setDirectoryListing(false)
+                   .setEnableFSTuning(true)
+                   .setIncludeHidden(false)
+                   .setMaxAgeSeconds(31536000)
+                   .setSendVaryHeader(true)
+                   .setAlwaysAsyncFS(true)
+                   .setFilesReadOnly(true)
+                                    );
 								
 								// 2) Real-file handler with root aliasing for assets:
 								// Try to serve from dist root first; if not found, fall back to dist/assets
@@ -548,11 +549,12 @@ public class AngularTSSiteBinder
 								
 								// 3) SPA fallback: for any path that is not a file (no extension) and not under known backend/ws prefixes,
 								// serve index.html so Angular Router can handle client-side routes (including parameterized ones).
-								router
-									.getWithRegex("^/(?!api/|eventbus|sockjs|stomp|assets/|media/|.*\\.[^/]+).*$")
-									.handler(ctx -> ctx
-																										.response()
-																										.sendFile(staticFileLocationPath + File.separator + "index.html"));
+        router
+                                    .getWithRegex("^/(?!api/|eventbus|sockjs|stomp|assets/|media/|.*\\.[^/]+).*$")
+                                    .handler(ctx -> ctx
+                                                                                                        .response()
+                                                                                                        .putHeader("Cache-Control", "no-store")
+                                                                                                        .sendFile(staticFileLocationPath + File.separator + "index.html"));
 						}
 						catch (IOException e)
 						{
@@ -562,15 +564,17 @@ public class AngularTSSiteBinder
 				return router;
 		}
 		
-		@Override
-		public HttpServerOptions builder(HttpServerOptions builder)
-		{
-				// Ensure STOMP sub-protocols are advertised
-				builder.setWebSocketSubProtocols(java.util.Arrays.asList("v10.stomp", "v11.stomp", "v12.stomp"));
-				// Do not close idle WebSocket connections at HTTP server level; rely on STOMP heartbeats.
-				// Enable TCP keep-alive at socket level for intermediaries that honor it.
-				builder.setIdleTimeout(0) // 0 = disabled
-											.setTcpKeepAlive(true);
-				return builder;
-		}
+  @Override
+  public HttpServerOptions builder(HttpServerOptions builder)
+  {
+          // Ensure STOMP sub-protocols are advertised
+          builder.setWebSocketSubProtocols(java.util.Arrays.asList("v10.stomp", "v11.stomp", "v12.stomp"));
+          // Do not close idle WebSocket connections at HTTP server level; rely on STOMP heartbeats.
+          // Enable TCP keep-alive at socket level for intermediaries that honor it.
+          builder.setIdleTimeout(0) // 0 = disabled
+                                      .setTcpKeepAlive(true)
+                                      .setCompressionSupported(true)
+                                      .setDecompressionSupported(true);
+          return builder;
+  }
 }
