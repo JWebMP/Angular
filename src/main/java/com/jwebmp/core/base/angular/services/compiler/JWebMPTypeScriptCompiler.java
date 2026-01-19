@@ -156,6 +156,11 @@ public class JWebMPTypeScriptCompiler
 								}
 								try
 								{
+										if (IGuiceContext.instance().isBuildingInjector())
+										{
+												log.warn("Injector still being built while scanning for @NgApp, ignoring [{}]", classInfo.getName());
+												continue;
+										}
 										INgApp<?> clazz = (INgApp<?>) IGuiceContext.get(classInfo.loadClass());
 										IComponent.app.set(clazz);
 										File appPath = AppUtils.getAppPath((Class<? extends INgApp<?>>) clazz.getClass());
