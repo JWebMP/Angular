@@ -210,16 +210,16 @@ public class AngularTSSiteBinder
 
     @Override
     public Integer sortOrder() {
-        return Integer.MAX_VALUE;
+        return 500;
     }
 
     @Override
     public Router builder(Router router) {
         System.setProperty("vertx.disableFileCPResolving", "true");
-        for (INgApp<?> app : JWebMPTypeScriptCompiler.getAllApps()) {
+        for (var app : JWebMPTypeScriptCompiler.getAllAppsClasses()) {
             try {
                 String staticFileLocationPath = AppUtils
-                        .getDistPath((Class<? extends INgApp<?>>) app.getClass())
+                        .getDistPath(app)
                         .getCanonicalPath();
 
                 // Configure STOMP heartbeats.
