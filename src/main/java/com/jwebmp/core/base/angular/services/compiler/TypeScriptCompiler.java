@@ -262,6 +262,38 @@ public class TypeScriptCompiler {
     }
 
     /**
+     * Installs dependencies for the Angular application with an explicit force flag.
+     *
+     * @param force Whether to pass --force to npm install
+     */
+    public void installDependencies(boolean force) {
+        if (dependencyManager.isOsSupported()) {
+            dependencyManager.installDependencies(currentAppFile.get(), force);
+        } else {
+            log.warn("Dependency installation not supported on this operating system: {}", dependencyManager.getOsName());
+        }
+    }
+
+    /**
+     * Ensures the Node/npm toolchain and Angular CLI are available.
+     *
+     * @param downloadNpm Whether to download Node/npm when missing
+     * @param nodeVersion Node version to download (used only when downloading)
+     * @param angularCliVersion Desired Angular CLI version (optional)
+     * @param force Whether to pass --force to npm install
+     */
+    public void ensureToolchain(boolean downloadNpm,
+                                String nodeVersion,
+                                String angularCliVersion,
+                                boolean force) {
+        if (dependencyManager.isOsSupported()) {
+            dependencyManager.ensureToolchain(currentAppFile.get(), downloadNpm, nodeVersion, angularCliVersion, force);
+        } else {
+            log.warn("Toolchain setup not supported on this operating system: {}", dependencyManager.getOsName());
+        }
+    }
+
+    /**
      * Builds the Angular application
      */
     public void buildAngularApp() {

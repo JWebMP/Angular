@@ -160,7 +160,8 @@ public class AngularRoutingModule implements INgModule<AngularRoutingModule> {
             definedRoutesList.add(dr);
             routes.add(dr);
         });
-        for (DefinedRoute<?> definedRoute : definedRoutesList) {
+        // Iterate over a snapshot to avoid ConcurrentModificationException in multi-threaded contexts
+        for (DefinedRoute<?> definedRoute : new ArrayList<>(definedRoutesList)) {
             if (definedRoute.getComponent() != null) {
                 List<NgImportReference> refs = new ArrayList<>();
                 buildRoutePathwayImports(definedRoute, refs);

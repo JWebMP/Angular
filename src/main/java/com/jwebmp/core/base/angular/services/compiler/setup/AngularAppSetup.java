@@ -31,7 +31,16 @@ import org.apache.commons.lang3.SystemUtils;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import static com.guicedee.client.implementations.ObjectBinderKeys.DefaultObjectMapper;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -44,6 +53,7 @@ public class AngularAppSetup
 {
     private final INgApp<?> app;
     private final Map<String, TsDependency> namedDependencies = new HashMap<>();
+    private static volatile String npmExecutableOverride;
 
     /**
      * Constructor
@@ -374,42 +384,43 @@ public class AngularAppSetup
      */
     public static void installDependencies(File appBaseDirectory)
     {
-        if (SystemUtils.IS_OS_WINDOWS)
+        boolean defaultForce = SystemUtils.IS_OS_LINUX;
+        installDependencies(appBaseDirectory, defaultForce);
+    }
+
+    /**
+     * Installs dependencies
+     *
+     * @param appBaseDirectory The application base directory
+     * @param force Whether to pass --force to npm install
+     */
+    public static void installDependencies(File appBaseDirectory, boolean force)
+    {
+        String npmExecutable = resolveNpmExecutable(appBaseDirectory, false, null);
+        if (npmExecutable == null)
         {
-            try
-            {
-                ProcessBuilder processBuilder = new ProcessBuilder("cmd.exe", "/c", FileUtils.getUserDirectory() + "/AppData/Roaming/npm/npm.cmd install");
-                processBuilder.inheritIO();
-                processBuilder.environment()
-                              .putAll(System.getenv());
-                processBuilder = processBuilder.directory(appBaseDirectory);
-                Process p = processBuilder.start();
-                p.waitFor();
-            }
-            catch (Exception e)
-            {
-                e.printStackTrace();
-            }
+            log.warn("npm is not available; skipping dependency installation in {}", appBaseDirectory.getAbsolutePath());
+            return;
         }
-        else if (SystemUtils.IS_OS_LINUX)
+
+        List<String> args = new ArrayList<>();
+        args.add("install");
+        if (force)
         {
-            try
-            {
-                ProcessBuilder processBuilder = new ProcessBuilder("npm", "install", "--force");
-                processBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
-                processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
-                processBuilder.environment()
-                              .putAll(System.getenv());
-                processBuilder = processBuilder.directory(appBaseDirectory);
-                Process p = processBuilder.start();
-                p.waitFor();
-                p.destroyForcibly();
-            }
-            catch (IOException | InterruptedException e)
-            {
-                e.printStackTrace();
-            }
+            args.add("--force");
         }
+        runNpmCommand(appBaseDirectory, npmExecutable, args);
+    }
+
+    private static String resolveWindowsNpmCommand()
+    {
+        String npmCmd = FileUtils.getUserDirectory() + "/AppData/Roaming/npm/npm.cmd";
+        File npmFile = new File(npmCmd);
+        if (npmFile.exists())
+        {
+            return npmFile.getAbsolutePath();
+        }
+        return "npm";
     }
 
     /**
@@ -419,44 +430,435 @@ public class AngularAppSetup
      */
     public static void buildAngularApp(File appBaseDirectory)
     {
-        if (SystemUtils.IS_OS_WINDOWS)
+        String npmExecutable = resolveNpmExecutable(appBaseDirectory, false, null);
+        if (npmExecutable == null)
+        {
+            log.warn("npm is not available; skipping Angular build in {}", appBaseDirectory.getAbsolutePath());
+            return;
+        }
+        String buildTarget = "build" + (IGuiceContext.get(EnvironmentModule.class)
+                                                     .getEnvironmentOptions()
+                                                     .isProduction() ? "-prod" : "");
+        runNpmCommand(appBaseDirectory, npmExecutable, Arrays.asList("run", buildTarget));
+    }
+
+    public static void ensureToolchain(File appBaseDirectory,
+                                       boolean downloadNpm,
+                                       String nodeVersion,
+                                       String angularCliVersion,
+                                       boolean force)
+    {
+        String npmExecutable = resolveNpmExecutable(appBaseDirectory, downloadNpm, nodeVersion);
+        if (npmExecutable == null)
+        {
+            log.warn("npm is not available; cannot ensure Angular toolchain in {}", appBaseDirectory.getAbsolutePath());
+            return;
+        }
+        npmExecutableOverride = npmExecutable;
+
+        String desiredCliVersion = resolveAngularCliVersion(appBaseDirectory, angularCliVersion);
+        if (desiredCliVersion == null || desiredCliVersion.isBlank())
+        {
+            log.warn("Angular CLI version could not be resolved; skipping CLI install.");
+            return;
+        }
+
+        if (needsAngularCliInstall(appBaseDirectory, desiredCliVersion))
+        {
+            List<String> args = new ArrayList<>();
+            args.add("install");
+            args.add("--no-save");
+            args.add("@angular/cli@" + desiredCliVersion);
+            if (force)
+            {
+                args.add("--force");
+            }
+            log.info("Installing Angular CLI {} in {}", desiredCliVersion, appBaseDirectory.getAbsolutePath());
+            runNpmCommand(appBaseDirectory, npmExecutable, args);
+        }
+    }
+
+    private static String resolveAngularCliVersion(File appBaseDirectory, String configuredVersion)
+    {
+        if (configuredVersion != null && !configuredVersion.trim().isEmpty())
+        {
+            return configuredVersion.trim();
+        }
+        String fromPackageJson = readPackageJsonDependency(appBaseDirectory, "devDependencies", "@angular/cli");
+        if (fromPackageJson != null && !fromPackageJson.isBlank())
+        {
+            return fromPackageJson.trim();
+        }
+        return "20";
+    }
+
+    private static boolean needsAngularCliInstall(File appBaseDirectory, String desiredVersion)
+    {
+        File cliPackageJson = new File(appBaseDirectory, "node_modules/@angular/cli/package.json");
+        if (!cliPackageJson.isFile())
+        {
+            return true;
+        }
+        String installedVersion = readPackageJsonVersion(cliPackageJson);
+        if (installedVersion == null)
+        {
+            return true;
+        }
+        Integer desiredMajor = parseMajorVersion(desiredVersion);
+        Integer installedMajor = parseMajorVersion(installedVersion);
+        if (desiredMajor == null || installedMajor == null)
+        {
+            return true;
+        }
+        return !desiredMajor.equals(installedMajor);
+    }
+
+    private static Integer parseMajorVersion(String version)
+    {
+        if (version == null)
+        {
+            return null;
+        }
+        Matcher matcher = Pattern.compile("(\\d+)").matcher(version);
+        if (matcher.find())
         {
             try
             {
-                ProcessBuilder processBuilder = new ProcessBuilder("cmd.exe", "/c", FileUtils.getUserDirectory() + "/AppData/Roaming/npm/npm.cmd", "run", "build" + (IGuiceContext.get(EnvironmentModule.class)
-                                                                                                                                                                                  .getEnvironmentOptions()
-                                                                                                                                                                                  .isProduction() ? "-prod" : ""));
-                processBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
-                processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
-                processBuilder.environment()
-                              .putAll(System.getenv());
-                processBuilder = processBuilder.directory(appBaseDirectory);
-                Process p = processBuilder.start();
+                return Integer.parseInt(matcher.group(1));
             }
-            catch (IOException e)
+            catch (NumberFormatException ignored)
             {
-                e.printStackTrace();
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private static String readPackageJsonDependency(File appBaseDirectory, String section, String name)
+    {
+        File packageJson = new File(appBaseDirectory, "package.json");
+        if (!packageJson.isFile())
+        {
+            return null;
+        }
+        try
+        {
+            ObjectMapper om = new ObjectMapper();
+            var root = om.readTree(packageJson);
+            var deps = root.path(section);
+            if (deps.isObject() && deps.has(name))
+            {
+                var node = deps.get(name);
+                if (node.isTextual())
+                {
+                    return node.asText();
+                }
+            }
+        }
+        catch (IOException ignored)
+        {
+        }
+        return null;
+    }
+
+    private static String readPackageJsonVersion(File packageJson)
+    {
+        try
+        {
+            ObjectMapper om = new ObjectMapper();
+            var root = om.readTree(packageJson);
+            var versionNode = root.path("version");
+            if (versionNode.isTextual())
+            {
+                return versionNode.asText();
+            }
+        }
+        catch (IOException ignored)
+        {
+        }
+        return null;
+    }
+
+    private static String resolveNpmExecutable(File appBaseDirectory, boolean allowDownload, String nodeVersion)
+    {
+        if (npmExecutableOverride != null && !npmExecutableOverride.isBlank())
+        {
+            return npmExecutableOverride;
+        }
+
+        String overrideProperty = System.getProperty("jwebmp.npm.path");
+        if (overrideProperty != null && !overrideProperty.isBlank())
+        {
+            return overrideProperty;
+        }
+
+        if (SystemUtils.IS_OS_WINDOWS)
+        {
+            String npmCmd = resolveWindowsNpmCommand();
+            if (canRunNpmCommand(appBaseDirectory, npmCmd))
+            {
+                return npmCmd;
             }
         }
         else if (SystemUtils.IS_OS_LINUX)
         {
-            try
+            if (canRunNpmCommand(appBaseDirectory, "npm"))
             {
-                ProcessBuilder processBuilder = new ProcessBuilder("npm", "run", "build" + (IGuiceContext.get(EnvironmentModule.class)
-                                                                                                         .getEnvironmentOptions()
-                                                                                                         .isProduction() ? "-prod" : ""));
-                processBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
-                processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
-                processBuilder.environment()
-                              .putAll(System.getenv());
-                processBuilder = processBuilder.directory(appBaseDirectory);
-                Process p = processBuilder.start();
-            }
-            catch (IOException e)
-            {
-                e.printStackTrace();
+                return "npm";
             }
         }
+
+        if (!allowDownload)
+        {
+            return null;
+        }
+
+        String downloaded = downloadNodeDistribution(appBaseDirectory, nodeVersion);
+        if (downloaded != null && canRunNpmCommand(appBaseDirectory, downloaded))
+        {
+            return downloaded;
+        }
+        return null;
+    }
+
+    private static boolean canRunNpmCommand(File appBaseDirectory, String npmExecutable)
+    {
+        List<String> command = buildNpmCommand(npmExecutable, Collections.singletonList("--version"));
+        return runCommand(appBaseDirectory, command, false) == 0;
+    }
+
+    private static void runNpmCommand(File appBaseDirectory, String npmExecutable, List<String> args)
+    {
+        List<String> command = buildNpmCommand(npmExecutable, args);
+        runCommand(appBaseDirectory, command, true);
+    }
+
+    private static int runCommand(File appBaseDirectory, List<String> command, boolean inheritIo)
+    {
+        try
+        {
+            ProcessBuilder processBuilder = new ProcessBuilder(command);
+            if (inheritIo)
+            {
+                processBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+                processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
+            }
+            else
+            {
+                processBuilder.redirectErrorStream(true);
+            }
+            processBuilder.environment()
+                          .putAll(System.getenv());
+            processBuilder = processBuilder.directory(appBaseDirectory);
+            Process p = processBuilder.start();
+            if (!p.waitFor(10, TimeUnit.MINUTES))
+            {
+                p.destroyForcibly();
+                return -1;
+            }
+            return p.exitValue();
+        }
+        catch (IOException | InterruptedException e)
+        {
+            return -1;
+        }
+    }
+
+    private static List<String> buildNpmCommand(String npmExecutable, List<String> args)
+    {
+        if (SystemUtils.IS_OS_WINDOWS)
+        {
+            StringBuilder command = new StringBuilder();
+            command.append(quoteIfNeeded(npmExecutable));
+            for (String arg : args)
+            {
+                command.append(' ')
+                       .append(arg);
+            }
+            return Arrays.asList("cmd.exe", "/c", command.toString());
+        }
+        List<String> command = new ArrayList<>();
+        command.add(npmExecutable);
+        command.addAll(args);
+        return command;
+    }
+
+    private static String quoteIfNeeded(String value)
+    {
+        if (value == null)
+        {
+            return "";
+        }
+        if (value.contains(" "))
+        {
+            return "\"" + value + "\"";
+        }
+        return value;
+    }
+
+    private static String downloadNodeDistribution(File appBaseDirectory, String nodeVersion)
+    {
+        if (nodeVersion == null || nodeVersion.trim().isEmpty())
+        {
+            log.warn("Node version is not configured; skipping Node/npm download.");
+            return null;
+        }
+
+        String arch = resolveNodeArch();
+        if (arch == null)
+        {
+            log.warn("Unsupported CPU architecture for Node download: {}", System.getProperty("os.arch"));
+            return null;
+        }
+
+        File toolsDir = resolveToolsDirectory(appBaseDirectory);
+        if (!toolsDir.exists() && !toolsDir.mkdirs())
+        {
+            log.warn("Unable to create tools directory at {}", toolsDir.getAbsolutePath());
+            return null;
+        }
+
+        String nodeRootName;
+        String archiveName;
+        String downloadUrl;
+        boolean isWindows = SystemUtils.IS_OS_WINDOWS;
+        if (isWindows)
+        {
+            nodeRootName = "node-v" + nodeVersion + "-win-" + arch;
+            archiveName = nodeRootName + ".zip";
+        }
+        else if (SystemUtils.IS_OS_LINUX)
+        {
+            nodeRootName = "node-v" + nodeVersion + "-linux-" + arch;
+            archiveName = nodeRootName + ".tar.gz";
+        }
+        else
+        {
+            log.warn("Node download is only supported on Windows and Linux.");
+            return null;
+        }
+
+        File nodeRootDir = new File(toolsDir, nodeRootName);
+        String npmPath = isWindows
+                ? new File(nodeRootDir, "npm.cmd").getAbsolutePath()
+                : new File(nodeRootDir, "bin/npm").getAbsolutePath();
+        if (new File(npmPath).isFile())
+        {
+            log.info("Using cached Node/npm at {}", npmPath);
+            return npmPath;
+        }
+
+        File archiveFile = new File(toolsDir, archiveName);
+        downloadUrl = "https://nodejs.org/dist/v" + nodeVersion + "/" + archiveName;
+        log.info("Downloading Node.js {} from {}", nodeVersion, downloadUrl);
+        if (!downloadFile(downloadUrl, archiveFile))
+        {
+            log.warn("Failed to download Node.js from {}", downloadUrl);
+            return null;
+        }
+
+        boolean extracted = isWindows
+                ? extractZip(archiveFile, toolsDir)
+                : extractTarGz(archiveFile, toolsDir);
+        if (!extracted)
+        {
+            log.warn("Failed to extract Node.js archive {}", archiveFile.getAbsolutePath());
+            return null;
+        }
+
+        if (new File(npmPath).isFile())
+        {
+            return npmPath;
+        }
+        log.warn("npm executable not found after extraction at {}", npmPath);
+        return null;
+    }
+
+    private static File resolveToolsDirectory(File appBaseDirectory)
+    {
+        File baseDir = AppUtils.baseUserDirectory != null ? AppUtils.baseUserDirectory : appBaseDirectory;
+        return new File(baseDir, ".jwebmp-tools");
+    }
+
+    private static String resolveNodeArch()
+    {
+        String arch = System.getProperty("os.arch", "").toLowerCase(Locale.ROOT);
+        if (arch.contains("aarch64") || arch.contains("arm64"))
+        {
+            return "arm64";
+        }
+        if (arch.contains("64"))
+        {
+            return "x64";
+        }
+        if (arch.contains("86"))
+        {
+            return "x86";
+        }
+        return null;
+    }
+
+    private static boolean downloadFile(String url, File destination)
+    {
+        try
+        {
+            URL source = new URL(url);
+            Files.createDirectories(destination.toPath()
+                                                 .getParent());
+            try (InputStream inputStream = source.openStream())
+            {
+                Files.copy(inputStream, destination.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            }
+            return true;
+        }
+        catch (IOException e)
+        {
+            return false;
+        }
+    }
+
+    private static boolean extractZip(File archive, File targetDir)
+    {
+        try (ZipInputStream zis = new ZipInputStream(Files.newInputStream(archive.toPath())))
+        {
+            ZipEntry entry;
+            Path targetPath = targetDir.toPath()
+                                       .toAbsolutePath()
+                                       .normalize();
+            while ((entry = zis.getNextEntry()) != null)
+            {
+                Path newPath = targetDir.toPath()
+                                        .resolve(entry.getName())
+                                        .normalize();
+                if (!newPath.toAbsolutePath()
+                            .startsWith(targetPath))
+                {
+                    log.warn("Skipping suspicious zip entry {}", entry.getName());
+                    continue;
+                }
+                if (entry.isDirectory())
+                {
+                    Files.createDirectories(newPath);
+                }
+                else
+                {
+                    Files.createDirectories(newPath.getParent());
+                    Files.copy(zis, newPath, StandardCopyOption.REPLACE_EXISTING);
+                }
+                zis.closeEntry();
+            }
+            return true;
+        }
+        catch (IOException e)
+        {
+            return false;
+        }
+    }
+
+    private static boolean extractTarGz(File archive, File targetDir)
+    {
+        List<String> command = Arrays.asList("tar", "-xzf", archive.getAbsolutePath(), "-C", targetDir.getAbsolutePath());
+        return runCommand(targetDir, command, true) == 0;
     }
 
     /**

@@ -159,7 +159,7 @@ public class AngularTSSiteBinder
             String userDir = GlobalProperties.getSystemPropertyOrEnvironment("jwebmp", new File(System.getProperty("user.dir"))
                     .getPath());*/
             // todo find the @NgApp and add as a subdirectory
-            siteHostingLocation = new File(AppUtils.baseUserDirectory.getCanonicalPath() + "/webroot");
+            siteHostingLocation = AppUtils.getAppPath((Class<? extends INgApp<?>>) loadClass);
             try {
                 FileUtils.forceMkdirParent(siteHostingLocation);
                 FileUtils.forceMkdir(siteHostingLocation);

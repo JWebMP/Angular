@@ -34,6 +34,36 @@ public class DependencyManager {
     }
 
     /**
+     * Installs dependencies for the Angular application with an explicit force flag.
+     *
+     * @param appBaseDirectory The application base directory
+     * @param force Whether to pass --force to npm install
+     */
+    public void installDependencies(File appBaseDirectory, boolean force) {
+        log.info("Installing dependencies for Angular application in {} (force={})",
+                appBaseDirectory.getAbsolutePath(),
+                force);
+        AngularAppSetup.installDependencies(appBaseDirectory, force);
+    }
+
+    /**
+     * Ensures the Node/npm toolchain and Angular CLI are available.
+     *
+     * @param appBaseDirectory The application base directory
+     * @param downloadNpm Whether to download Node/npm when missing
+     * @param nodeVersion Node version to download (used only when downloading)
+     * @param angularCliVersion Desired Angular CLI version (optional)
+     * @param force Whether to pass --force to npm install
+     */
+    public void ensureToolchain(File appBaseDirectory,
+                                boolean downloadNpm,
+                                String nodeVersion,
+                                String angularCliVersion,
+                                boolean force) {
+        AngularAppSetup.ensureToolchain(appBaseDirectory, downloadNpm, nodeVersion, angularCliVersion, force);
+    }
+
+    /**
      * Builds the Angular application
      *
      * @param appBaseDirectory The application base directory
