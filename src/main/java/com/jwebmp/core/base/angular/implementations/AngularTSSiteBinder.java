@@ -457,35 +457,25 @@ public class AngularTSSiteBinder
                                 .setFilesReadOnly(true)
                         );
 
-                // 2) Real-file handler with root aliasing for assets:
-                // Try to serve from dist root first; if not found, fall back to dist/assets
+                // 2) Static file handler for real files in the dist root (excluding index.html)
+                // Use Vert.x StaticHandler so proper caching headers (ETag/Cache-Control) are applied.
+                // Regex excludes index.html explicitly so it never gets cached by this handler.
+                StaticHandler rootStaticHandler = StaticHandler
+                        .create(FileSystemAccess.ROOT, staticFileLocationPath)
+                        .setCacheEntryTimeout(604800)
+                        .setCachingEnabled(true)
+                        .setDefaultContentEncoding("UTF-8")
+                        .setDirectoryListing(false)
+                        .setEnableFSTuning(true)
+                        .setIncludeHidden(false)
+                        .setMaxAgeSeconds(31536000)
+                        .setSendVaryHeader(true)
+                        .setAlwaysAsyncFS(true)
+                        .setFilesReadOnly(true);
+
                 router
-                        .getWithRegex("^/.+\\.[^/]+$")
-                        .handler(ctx -> {
-                            String normalized = ctx.normalizedPath();
-                            if (normalized == null) {
-                                ctx.next();
-                                return;
-                            }
-                            // Strip leading '/'
-                            String rel = normalized.startsWith("/") ? normalized.substring(1) : normalized;
-                            File primary = new File(staticFileLocationPath, rel);
-                            if (primary.exists() && primary.isFile()) {
-                                ctx
-                                        .response()
-                                        .sendFile(primary.getAbsolutePath());
-                                return;
-                            }
-                            File assetsFile = new File(assetsStaticDir, rel);
-                            if (assetsFile.exists() && assetsFile.isFile()) {
-                                ctx
-                                        .response()
-                                        .sendFile(assetsFile.getAbsolutePath());
-                                return;
-                            }
-                            // Not a real file in root or assets; allow SPA fallback to handle
-                            ctx.next();
-                        });
+                        .getWithRegex("^/(?!index\\.html$).+\\.[^/]+$")
+                        .handler(rootStaticHandler);
 
                 // 3) SPA fallback: for any path that is not a file (no extension) and not under known backend/ws prefixes,
                 // serve index.html so Angular Router can handle client-side routes (including parameterized ones).
@@ -494,6 +484,8 @@ public class AngularTSSiteBinder
                         .handler(ctx -> ctx
                                 .response()
                                 .putHeader("Cache-Control", "no-store")
+                                .putHeader("Pragma", "no-cache")
+                                .putHeader("Expires", "0")
                                 .sendFile(staticFileLocationPath + File.separator + "index.html"));
             } catch (IOException e) {
                 throw new RuntimeException(e);
