@@ -37,6 +37,7 @@ import com.jwebmp.core.base.servlets.enumarations.DevelopmentEnvironments;
 import io.github.classgraph.ClassInfo;
 import io.github.classgraph.Resource;
 import io.github.classgraph.ScanResult;
+import io.vertx.core.Vertx;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -342,32 +343,32 @@ public class JWebMPTypeScriptCompiler {
             ;
 
             ObjectMapper om = IGuiceContext.get(DefaultObjectMapper);
-            vertx.executeBlocking(() -> {
-                return withCallScope(
-                        () -> processPackageJsonFile(currentAppFile.get(), appClass, packageTemplate, om, dependencies, devDependencies, overrideDependencies, packageJsonFile),
-                        CallScopeSource.Startup);
-            }, false);
+            executeBlockingWithLogging((Vertx) vertx, "processPackageJsonFile", () ->
+                    withCallScope(
+                            () -> processPackageJsonFile(currentAppFile.get(), appClass, packageTemplate, om, dependencies, devDependencies, overrideDependencies, packageJsonFile),
+                            CallScopeSource.Startup)
+            );
 
-            vertx.executeBlocking(() -> {
-                return withCallScope(() -> {
-                    processTypeScriptConfigFiles(currentAppFile.get(), appClass);
-                    return true;
-                }, CallScopeSource.Startup);
-            }, false);
+            executeBlockingWithLogging((Vertx) vertx, "processTypeScriptConfigFiles", () ->
+                    withCallScope(() -> {
+                        processTypeScriptConfigFiles(currentAppFile.get(), appClass);
+                        return true;
+                    }, CallScopeSource.Startup)
+            );
 
-            vertx.executeBlocking(() -> {
-                return withCallScope(() -> {
-                    processPolyfillFile(currentAppFile.get(), appClass);
-                    return true;
-                }, CallScopeSource.Startup);
-            }, false);
+            executeBlockingWithLogging((Vertx) vertx, "processPolyfillFile", () ->
+                    withCallScope(() -> {
+                        processPolyfillFile(currentAppFile.get(), appClass);
+                        return true;
+                    }, CallScopeSource.Startup)
+            );
 
-            vertx.executeBlocking(() -> {
-                return withCallScope(() -> {
-                    processAppConfigFile(currentAppFile.get(), scan, appClass);
-                    return true;
-                }, CallScopeSource.Startup);
-            }, false);
+            executeBlockingWithLogging((Vertx) vertx, "processAppConfigFile", () ->
+                    withCallScope(() -> {
+                        processAppConfigFile(currentAppFile.get(), scan, appClass);
+                        return true;
+                    }, CallScopeSource.Startup)
+            );
 
 
             Map<String, String> namedAssets = new HashMap<>();
@@ -539,16 +540,16 @@ public class JWebMPTypeScriptCompiler {
 
             log.info("Loading resources from assets directory");
             for (Resource allResource : scan.getResourcesMatchingWildcard("app/**")) {
-                vertx.executeBlocking(() -> {
-                    return withCallScope(() -> {
-                        String assetLocation = allResource.getPathRelativeToClasspathElement();
-                        InputStream fileStream = allResource
-                                .getURL()
-                                .openStream();
-                        AppUtils.saveAppResourceFile(appClass, fileStream, assetLocation);
-                        return true;
-                    }, CallScopeSource.Startup);
-                }, false);
+                executeBlockingWithLogging((Vertx) vertx, "saveAppResourceFile(" + allResource.getPath() + ")", () ->
+                        withCallScope(() -> {
+                            String assetLocation = allResource.getPathRelativeToClasspathElement();
+                            InputStream fileStream = allResource
+                                    .getURL()
+                                    .openStream();
+                            AppUtils.saveAppResourceFile(appClass, fileStream, assetLocation);
+                            return true;
+                        }, CallScopeSource.Startup)
+                );
             }
 
             File finalSrcDirectory = AppUtils.getAppSrcPath(appClass);
@@ -560,12 +561,12 @@ public class JWebMPTypeScriptCompiler {
                     .stream()
                     //.filter(packageFilterClassInfo)
                     .forEach(a -> {
-                        vertx.executeBlocking(() -> {
-                            return withCallScope(() -> {
-                                processNgModuleFiles(currentApp, a, scan, appClass, app, finalSrcDirectory);
-                                return true;
-                            }, CallScopeSource.Startup);
-                        }, false);
+                        executeBlockingWithLogging((Vertx) vertx, "processNgModuleFiles(" + a.getName() + ")", () ->
+                                withCallScope(() -> {
+                                    processNgModuleFiles(currentApp, a, scan, appClass, app, finalSrcDirectory);
+                                    return true;
+                                }, CallScopeSource.Startup)
+                        );
                     })
             ;
 
@@ -585,12 +586,12 @@ public class JWebMPTypeScriptCompiler {
                 standaloneComponents
                         .distinct()
                         .forEach(aClass -> {
-                            vertx.executeBlocking(() -> {
-                                return withCallScope(() -> {
-                                    boolean x = processStandaloneComponent(currentApp, application, aClass, app, appClass, finalSrcDirectory);
-                                    return x;
-                                }, CallScopeSource.Startup);
-                            }, false);
+                            executeBlockingWithLogging((Vertx) vertx, "processStandaloneComponent(" + aClass.getName() + ")", () ->
+                                    withCallScope(() -> {
+                                        boolean x = processStandaloneComponent(currentApp, application, aClass, app, appClass, finalSrcDirectory);
+                                        return x;
+                                    }, CallScopeSource.Startup)
+                            );
                         });
             }
 
@@ -599,12 +600,12 @@ public class JWebMPTypeScriptCompiler {
                     .stream()
                     //.filter(packageFilterClassInfo)
                     .forEach(a -> {
-                        vertx.executeBlocking(() -> {
-                            return withCallScope(() -> {
-                                processNgDirectiveFiles(currentApp, a, scan, appClass, finalSrcDirectory);
-                                return true;
-                            }, CallScopeSource.Startup);
-                        }, false);
+                        executeBlockingWithLogging((Vertx) vertx, "processNgDirectiveFiles(" + a.getName() + ")", () ->
+                                withCallScope(() -> {
+                                    processNgDirectiveFiles(currentApp, a, scan, appClass, finalSrcDirectory);
+                                    return true;
+                                }, CallScopeSource.Startup)
+                        );
                     })
             ;
 
@@ -613,12 +614,12 @@ public class JWebMPTypeScriptCompiler {
                     .stream()
                     //.filter(packageFilterClassInfo)
                     .forEach(a -> {
-                        vertx.executeBlocking(() -> {
-                            return withCallScope(() -> {
-                                processNgDataServiceFiles(currentApp, a, scan, appClass, finalSrcDirectory);
-                                return true;
-                            }, CallScopeSource.Startup);
-                        }, false);
+                        executeBlockingWithLogging((Vertx) vertx, "processNgDataServiceFiles(" + a.getName() + ")", () ->
+                                withCallScope(() -> {
+                                    processNgDataServiceFiles(currentApp, a, scan, appClass, finalSrcDirectory);
+                                    return true;
+                                }, CallScopeSource.Startup)
+                        );
                     })
             ;
 
@@ -628,12 +629,12 @@ public class JWebMPTypeScriptCompiler {
                     .stream()
                     //.filter(packageFilterClassInfo)
                     .forEach(a -> {
-                        vertx.executeBlocking(() -> {
-                            return withCallScope(() -> {
-                                processNgProviderFiles(currentApp, a, scan, appClass, finalSrcDirectory);
-                                return true;
-                            }, CallScopeSource.Startup);
-                        }, false);
+                        executeBlockingWithLogging((Vertx) vertx, "processNgProviderFiles(" + a.getName() + ")", () ->
+                                withCallScope(() -> {
+                                    processNgProviderFiles(currentApp, a, scan, appClass, finalSrcDirectory);
+                                    return true;
+                                }, CallScopeSource.Startup)
+                        );
                     })
             ;
 
@@ -642,10 +643,10 @@ public class JWebMPTypeScriptCompiler {
                     .stream()
                     //.filter(packageFilterClassInfo)
                     .forEach(a -> {
-                        vertx.executeBlocking(() -> {
+                        executeBlockingWithLogging((Vertx) vertx, "processNgDataTypeFiles(" + a.getName() + ")", () -> {
                             processNgDataTypeFiles(currentApp, a, scan, appClass, finalSrcDirectory);
                             return true;
-                        }, false);
+                        });
                     })
             ;
 
@@ -654,23 +655,34 @@ public class JWebMPTypeScriptCompiler {
                     .stream()
                     //.filter(packageFilterClassInfo)
                     .forEach(a -> {
-                        vertx.executeBlocking(() -> {
+                        executeBlockingWithLogging((Vertx) vertx, "processNgServiceProviderFiles(" + a.getName() + ")", () -> {
                             processNgServiceProviderFiles(currentApp, a, scan, appClass, finalSrcDirectory);
                             return true;
-                        }, false);
+                        });
                     })
             ;
 
-            vertx.executeBlocking(() -> {
+            executeBlockingWithLogging((Vertx) vertx, "renderAngularApplicationFiles", () -> {
                 renderAngularApplicationFiles(currentApp, appClass, namedAssets, app, om);
                 return true;
-            }, false);
+            });
 
         } finally {
             //   scoper.exit();
         }
         log.debug("Angular App Ready");
         return sb;
+    }
+
+    private static <T> void executeBlockingWithLogging(Vertx vertx, String step, java.util.concurrent.Callable<T> task) {
+        vertx.executeBlocking(() -> {
+            try {
+                return task.call();
+            } catch (Throwable t) {
+                log.error("renderAppTS - exception during {}", step, t);
+                throw t;
+            }
+        }, false);
     }
 
     private void renderAngularApplicationFiles(File currentApp, Class<? extends INgApp<?>> appClass, Map<String, String> namedAssets, INgApp<?> app, ObjectMapper om) throws IOException {
@@ -992,9 +1004,9 @@ public class JWebMPTypeScriptCompiler {
 
 
         File gitIgnoreFile = AppUtils.getGitIgnorePath(appClass, true); //new File(AppUtils.getFileReferenceAppFile(appClass,"/tsconfig.json"));
-        String gitIgnoreFileAbs = IOUtils.toString(Objects.requireNonNull(ResourceLocator.class.getResourceAsStream(".gitignore")), UTF_8);
+      /*  String gitIgnoreFileAbs = IOUtils.toString(Objects.requireNonNull(ResourceLocator.class.getResourceAsStream(".gitignore")), UTF_8);
         FileUtils.writeStringToFile(gitIgnoreFile, gitIgnoreFileAbs, UTF_8, false);
-
+*/
         File packageLockFile = new File(AppUtils
                 .getAppPath(appClass)
                 .getCanonicalPath() + "/package-lock.json");
