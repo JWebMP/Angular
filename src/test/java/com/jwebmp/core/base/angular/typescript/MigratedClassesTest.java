@@ -2,7 +2,7 @@ package com.jwebmp.core.base.angular.typescript;
 
 import com.guicedee.client.IGuiceContext;
 import com.jwebmp.core.base.angular.client.services.interfaces.*;
-import com.jwebmp.core.base.angular.services.compiler.JWebMPTypeScriptCompiler;
+import com.jwebmp.core.base.angular.services.compiler.TypeScriptCompiler;
 import com.jwebmp.core.base.angular.services.compiler.assets.AssetManager;
 import com.jwebmp.core.base.angular.services.compiler.files.TypeScriptFileManager;
 import com.jwebmp.core.base.angular.services.compiler.generators.TypeScriptCodeGenerator;

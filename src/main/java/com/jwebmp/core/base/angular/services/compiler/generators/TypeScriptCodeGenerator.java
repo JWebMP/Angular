@@ -4,6 +4,8 @@ import com.jwebmp.core.base.angular.client.AppUtils;
 import com.jwebmp.core.base.angular.client.annotations.angular.NgApp;
 import com.jwebmp.core.base.angular.client.annotations.references.NgImportReference;
 import com.jwebmp.core.base.angular.client.services.interfaces.*;
+import com.jwebmp.core.base.html.DivSimple;
+import com.jwebmp.core.base.interfaces.IComponentHierarchyBase;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.io.FileUtils;
 
@@ -52,7 +54,7 @@ public class TypeScriptCodeGenerator
         // Check if we have a cached version
         if (typeScriptCache.containsKey(cacheKey))
         {
-            log.debug("Using cached TypeScript for component {}", component.getClass()
+            log.trace("Using cached TypeScript for component {}", component.getClass()
                                                                            .getSimpleName());
             return typeScriptCache.get(cacheKey);
         }
@@ -225,6 +227,33 @@ public class TypeScriptCodeGenerator
         {
             //do not render angular typescripts for components that are not ng components
             return new StringBuilder();
+        }
+
+        // Prepare the component hierarchy - this triggers ConfigureImportReferences
+        // which populates the AngularConfiguration property with imports, fields,
+        // constructor parameters, lifecycle hooks, etc.
+        if (component instanceof IComponentHierarchyBase<?, ?> hierarchyBase)
+        {
+            // Check if AngularConfiguration has already been set (e.g., by the caller)
+            boolean hasAngularConfig = hierarchyBase.asBase()
+                                                    .getProperties()
+                                                    .containsKey("AngularConfiguration");
+
+            if (!hasAngularConfig)
+            {
+                // Reset configured state so that preConfigure() will be called again
+                // during rendering, which triggers ConfigureImportReferences
+                hierarchyBase.asBase().setConfigured(false);
+
+                // Render the HTML content first - this sets startOfRender=true
+                // which triggers ConfigureImportReferences via preConfigure()
+                hierarchyBase.toString(0);
+
+                // Wrap in a dummy parent and render to process child hierarchy
+                DivSimple<?> dummyParent = new DivSimple<>();
+                dummyParent.add(hierarchyBase);
+                dummyParent.toString(true);
+            }
         }
 
         // If the component has the NgComponent annotation, use the standard rendering

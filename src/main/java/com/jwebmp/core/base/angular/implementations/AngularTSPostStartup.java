@@ -4,8 +4,10 @@ import com.google.inject.Inject;
 import com.guicedee.client.services.lifecycle.IGuicePostStartup;
 import com.jwebmp.core.base.angular.client.services.interfaces.INgApp;
 import com.jwebmp.core.base.angular.services.AngularTsProcessingConfig;
-import com.jwebmp.core.base.angular.services.compiler.JWebMPTypeScriptCompiler;
-import io.vertx.core.Future;
+import com.jwebmp.core.base.angular.services.compiler.TypeScriptCompiler;
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.vertx.core.Vertx;
 import lombok.extern.log4j.Log4j2;
 
@@ -16,8 +18,7 @@ import static com.jwebmp.core.base.angular.client.services.interfaces.Annotation
 import static com.jwebmp.core.base.angular.client.services.interfaces.IComponent.getClassDirectory;
 
 @Log4j2
-public class AngularTSPostStartup implements IGuicePostStartup<AngularTSPostStartup>
-{
+public class AngularTSPostStartup implements IGuicePostStartup<AngularTSPostStartup> {
     @Inject
     private Vertx vertx;
 
@@ -27,31 +28,33 @@ public class AngularTSPostStartup implements IGuicePostStartup<AngularTSPostStar
     public static boolean buildApp = true;
 
     @Override
-    public List<Future<Boolean>> postLoad()
-    {
+    public List<Uni<Boolean>> postLoad() {
         // Skip TypeScript rendering if globally disabled, but still allow the server to start
-        if (!AngularTsProcessingConfig.isEnabled())
-        {
+        if (!AngularTsProcessingConfig.isEnabled()) {
             log.info("Angular TypeScript processing is disabled; skipping TS render on post-startup. Web server will still start and serve routes.");
-            return List.of(Future.succeededFuture(true));
+            return List.of(Uni.createFrom().item(true));
         }
-        return List.of(vertx.executeBlocking(() -> {
-            for (INgApp<?> app : JWebMPTypeScriptCompiler.getAllApps())
-            {
-                try
-                {
-                    JWebMPTypeScriptCompiler compiler = new JWebMPTypeScriptCompiler(app);
-                    log.info("Post Startup - Generating @NgApp (" + getTsFilename(app.getClass()) + ") " +
-                            "in folder " + getClassDirectory(app.getClass()));
-                    compiler.renderAppTS(app);
-                } catch (Throwable t)
-                {
-                    log.error("Unable to generate @NgApp (" + getTsFilename(app.getClass()) + ")", t);
-                }
-            }
 
-            return true;
-        }, false));
+
+
+        Uni<Boolean> processingUni = Multi.createFrom().iterable(TypeScriptCompiler.getAllApps())
+                .onItem().transformToUniAndConcatenate(app ->
+                        Uni.createFrom().item(() -> {
+                            try {
+                                TypeScriptCompiler compiler = new TypeScriptCompiler(app);
+                                log.info("Post Startup - Generating @NgApp (" + getTsFilename(app.getClass()) + ") " +
+                                        "in folder " + getClassDirectory(app.getClass()));
+                                compiler.compileApp();
+                            } catch (Throwable t) {
+                                log.error("Unable to generate @NgApp (" + getTsFilename(app.getClass()) + ")", t);
+                            }
+                            return app;
+                        }).runSubscriptionOn(Infrastructure.getDefaultWorkerPool())
+                )
+                .collect().asList()
+                .map(apps -> true);
+
+        return List.of(processingUni);
     }
 
     /**
@@ -60,8 +63,7 @@ public class AngularTSPostStartup implements IGuicePostStartup<AngularTSPostStar
      * @return
      */
     @Override
-    public Integer sortOrder()
-    {
+    public Integer sortOrder() {
         return Integer.MAX_VALUE - 5000;
     }
 }

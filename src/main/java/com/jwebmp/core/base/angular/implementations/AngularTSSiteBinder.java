@@ -26,7 +26,7 @@ import com.guicedee.client.scopes.CallScoper;
 import com.guicedee.client.services.lifecycle.IGuiceModule;
 import com.guicedee.client.services.websocket.IGuicedWebSocket;
 import com.guicedee.client.services.websocket.WebSocketMessageReceiver;
-import com.guicedee.services.jsonrepresentation.IJsonRepresentation;
+import com.guicedee.modules.services.jsonrepresentation.IJsonRepresentation;
 import com.guicedee.vertx.web.spi.VertxHttpServerOptionsConfigurator;
 import com.guicedee.vertx.web.spi.VertxRouterConfigurator;
 import com.jwebmp.core.base.ajax.AjaxResponse;
@@ -37,7 +37,7 @@ import com.jwebmp.core.base.angular.client.services.interfaces.INgApp;
 import com.jwebmp.core.base.angular.modules.services.angular.AngularRoutingModule;
 import com.jwebmp.core.base.angular.modules.services.base.EnvironmentModule;
 import com.jwebmp.core.base.angular.services.DefinedRoute;
-import com.jwebmp.core.base.angular.services.compiler.JWebMPTypeScriptCompiler;
+import com.jwebmp.core.base.angular.services.compiler.TypeScriptCompiler;
 import io.github.classgraph.ClassInfo;
 import io.smallrye.mutiny.Uni;
 import io.vertx.core.Vertx;
@@ -216,7 +216,7 @@ public class AngularTSSiteBinder
     @Override
     public Router builder(Router router) {
         System.setProperty("vertx.disableFileCPResolving", "true");
-        for (var app : JWebMPTypeScriptCompiler.getAllAppsClasses()) {
+        for (var app : TypeScriptCompiler.getAllAppsClasses()) {
             try {
                 String staticFileLocationPath = AppUtils
                         .getDistPath(app)

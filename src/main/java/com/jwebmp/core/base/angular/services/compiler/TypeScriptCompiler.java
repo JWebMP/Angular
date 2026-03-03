@@ -101,6 +101,26 @@ public class TypeScriptCompiler {
     }
 
     /**
+     * Gets all Angular application classes
+     *
+     * @return List of all Angular application classes
+     */
+    public static List<Class<INgApp<?>>> getAllAppsClasses() {
+        List<Class<INgApp<?>>> appClasses = new ArrayList<>();
+        for (var classInfo : IGuiceContext.instance().getScanResult().getClassesWithAnnotation(com.jwebmp.core.base.angular.client.annotations.angular.NgApp.class)) {
+            if (classInfo.isAbstract() || classInfo.isInterfaceOrAnnotation()) {
+                continue;
+            }
+            try {
+                appClasses.add((Class<INgApp<?>>) classInfo.loadClass());
+            } catch (ClassCastException e) {
+                log.error("Cannot render app - {} / Annotated @NgApp does not implement INgApp", classInfo.getSimpleName(), e);
+            }
+        }
+        return appClasses;
+    }
+
+    /**
      * Compiles the Angular application
      *
      * @return The compiled application

@@ -5,7 +5,7 @@ import com.guicedee.client.scopes.CallScopeProperties;
 import com.guicedee.client.IGuiceContext;
 import com.guicedee.client.services.websocket.WebSocketMessageReceiver;
 import com.guicedee.client.services.websocket.IWebSocketMessageReceiver;
-import com.guicedee.services.jsonrepresentation.IJsonRepresentation;
+import com.guicedee.modules.services.jsonrepresentation.IJsonRepresentation;
 import com.jwebmp.core.base.ajax.*;
 import com.jwebmp.core.utilities.EscapeChars;
 import com.jwebmp.interception.services.AjaxCallIntercepter;

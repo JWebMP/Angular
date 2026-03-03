@@ -1,6 +1,6 @@
 package com.jwebmp.core.base.angular.modules.services.angular;
 
-import com.guicedee.services.jsonrepresentation.IJsonRepresentation;
+import com.guicedee.modules.services.jsonrepresentation.IJsonRepresentation;
 import com.jwebmp.core.base.html.Link;
 import lombok.*;
 

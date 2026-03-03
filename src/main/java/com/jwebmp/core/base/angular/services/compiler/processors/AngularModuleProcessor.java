@@ -186,21 +186,23 @@ public class AngularModuleProcessor
                 // Get the component instance
                 Object componentObj = IGuiceContext.get(clazz);
 
-                // Cast to IComponentHierarchyBase for adding to dummy parent
-                if (componentObj instanceof IComponentHierarchyBase<?, ?> hierarchyBase)
-                {
-                    // Add to dummy parent and call toString to trigger initialization
-                    DivSimple<?> dummyAdd = new DivSimple<>();
-                    dummyAdd.add(hierarchyBase);
-                    dummyAdd.toString(true);
-                }
+                // Cast to IComponentHierarchyBase for rendering
+                IComponentHierarchyBase<?, ?> hierarchyBase = (IComponentHierarchyBase<?, ?>) componentObj;
+
+                // First render the component HTML directly - this sets startOfRender=true
+                // on the component itself, triggering ConfigureImportReferences which
+                // populates the AngularConfiguration property with imports, fields,
+                // constructor parameters, lifecycle hooks, etc.
+                String html = hierarchyBase.toString(0);
+
+                // Then wrap in a dummy parent and render to process child hierarchy
+                // and trigger onComponentConfigured for parent-child relationships
+                DivSimple<?> dummyAdd = new DivSimple<>();
+                dummyAdd.add(hierarchyBase);
+                dummyAdd.toString(true);
 
                 // Cast to INgComponent for TypeScript generation
                 INgComponent<?> component = (INgComponent<?>) componentObj;
-
-                // Generate TypeScript
-                String typeScript = codeGenerator.renderComponentTS(component)
-                                                 .toString();
 
                 // Get file paths
                 File tsFile = fileManager.getComponentFilePath(component);
@@ -213,10 +215,6 @@ public class AngularModuleProcessor
                     return false;
                 }
 
-                // Generate HTML and CSS
-                // Get the HTML content by calling toString on the component
-                IComponentHierarchyBase<?, ?> hierarchyBase = (IComponentHierarchyBase<?, ?>) componentObj;
-                String html = hierarchyBase.toString(0);
 
                 // Generate CSS using the style base
                 StringBuilder cssString = hierarchyBase.cast()

@@ -18,7 +18,7 @@ package com.jwebmp.core.base.angular;
 
 
 import com.jwebmp.core.Page;
-import com.jwebmp.core.base.angular.services.compiler.JWebMPTypeScriptCompiler;
+import com.jwebmp.core.base.angular.services.compiler.TypeScriptCompiler;
 import com.jwebmp.core.plugins.PluginInformation;
 import com.jwebmp.core.plugins.PluginStatus;
 import com.jwebmp.core.services.IPage;
@@ -69,7 +69,7 @@ public class TSPageConfigurator
      */
     private static boolean required;
 
-    private Map<Page<?>, JWebMPTypeScriptCompiler> pageCompilers = new HashMap<>();
+    private Map<Page<?>, TypeScriptCompiler> pageCompilers = new HashMap<>();
     private Set<String> assetLocations = new LinkedHashSet<>();
 
     /**

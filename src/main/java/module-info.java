@@ -87,4 +87,5 @@ module com.jwebmp.core.angular {
     opens com.jwebmp.core.base.angular.modules.services.base to com.fasterxml.jackson.databind, com.google.guice, com.jwebmp.core;
 
     opens com.jwebmp.core.base.angular.services.compiler to com.fasterxml.jackson.databind, com.google.guice, com.jwebmp.core;
+    opens com.jwebmp.core.base.angular to com.fasterxml.jackson.databind, com.google.guice, com.jwebmp.core;
 }

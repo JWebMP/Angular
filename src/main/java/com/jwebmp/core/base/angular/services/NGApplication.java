@@ -10,7 +10,7 @@ import com.jwebmp.core.base.angular.client.annotations.typescript.TsDevDependenc
 import com.jwebmp.core.base.angular.client.services.interfaces.AnnotationUtils;
 import com.jwebmp.core.base.angular.client.services.interfaces.INgApp;
 import com.jwebmp.core.base.angular.client.services.interfaces.INgComponent;
-import com.jwebmp.core.base.angular.services.compiler.JWebMPTypeScriptCompiler;
+import com.jwebmp.core.base.angular.client.services.interfaces.IComponent;
 import com.jwebmp.core.base.html.Base;
 import com.jwebmp.core.base.html.Meta;
 import com.jwebmp.core.base.html.Script;
@@ -79,7 +79,7 @@ public class NGApplication<J extends NGApplication<J>> extends Page<J> implement
     public List<NgImportReference> putRelativeLinkInMap(Class<?> clazz, NgComponentReference moduleRef)
     {
         List<NgImportReference> out = new ArrayList<>();
-        var baseDir = JWebMPTypeScriptCompiler.getCurrentAppFile();
+        var baseDir = IComponent.getCurrentAppFile();
         try
         {
             String canonicalPath = baseDir.get()

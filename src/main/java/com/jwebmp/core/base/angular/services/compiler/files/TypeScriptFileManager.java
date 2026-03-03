@@ -57,7 +57,7 @@ public class TypeScriptFileManager
         // Check if we have a cached version
         if (filePathCache.containsKey(cacheKey))
         {
-            log.debug("Using cached file path for component {}", component.getClass()
+            log.trace("Using cached file path for component {}", component.getClass()
                                                                           .getSimpleName());
             return filePathCache.get(cacheKey);
         }
