@@ -13,8 +13,10 @@ env:
 permissions:
   contents: read
   packages: write
+  checks: write
+  pull-requests: write
 jobs:
-  JWebMPAngular:
+  JWebMPClient:
     uses: GuicedEE/Workflows/.github/workflows/projects.yml@master
     with:
       baseDir: ''
@@ -27,4 +29,3 @@ jobs:
       SONA_PASSWORD: ${{secrets.SONA_PASSWORD}}
       GPG_PASSPHRASE: ${{secrets.GPG_PASSPHRASE}}
       GPG_PRIVATE_KEY: ${{secrets.GPG_PRIVATE_KEY}}
-

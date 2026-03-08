@@ -176,11 +176,6 @@ public class AngularModuleProcessor
                       .set(appPath);
 
             Class<?> clazz = aClass.loadClass();
-            if (clazz.getCanonicalName()
-                     .contains("HomePage"))
-            {
-                System.out.println("Here");
-            }
             if (clazz.isAnnotationPresent(NgComponent.class) && INgComponent.class.isAssignableFrom(clazz))
             {
                 // Get the component instance

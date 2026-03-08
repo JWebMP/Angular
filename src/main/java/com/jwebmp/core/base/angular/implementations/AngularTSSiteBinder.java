@@ -27,6 +27,7 @@ import com.guicedee.client.services.lifecycle.IGuiceModule;
 import com.guicedee.client.services.websocket.IGuicedWebSocket;
 import com.guicedee.client.services.websocket.WebSocketMessageReceiver;
 import com.guicedee.modules.services.jsonrepresentation.IJsonRepresentation;
+import com.guicedee.vertx.spi.VertXPreStartup;
 import com.guicedee.vertx.web.spi.VertxHttpServerOptionsConfigurator;
 import com.guicedee.vertx.web.spi.VertxRouterConfigurator;
 import com.jwebmp.core.base.ajax.AjaxResponse;
@@ -248,9 +249,9 @@ public class AngularTSSiteBinder
                 log.info("STOMP bridge configured with inbound pattern /toBus.* and outbound pattern /toStomp.*");
 
                 StompServer stompServer = StompServer
-                        .create(vertx, stompOptions)
+                        .create(getVertx(), stompOptions)
                         .handler(StompServerHandler
-                                .create(vertx)
+                                .create(getVertx())
                                 .bridge(stompBridgeOptions));
 
                 // Register WebSocket handlers
@@ -278,7 +279,7 @@ public class AngularTSSiteBinder
 
                 // This executes when a websocket message is received via STOMP
                 log.trace("Registering event bus consumer for STOMP messages at /toBus/incoming");
-                vertx
+                getVertx()
                         .eventBus()
                         .consumer("/toBus/incoming", handler -> {
                             var o = handler.body();
@@ -492,6 +493,13 @@ public class AngularTSSiteBinder
             }
         }
         return router;
+    }
+
+    public Vertx getVertx() {
+        if (vertx == null) {
+            vertx = VertXPreStartup.getVertx();
+        }
+        return vertx;
     }
 
     @Override

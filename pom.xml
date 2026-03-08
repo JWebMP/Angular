@@ -25,19 +25,16 @@
         <dependency>
             <groupId>com.jwebmp.core</groupId>
             <artifactId>jwebmp-core</artifactId>
-            <version>${project.version}</version>
         </dependency>
 
         <dependency>
             <groupId>com.jwebmp.plugins</groupId>
             <artifactId>typescript-client</artifactId>
-            <version>${project.version}</version>
         </dependency>
 
         <dependency>
             <groupId>com.jwebmp</groupId>
             <artifactId>jwebmp-vertx</artifactId>
-            <version>${project.version}</version>
         </dependency>
         
         <dependency>
@@ -49,13 +46,11 @@
         <dependency>
             <groupId>com.guicedee</groupId>
             <artifactId>inject</artifactId>
-            <version>${guicedee.version}</version>
         </dependency>
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
-            <version>${junit.jupiter.version}</version>
             <scope>test</scope>
 
         </dependency>

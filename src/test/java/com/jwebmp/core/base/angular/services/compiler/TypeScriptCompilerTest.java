@@ -35,26 +35,7 @@ public class TypeScriptCompilerTest
     {
         IGuiceContext.instance().inject();
     }
-    @BeforeEach
-    public void setup()
-    {
-        // Use the first available app from the scan, or create a test one
-        var allApps = JWebMPTypeScriptCompiler.getAllApps();
-        if (!allApps.isEmpty())
-        {
-            app = allApps.iterator().next();
-        }
-        else
-        {
-            app = IGuiceContext.get(TestApp.class);
-        }
-        IComponent.app.set(app);
-        File appPath = AppUtils.getAppPath((Class<? extends INgApp<?>>) app.getClass());
-        IComponent.getCurrentAppFile().set(appPath);
-        codeGenerator = new TypeScriptCodeGenerator(app);
-        TypeScriptCodeValidator codeValidator = new TypeScriptCodeValidator();
-        fileManager = new TypeScriptFileManager(app, codeGenerator, codeValidator);
-    }
+
     @Test
     public void testProductDetailComponent() throws IOException
     {
