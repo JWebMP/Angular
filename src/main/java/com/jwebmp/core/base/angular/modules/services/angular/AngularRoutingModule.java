@@ -34,7 +34,7 @@ import static com.jwebmp.core.base.angular.client.services.interfaces.Annotation
 @NgImportReference(value = "Routes", reference = "@angular/router")
 
 @NgBootModuleImport("RoutingModule")
-@TsDependency(value = "@angular/router", version = "^19.2.0")
+@TsDependency(value = "@angular/router", version = "^20.3.17")
 
 @NgModule
 //So the initial load sets the app

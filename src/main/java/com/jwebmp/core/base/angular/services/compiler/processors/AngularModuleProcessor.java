@@ -597,6 +597,77 @@ public class AngularModuleProcessor
     }
 
     /**
+     * Processes REST client files
+     *
+     * @param currentApp   The current application directory
+     * @param a            The class info
+     * @param scan         The scan result
+     * @param appClass     The Angular application class
+     * @param srcDirectory The source directory
+     */
+    public void processNgRestClientFiles(File currentApp, ClassInfo a, ScanResult scan, Class<? extends INgApp<?>> appClass, File srcDirectory)
+    {
+        try
+        {
+            Set<Class<?>> classes = new HashSet<>();
+            Class<?> aClass = a.loadClass();
+
+            if (a.isInterface() || a.isAbstract())
+            {
+                for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(aClass) : scan.getClassesImplementing(aClass))
+                {
+                    if (!subclass.isAbstract() && !subclass.isInterface())
+                    {
+                        classes.add(subclass.loadClass());
+                    }
+                }
+            }
+            else
+            {
+                classes.add(aClass);
+            }
+
+            for (Class<?> clazz : classes)
+            {
+                if (INgRestClient.class.isAssignableFrom(clazz))
+                {
+                    INgRestClient<?> component = (INgRestClient<?>) IGuiceContext.get(clazz);
+                    String typeScript = codeGenerator.renderRestClientTS(component)
+                                                     .toString();
+                    File file = fileManager.getComponentFilePath(component);
+                    if (file != null)
+                    {
+                        fileManager.writeComponentToFile(component);
+                    }
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            log.error("Unable to render rest client - " + a.getSimpleName(), e);
+        }
+    }
+
+    /**
+     * Processes all REST clients
+     *
+     * @param currentApp   The current application directory
+     * @param scan         The scan result
+     * @param appClass     The Angular application class
+     * @param srcDirectory The source directory
+     */
+    public void processRestClients(File currentApp, ScanResult scan, Class<? extends INgApp<?>> appClass, File srcDirectory)
+    {
+        scan.getClassesWithAnnotation(NgRestClient.class)
+            .stream()
+            .forEach(a -> {
+                LogManager.getLogger("TypescriptCompiler")
+                          .debug("Rendering NgRestClient [{}]", a.getSimpleName());
+                processNgRestClientFiles(currentApp, a, scan, appClass, srcDirectory);
+            });
+    }
+
+    /**
      * Processes all Angular components
      * This method processes all types of Angular components in one go
      *
@@ -629,6 +700,9 @@ public class AngularModuleProcessor
 
         // Process service providers
         processServiceProviders(currentApp, scan, appClass, srcDirectory);
+
+        // Process REST clients
+        processRestClients(currentApp, scan, appClass, srcDirectory);
 
         log.info("Finished processing all Angular components");
     }

@@ -113,6 +113,10 @@ public class TypeScriptCodeGenerator
         {
             return renderServiceProviderTS((INgServiceProvider<?>) component).toString();
         }
+        else if (component instanceof INgRestClient<?>)
+        {
+            return renderRestClientTS((INgRestClient<?>) component).toString();
+        }
         else
         {
             return component.renderClassTs()
@@ -164,6 +168,20 @@ public class TypeScriptCodeGenerator
      * @throws IOException If an error occurs during rendering
      */
     public StringBuilder renderServiceProviderTS(INgServiceProvider<?> component) throws IOException
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.append(component.renderClassTs());
+        return sb;
+    }
+
+    /**
+     * Renders TypeScript for a REST client component
+     *
+     * @param component The REST client component
+     * @return The rendered TypeScript
+     * @throws IOException If an error occurs during rendering
+     */
+    public StringBuilder renderRestClientTS(INgRestClient<?> component) throws IOException
     {
         StringBuilder sb = new StringBuilder();
         sb.append(component.renderClassTs());
