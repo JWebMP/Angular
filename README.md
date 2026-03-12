@@ -312,12 +312,10 @@ Example environment file: `.env.example`.
 | Dependency map | `docs/architecture/dependency-map.md` |
 | ERD | `docs/architecture/erd-angular-plugin.md` |
 | Interaction flows | `docs/architecture/interaction-flows.md` |
-| Prompt reference | `docs/PROMPT_REFERENCE.md` |
-| Rules submodule | `rules/README.md` |
 
 ## 🤝 Contributing
 
-Issues and pull requests are welcome. Follow the topic rules in `rules/generative/frontend/jwebmp/angular/`. Use Log4j2 for logging and keep generated artifacts out of PRs.
+Issues and pull requests are welcome. Use Log4j2 for logging and keep generated artifacts out of PRs.
 
 ## 📄 License
 

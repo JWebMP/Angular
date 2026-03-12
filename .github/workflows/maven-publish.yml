@@ -1,26 +1,13 @@
 name: JWebMP Angular
 on:
   workflow_dispatch:
-    inputs:
-      centralRelease:
-        type: boolean
-        description: Run a release to maven central
-        default: false
   push:
-env:
-  GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-  GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-permissions:
-  contents: read
-  packages: write
-  checks: write
-  pull-requests: write
 jobs:
-  JWebMPClient:
+  Angular:
     uses: GuicedEE/Workflows/.github/workflows/projects.yml@master
     with:
       baseDir: ''
-      name: 'JWebMP Angular'
+      name: 'Angular Render'
       publishToCentral: ${{inputs.centralRelease}}
     secrets:
       USERNAME: ${{secrets.USERNAME}}
