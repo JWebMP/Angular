@@ -79,7 +79,7 @@ public class DependencyManager {
      * @return Whether the operating system is supported
      */
     public boolean isOsSupported() {
-        return SystemUtils.IS_OS_WINDOWS || SystemUtils.IS_OS_LINUX;
+        return SystemUtils.IS_OS_WINDOWS || SystemUtils.IS_OS_LINUX || SystemUtils.IS_OS_MAC;
     }
 
     /**
@@ -92,6 +92,8 @@ public class DependencyManager {
             return "Windows";
         } else if (SystemUtils.IS_OS_LINUX) {
             return "Linux";
+        } else if (SystemUtils.IS_OS_MAC) {
+            return "macOS";
         } else {
             return "Unsupported OS";
         }

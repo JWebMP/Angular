@@ -20,6 +20,7 @@ import com.jwebmp.core.base.interfaces.IComponentHTMLAttributeBase;
 import com.jwebmp.core.base.interfaces.IComponentHierarchyBase;
 import io.github.classgraph.ClassInfo;
 import io.github.classgraph.ScanResult;
+import lombok.extern.log4j.Log4j2;
 
 import java.util.*;
 import java.util.function.Predicate;
@@ -39,10 +40,11 @@ import static com.jwebmp.core.base.angular.client.services.interfaces.Annotation
 @NgModule
 //So the initial load sets the app
 @Singleton
+@Log4j2
 public class AngularRoutingModule implements INgModule<AngularRoutingModule> {
     private Class<INgApp<?>> app;
     private List<DefinedRoute<?>> definedRoutesList;
-    private static List<DefinedRoute<?>> routes = new ArrayList<>();
+    private static final List<DefinedRoute<?>> routes = Collections.synchronizedList(new ArrayList<>());
 
     private static RoutingModuleOptions options;
 
@@ -59,11 +61,14 @@ public class AngularRoutingModule implements INgModule<AngularRoutingModule> {
                 new AngularRoutingModule().setApp(app)
                         .buildRoutes();
             } catch (Throwable T) {
-
+                log.error("Failed to build Angular routing module routes", T);
             }
         }
 
-        return routes;
+        // Return a snapshot to avoid ConcurrentModificationException during iteration
+        synchronized (routes) {
+            return new ArrayList<>(routes);
+        }
     }
 
     @Override

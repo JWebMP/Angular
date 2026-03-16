@@ -415,13 +415,99 @@ public class AngularAppSetup
 
     private static String resolveWindowsNpmCommand()
     {
+        // 1. Check the classic npm global install location
         String npmCmd = FileUtils.getUserDirectory() + "/AppData/Roaming/npm/npm.cmd";
         File npmFile = new File(npmCmd);
         if (npmFile.exists())
         {
             return npmFile.getAbsolutePath();
         }
+
+        // 2. Try to find npm.cmd via the system PATH
+        String pathEnv = System.getenv("PATH");
+        if (pathEnv == null || pathEnv.isBlank())
+        {
+            pathEnv = System.getenv("Path");
+        }
+        if (pathEnv != null && !pathEnv.isBlank())
+        {
+            for (String dir : pathEnv.split(";"))
+            {
+                if (dir == null || dir.isBlank())
+                {
+                    continue;
+                }
+                File candidate = new File(dir.trim(), "npm.cmd");
+                if (candidate.isFile())
+                {
+                    log.info("Found npm on PATH: {}", candidate.getAbsolutePath());
+                    return candidate.getAbsolutePath();
+                }
+            }
+        }
+
+        // 3. Try 'where npm.cmd' as a fallback (covers nvm, custom installs, etc.)
+        String whereResult = runWhereCommand("npm.cmd");
+        if (whereResult != null)
+        {
+            log.info("Found npm via 'where': {}", whereResult);
+            return whereResult;
+        }
+
+        // 4. Check common installation directories
+        String[] commonPaths = {
+                System.getenv("ProgramFiles") + "\\nodejs\\npm.cmd",
+                System.getenv("ProgramFiles(x86)") + "\\nodejs\\npm.cmd",
+                "C:\\Program Files\\nodejs\\npm.cmd",
+                "C:\\Software\\nodejs\\npm.cmd",
+                System.getenv("NVM_HOME") != null ? System.getenv("NVM_HOME") + "\\npm.cmd" : null,
+                System.getenv("NVM_SYMLINK") != null ? System.getenv("NVM_SYMLINK") + "\\npm.cmd" : null,
+        };
+        for (String path : commonPaths)
+        {
+            if (path == null)
+            {
+                continue;
+            }
+            File candidate = new File(path);
+            if (candidate.isFile())
+            {
+                log.info("Found npm at common path: {}", candidate.getAbsolutePath());
+                return candidate.getAbsolutePath();
+            }
+        }
+
+        // 5. Fall back to bare "npm" and hope it's on the PATH at execution time
+        log.warn("Could not locate npm.cmd on disk; falling back to bare 'npm' command");
         return "npm";
+    }
+
+    /**
+     * Runs {@code where.exe <command>} on Windows and returns the first result line, or null if not found.
+     */
+    private static String runWhereCommand(String command)
+    {
+        try
+        {
+            ProcessBuilder pb = new ProcessBuilder("where.exe", command);
+            pb.redirectErrorStream(true);
+            Process p = pb.start();
+            String output = new String(p.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8).trim();
+            if (p.waitFor(15, TimeUnit.SECONDS) && p.exitValue() == 0 && !output.isBlank())
+            {
+                // Return the first line (first match)
+                String firstLine = output.lines().findFirst().orElse(null);
+                if (firstLine != null && new File(firstLine.trim()).isFile())
+                {
+                    return firstLine.trim();
+                }
+            }
+        }
+        catch (IOException | InterruptedException e)
+        {
+            // Ignore — 'where' not available or failed
+        }
+        return null;
     }
 
     /**
@@ -590,6 +676,7 @@ public class AngularAppSetup
         String overrideProperty = System.getProperty("jwebmp.npm.path");
         if (overrideProperty != null && !overrideProperty.isBlank())
         {
+            log.info("Using npm from system property jwebmp.npm.path: {}", overrideProperty);
             return overrideProperty;
         }
 
@@ -598,19 +685,27 @@ public class AngularAppSetup
             String npmCmd = resolveWindowsNpmCommand();
             if (canRunNpmCommand(appBaseDirectory, npmCmd))
             {
+                log.info("Resolved npm executable on Windows: {}", npmCmd);
                 return npmCmd;
             }
+            log.warn("npm resolved to '{}' but verification failed (npm --version returned non-zero). " +
+                     "Ensure Node.js/npm is installed and on the system PATH, or set -Djwebmp.npm.path=<path-to-npm.cmd>", npmCmd);
         }
-        else if (SystemUtils.IS_OS_LINUX)
+        else if (SystemUtils.IS_OS_LINUX || SystemUtils.IS_OS_MAC)
         {
             if (canRunNpmCommand(appBaseDirectory, "npm"))
             {
                 return "npm";
             }
+            log.warn("npm is not available on the PATH. Ensure Node.js/npm is installed, or set -Djwebmp.npm.path=<path-to-npm>");
         }
 
         if (!allowDownload)
         {
+            log.error("npm could not be found. Options to fix this:\n" +
+                      "  1. Install Node.js/npm and ensure it is on the system PATH\n" +
+                      "  2. Set the system property -Djwebmp.npm.path=/path/to/npm\n" +
+                      "  3. Enable automatic download with -Djwebmp.angular.ensureToolchain=true -Djwebmp.angular.downloadNpm=true");
             return null;
         }
 
@@ -625,13 +720,24 @@ public class AngularAppSetup
     private static boolean canRunNpmCommand(File appBaseDirectory, String npmExecutable)
     {
         List<String> command = buildNpmCommand(npmExecutable, Collections.singletonList("--version"));
-        return runCommand(appBaseDirectory, command, false) == 0;
+        log.debug("Verifying npm executable with command: {}", command);
+        int exitCode = runCommand(appBaseDirectory, command, false);
+        if (exitCode != 0)
+        {
+            log.debug("npm verification failed for '{}' (exit code {})", npmExecutable, exitCode);
+        }
+        return exitCode == 0;
     }
 
     private static void runNpmCommand(File appBaseDirectory, String npmExecutable, List<String> args)
     {
         List<String> command = buildNpmCommand(npmExecutable, args);
-        runCommand(appBaseDirectory, command, true);
+        log.info("Running npm command: {}", command);
+        int exitCode = runCommand(appBaseDirectory, command, true);
+        if (exitCode != 0)
+        {
+            log.error("npm command failed with exit code {}: {}", exitCode, command);
+        }
     }
 
     private static int runCommand(File appBaseDirectory, List<String> command, boolean inheritIo)
@@ -650,17 +756,49 @@ public class AngularAppSetup
             }
             processBuilder.environment()
                           .putAll(System.getenv());
+
+            // Ensure the directory containing the npm executable is on the PATH
+            // This is critical when npm was found at a non-standard location
+            if (!command.isEmpty())
+            {
+                String firstArg = command.get(0);
+                // On Windows the actual executable is the 3rd argument (cmd.exe /c <npm>)
+                String executablePath = SystemUtils.IS_OS_WINDOWS && command.size() >= 3
+                        ? command.get(2).split("\\s")[0].replace("\"", "")
+                        : firstArg;
+                File execFile = new File(executablePath);
+                if (execFile.isFile() && execFile.getParentFile() != null)
+                {
+                    String currentPath = processBuilder.environment().getOrDefault("PATH",
+                            processBuilder.environment().getOrDefault("Path", ""));
+                    String nodeDir = execFile.getParentFile().getAbsolutePath();
+                    if (!currentPath.contains(nodeDir))
+                    {
+                        processBuilder.environment().put("PATH", nodeDir + File.pathSeparator + currentPath);
+                    }
+                }
+            }
+
             processBuilder = processBuilder.directory(appBaseDirectory);
             Process p = processBuilder.start();
+
+            // Drain stdout/stderr when not inheriting IO to prevent buffer deadlock
+            if (!inheritIo)
+            {
+                p.getInputStream().readAllBytes();
+            }
+
             if (!p.waitFor(10, TimeUnit.MINUTES))
             {
                 p.destroyForcibly();
+                log.warn("Command timed out after 10 minutes: {}", command);
                 return -1;
             }
             return p.exitValue();
         }
         catch (IOException | InterruptedException e)
         {
+            log.debug("Failed to execute command {}: {}", command, e.getMessage());
             return -1;
         }
     }
@@ -733,9 +871,14 @@ public class AngularAppSetup
             nodeRootName = "node-v" + nodeVersion + "-linux-" + arch;
             archiveName = nodeRootName + ".tar.gz";
         }
+        else if (SystemUtils.IS_OS_MAC)
+        {
+            nodeRootName = "node-v" + nodeVersion + "-darwin-" + arch;
+            archiveName = nodeRootName + ".tar.gz";
+        }
         else
         {
-            log.warn("Node download is only supported on Windows and Linux.");
+            log.warn("Node download is only supported on Windows, Linux, and macOS.");
             return null;
         }
 
