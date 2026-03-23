@@ -188,6 +188,9 @@ public class AngularRoutingModule implements INgModule<AngularRoutingModule> {
         if (!Strings.isNullOrEmpty(annotation.pathMatch())) {
             dr.setPathMatch(annotation.pathMatch());
         }
+        if (!Strings.isNullOrEmpty(annotation.outlet())) {
+            dr.setOutlet(annotation.outlet());
+        }
         return dr;
     }
 

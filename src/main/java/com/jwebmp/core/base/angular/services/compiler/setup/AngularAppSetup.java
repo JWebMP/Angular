@@ -101,11 +101,46 @@ public class AngularAppSetup
         Map<String, String> devDependencies = new TreeMap<>();
         Map<String, String> overrideDependencies = new TreeMap<>();
 
+        // Run page configurators to allow dynamic TsDependency additions to the app page/body
+        runPageConfiguratorsForDependencies();
+
         processTsDependencies(dependencies, overrideDependencies);
         processTsDevDependencies(devDependencies);
 
         ObjectMapper om = IGuiceContext.get(DefaultObjectMapper);
         processPackageJsonFile(appClass, packageTemplate, om, dependencies, devDependencies, overrideDependencies, packageJsonFile);
+    }
+
+    /**
+     * Runs page configurators' configureAngular on the app to populate dynamic configurations
+     * (e.g. TsDependency) before package.json processing
+     */
+    private void runPageConfiguratorsForDependencies()
+    {
+        Set<com.jwebmp.core.services.IPageConfigurator> pageConfigurators = IGuiceContext.loaderToSet(ServiceLoader.load(com.jwebmp.core.services.IPageConfigurator.class));
+        for (com.jwebmp.core.services.IPageConfigurator configurator : pageConfigurators)
+        {
+            try
+            {
+                boolean enabled = true;
+                try
+                {
+                    enabled = configurator.enabled();
+                }
+                catch (Throwable ignored)
+                {
+                }
+                if (enabled)
+                {
+                    configurator.configureAngular((com.jwebmp.core.services.IPage<?>) app);
+                }
+            }
+            catch (Throwable t)
+            {
+                log.warn("IPageConfigurator ({}) failed during configureAngular for dependency collection",
+                        configurator.getClass().getName(), t);
+            }
+        }
     }
 
     /**
@@ -154,6 +189,47 @@ public class AngularAppSetup
                              }
                          }
                      });
+
+        // Collect dynamic TsDependency configurations from the app page and body
+        if (app instanceof com.jwebmp.core.base.interfaces.IComponentHierarchyBase<?, ?> appComponent)
+        {
+            collectDynamicTsDependencies(appComponent, dependencies, overrideDependencies);
+            if (app instanceof com.jwebmp.core.services.IPage<?> page)
+            {
+                try
+                {
+                    var body = page.getBody();
+                    if (body != null)
+                    {
+                        collectDynamicTsDependencies((com.jwebmp.core.base.interfaces.IComponentHierarchyBase<?, ?>) body, dependencies, overrideDependencies);
+                    }
+                }
+                catch (Throwable ignored)
+                {
+                    // body may not be available
+                }
+            }
+        }
+    }
+
+    /**
+     * Collects dynamic TsDependency configurations from a component's configurations
+     */
+    private void collectDynamicTsDependencies(com.jwebmp.core.base.interfaces.IComponentHierarchyBase<?, ?> component,
+                                               Map<String, String> dependencies, Map<String, String> overrideDependencies)
+    {
+        for (var config : component.getConfigurations())
+        {
+            if (config instanceof TsDependency tsDep)
+            {
+                var named = getNamedTSDependency(tsDep);
+                dependencies.putIfAbsent(named.value(), named.version());
+                if (named.overrides())
+                {
+                    overrideDependencies.put(named.value(), named.version());
+                }
+            }
+        }
     }
 
     /**

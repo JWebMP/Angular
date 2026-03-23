@@ -26,6 +26,8 @@ public class DefinedRoute<J extends DefinedRoute<J>> implements IJsonRepresentat
 
     private String pathMatch;
 
+    private String outlet;
+
     @JsonIgnore
     private boolean renderComponent;
 
@@ -132,5 +134,17 @@ public class DefinedRoute<J extends DefinedRoute<J>> implements IJsonRepresentat
     {
         this.children = children;
         return this;
+    }
+
+    public String getOutlet()
+    {
+        return outlet;
+    }
+
+    @SuppressWarnings("unchecked")
+    public J setOutlet(String outlet)
+    {
+        this.outlet = outlet;
+        return (J) this;
     }
 }
