@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.base.Strings;
 import com.google.inject.Singleton;
 import com.guicedee.client.IGuiceContext;
+import com.jwebmp.core.base.angular.client.annotations.angular.NgApp;
 import com.jwebmp.core.base.angular.client.annotations.angular.NgModule;
 import com.jwebmp.core.base.angular.client.annotations.boot.NgBootModuleImport;
 import com.jwebmp.core.base.angular.client.annotations.references.NgComponentReference;
@@ -137,8 +138,16 @@ public class AngularRoutingModule implements INgModule<AngularRoutingModule> {
         ScanResult scan = IGuiceContext.instance()
                 .getScanResult();
 
+        // Resolve the boot component class so we can detect it in the route table
+        Class<?> bootComponentClass = null;
+        NgApp ngApp = this.app.getAnnotation(NgApp.class);
+        if (ngApp != null) {
+            bootComponentClass = ngApp.bootComponent();
+        }
+
         Map<Class<? extends IComponent<?>>, String> baseRoutes = new LinkedHashMap<>();
         definedRoutesList = new ArrayList<>();
+        final Class<?> finalBootComponentClass = bootComponentClass;
         scan
                 .getClassesWithAnnotation(NgRoutable.class)
                 .stream()
@@ -160,6 +169,42 @@ public class AngularRoutingModule implements INgModule<AngularRoutingModule> {
                         }
                 );
         baseRoutes.forEach((aClass, aName) -> {
+            // Boot component with an empty path should NOT be a routed component —
+            // it is the app shell. Convert it to a redirect-only route to avoid
+            // Angular nesting the boot component inside its own <router-outlet>.
+            if (finalBootComponentClass != null && finalBootComponentClass.equals(aClass)) {
+                NgRoutable annotation = aClass.getAnnotation(NgRoutable.class);
+                if (annotation != null && Strings.isNullOrEmpty(annotation.path())) {
+                    DefinedRoute<?> redirect = new DefinedRoute<>();
+                    redirect.setPath("");
+                    redirect.setRenderComponent(false);
+                    // Use explicit redirectTo if provided, otherwise find the first sibling route
+                    if (!Strings.isNullOrEmpty(annotation.redirectTo())) {
+                        redirect.setRedirectTo(annotation.redirectTo());
+                    } else {
+                        // Auto-detect: redirect to the first non-boot base route
+                        String firstPath = baseRoutes.entrySet().stream()
+                                .filter(e -> !e.getKey().equals(aClass))
+                                .filter(e -> !Strings.isNullOrEmpty(e.getValue()))
+                                .map(Map.Entry::getValue)
+                                .findFirst()
+                                .orElse(null);
+                        if (firstPath != null) {
+                            redirect.setRedirectTo(firstPath);
+                        }
+                    }
+                    if (!Strings.isNullOrEmpty(annotation.pathMatch())) {
+                        redirect.setPathMatch(annotation.pathMatch());
+                    } else {
+                        redirect.setPathMatch("full");
+                    }
+                    definedRoutesList.add(redirect);
+                    routes.add(redirect);
+                    log.debug("Boot component [{}] converted to redirect route: '' -> '{}'",
+                            aClass.getSimpleName(), redirect.getRedirectTo());
+                    return;
+                }
+            }
             DefinedRoute<?> dr = getDefinedRoute(aClass);
             buildRoutePathway(dr, aClass, true);
             definedRoutesList.add(dr);
