@@ -1099,6 +1099,7 @@ public class AngularAppSetup
             var ir = scan.getClassesWithAnnotation(NgBootImportReference.class);
             Set<String> imports = new LinkedHashSet<>();
 
+            List<String> globalAssignments = new ArrayList<>();
             for (ClassInfo classInfo : ir)
             {
                 var a = classInfo.loadClass()
@@ -1106,7 +1107,11 @@ public class AngularAppSetup
                 for (NgBootImportReference ngBootImportReference : a)
                 {
                     String importString;
-                    if (ngBootImportReference.direct() || !ngBootImportReference.wrapValueInBraces())
+                    if (ngBootImportReference.sideEffect())
+                    {
+                        importString = "import '" + ngBootImportReference.reference() + "'";
+                    }
+                    else if (ngBootImportReference.direct() || !ngBootImportReference.wrapValueInBraces())
                     {
                         importString = "import " + ngBootImportReference.value() + " from '" + ngBootImportReference.reference() + "'";
                     }
@@ -1115,10 +1120,16 @@ public class AngularAppSetup
                         importString = "import {" + ngBootImportReference.value() + "} from '" + ngBootImportReference.reference() + "'";
                     }
                     imports.add(importString);
+                    if (ngBootImportReference.assignToGlobal() && !ngBootImportReference.sideEffect())
+                    {
+                        globalAssignments.add("(globalThis as any)." + ngBootImportReference.value() + " = " + ngBootImportReference.value() + ";");
+                    }
                 }
             }
             imports.forEach(a -> bootImportsString.append(a)
                                                   .append("\n"));
+            globalAssignments.forEach(a -> bootImportsString.append(a)
+                                                            .append("\n"));
 
             StringBuilder bootImportProviders = new StringBuilder();
             for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgBootImportProvider.class))
