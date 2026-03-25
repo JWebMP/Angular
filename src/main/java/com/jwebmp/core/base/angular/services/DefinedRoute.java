@@ -56,6 +56,7 @@ public class DefinedRoute<J extends DefinedRoute<J>> implements IJsonRepresentat
     @JsonIgnore
     private Class<? extends IComponent<?>> component;
 
+    @JsonInclude(NON_EMPTY)
     private List<DefinedRoute<?>> children;
 
     public List<DefinedRoute<?>> getChildren()

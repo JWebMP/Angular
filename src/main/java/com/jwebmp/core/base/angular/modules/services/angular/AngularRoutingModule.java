@@ -115,6 +115,9 @@ public class AngularRoutingModule implements INgModule<AngularRoutingModule> {
         }
         if (definedRoutesList != null) {
             for (DefinedRoute<?> definedRoute : definedRoutesList) {
+                if (definedRoute.getComponent() == null) {
+                    continue;
+                }
                 NgComponentReference ngComponentReference = getNgComponentReference(definedRoute.getComponent());
                 out.addAll(putRelativeLinkInMap(getClass(), ngComponentReference));
                 buildImportReferenceNest(out, definedRoute);
@@ -182,15 +185,26 @@ public class AngularRoutingModule implements INgModule<AngularRoutingModule> {
                     if (!Strings.isNullOrEmpty(annotation.redirectTo())) {
                         redirect.setRedirectTo(annotation.redirectTo());
                     } else {
-                        // Auto-detect: redirect to the first non-boot base route
-                        String firstPath = baseRoutes.entrySet().stream()
+                        // Prefer a route explicitly marked as default
+                        String defaultPath = baseRoutes.entrySet().stream()
                                 .filter(e -> !e.getKey().equals(aClass))
                                 .filter(e -> !Strings.isNullOrEmpty(e.getValue()))
+                                .filter(e -> e.getKey().getAnnotation(NgRoutable.class) != null
+                                        && e.getKey().getAnnotation(NgRoutable.class).isDefault())
                                 .map(Map.Entry::getValue)
                                 .findFirst()
                                 .orElse(null);
-                        if (firstPath != null) {
-                            redirect.setRedirectTo(firstPath);
+                        if (defaultPath == null) {
+                            // Fallback: auto-detect first non-boot base route
+                            defaultPath = baseRoutes.entrySet().stream()
+                                    .filter(e -> !e.getKey().equals(aClass))
+                                    .filter(e -> !Strings.isNullOrEmpty(e.getValue()))
+                                    .map(Map.Entry::getValue)
+                                    .findFirst()
+                                    .orElse(null);
+                        }
+                        if (defaultPath != null) {
+                            redirect.setRedirectTo(defaultPath);
                         }
                     }
                     if (!Strings.isNullOrEmpty(annotation.pathMatch())) {
