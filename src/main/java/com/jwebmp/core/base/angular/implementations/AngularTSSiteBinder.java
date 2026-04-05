@@ -447,7 +447,7 @@ public class AngularTSSiteBinder
                         .handler(StaticHandler
                                 .create(FileSystemAccess.ROOT, assetsStaticDir)
                                 .setCacheEntryTimeout(604800)
-                                .setCachingEnabled(true)
+                                .setCachingEnabled(false)
                                 .setDefaultContentEncoding("UTF-8")
                                 .setDirectoryListing(false)
                                 .setEnableFSTuning(true)
@@ -464,7 +464,7 @@ public class AngularTSSiteBinder
                 StaticHandler rootStaticHandler = StaticHandler
                         .create(FileSystemAccess.ROOT, staticFileLocationPath)
                         .setCacheEntryTimeout(604800)
-                        .setCachingEnabled(true)
+                        .setCachingEnabled(false)
                         .setDefaultContentEncoding("UTF-8")
                         .setDirectoryListing(false)
                         .setEnableFSTuning(true)
