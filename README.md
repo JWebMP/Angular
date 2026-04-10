@@ -5,11 +5,11 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue)](https://www.apache.org/licenses/LICENSE-2.0)
 
 ![Java 25+](https://img.shields.io/badge/Java-25%2B-green)
-![Angular 20](https://img.shields.io/badge/Angular-20-green)
+![Angular 21](https://img.shields.io/badge/Angular-20-green)
 ![Vert.X 5](https://img.shields.io/badge/Vert.x-5%2B-green)
 ![Maven 4](https://img.shields.io/badge/Maven-4%2B-green)
 
-Generates **Angular 20** TypeScript projects from JWebMP annotation metadata and serves the built SPA via **Vert.x 5** with STOMP/WebSocket bridging. Annotate your Java classes with `@NgApp`, `@NgComponent`, `@NgRoutable`, `@NgDataService`, etc. — the compiler produces `.ts` files, `angular.json`, `package.json`, `tsconfig.json`, routing modules, and environment config. At runtime, the plugin hosts the compiled dist directory with SPA-fallback routing, static-asset serving, and a full STOMP event-bus bridge.
+Generates **Angular 21** TypeScript projects from JWebMP annotation metadata and serves the built SPA via **Vert.x 5** with STOMP/WebSocket bridging. Annotate your Java classes with `@NgApp`, `@NgComponent`, `@NgRoutable`, `@NgDataService`, etc. — the compiler produces `.ts` files, `angular.json`, `package.json`, `tsconfig.json`, routing modules, and environment config. At runtime, the plugin hosts the compiled dist directory with SPA-fallback routing, static-asset serving, and a full STOMP event-bus bridge.
 
 ## ✨ Features
 
@@ -276,7 +276,7 @@ com.jwebmp.core.angular
 ## 🛠️ Build
 
 - **Java**: 25 LTS
-- **Maven**: inherits `com.jwebmp:parent:2.0.0-SNAPSHOT`
+- **Maven**: inherits `com.jwebmp:parent:2.0.0-RC1`
 - **JPMS**: module descriptor at `src/main/java/module-info.java`
 - **Annotation processors**: Lombok + MapStruct (configured in `pom.xml`)
 

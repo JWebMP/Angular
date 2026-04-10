@@ -10,7 +10,7 @@ graph TD
     subgraph Runtime["Runtime Environment"]
         vertx[Vert.x 5 HTTP + Event Bus + STOMP]
         guice[GuicedEE Core / Client / Web / WebSocket]
-        angularSpa[Angular 20 SPA dist/ assets]
+        angularSpa[Angular 21 SPA dist/ assets]
         listeners[IGuicedWebSocket listeners]
     end
 

@@ -8,7 +8,7 @@ C4Container
         Container(tsCompiler, "TypeScript Generator", "Java 25 / Maven", "Scans @NgApp/@NgComponent, renders Angular source/config via JWebMPTypeScriptCompiler (no npm build)")
         Container(vertxHost, "Vert.x Host and Router", "Vert.x 5", "Serves existing dist assets, configures STOMP/WebSocket bridge, binds routes via AngularTSSiteBinder")
         Container(guiceLifecycle, "Guice Lifecycle Modules", "GuicedEE", "Pre/Post startup hooks AngularPreStartup and AngularTSPostStartup, scanning config")
-        Container(artifacts, "Angular Dist Output", "Angular 20 SPA", "Built externally; hosted from dist/webroot paths")
+        Container(artifacts, "Angular Dist Output", "Angular 21 SPA", "Built externally; hosted from dist/webroot paths")
     }
 
     System_Ext(jwebmpCore, "JWebMP Core and TS Client", "Annotation model, components, rendering helpers")
