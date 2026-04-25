@@ -88,6 +88,10 @@
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>flatten-maven-plugin</artifactId>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+            </plugin>
 
             <!-- Configure annotation processors for Lombok and MapStruct (per rules/generative/backend/mapstruct/mapstruct-6.md and lombok.md) -->
             <plugin>
