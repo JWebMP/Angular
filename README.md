@@ -276,7 +276,7 @@ com.jwebmp.core.angular
 ## 🛠️ Build
 
 - **Java**: 25 LTS
-- **Maven**: inherits `com.jwebmp:parent:2.0.0-RC11`
+- **Maven**: inherits `com.jwebmp:parent:2.0.0-SNAPSHOT`
 - **JPMS**: module descriptor at `src/main/java/module-info.java`
 - **Annotation processors**: Lombok + MapStruct (configured in `pom.xml`)
 
