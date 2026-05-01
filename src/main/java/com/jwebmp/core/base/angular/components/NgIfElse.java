@@ -3,7 +3,7 @@ package com.jwebmp.core.base.angular.components;
 import com.jwebmp.core.base.html.DivSimple;
 import com.jwebmp.core.base.interfaces.IComponentHierarchyBase;
 
-public class NgIfElse extends DivSimple<NgIfElse>
+public class NgIfElse<J extends NgIfElse<J>> extends DivSimple<J>
 {
     private String condition;
     private IComponentHierarchyBase<?, ?> elseComponent;

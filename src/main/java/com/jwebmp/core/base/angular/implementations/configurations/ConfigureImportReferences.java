@@ -869,6 +869,39 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                 });
     }
 
+    private void addSignalComputeds(Class<?> component, boolean checkForParent) {
+        AnnotationUtils
+                .getAnnotation(component, NgSignalComputed.class)
+                .forEach(ngMethod -> {
+                    if ((ngMethod.onSelf() && !checkForParent) || (ngMethod.onParent() && checkForParent)) {
+                        compConfig
+                                .getImportReferences()
+                                .add(AnnotationUtils.getNgImportReference("computed", "@angular/core"));
+                        compConfig
+                                .getImportReferences()
+                                .add(AnnotationUtils.getNgImportReference("Signal", "@angular/core"));
+                        compConfig
+                                .getSignalComputeds()
+                                .add(AnnotationUtils.getNgSignalComputed(ngMethod.referenceName(), ngMethod.value()));
+                    }
+                });
+    }
+
+    private void addSignalEffects(Class<?> component, boolean checkForParent) {
+        AnnotationUtils
+                .getAnnotation(component, NgSignalEffect.class)
+                .forEach(ngMethod -> {
+                    if ((ngMethod.onSelf() && !checkForParent) || (ngMethod.onParent() && checkForParent)) {
+                        compConfig
+                                .getImportReferences()
+                                .add(AnnotationUtils.getNgImportReference("effect", "@angular/core"));
+                        compConfig
+                                .getSignalEffects()
+                                .add(AnnotationUtils.getNgSignalEffect(ngMethod.referenceName(), ngMethod.value()));
+                    }
+                });
+    }
+
     private void addInputs(Class<?> component, boolean checkForParent) {
         AnnotationUtils
                 .getAnnotation(component, NgInput.class)
@@ -905,9 +938,9 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                 });
     }
 
-    private void addOnInit(IComponentHierarchyBase<GlobalChildren, ?> component, boolean checkForParent) {
+    private void addOnInit(Class<?> componentClass, boolean checkForParent) {
         AnnotationUtils
-                .getAnnotation(component.getClass(), NgOnInit.class)
+                .getAnnotation(componentClass, NgOnInit.class)
                 .forEach(ngMethod -> {
                     if ((ngMethod.onSelf() && !checkForParent) || (ngMethod.onParent() && checkForParent)) {
                         compConfig
@@ -925,9 +958,9 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                 });
     }
 
-    private void addOnDestroy(IComponentHierarchyBase<GlobalChildren, ?> component, boolean checkForParent) {
+    private void addOnDestroy(Class<?> componentClass, boolean checkForParent) {
         AnnotationUtils
-                .getAnnotation(component.getClass(), NgOnDestroy.class)
+                .getAnnotation(componentClass, NgOnDestroy.class)
                 .forEach(ngMethod -> {
                     if ((ngMethod.onSelf() && !checkForParent) || (ngMethod.onParent() && checkForParent)) {
                         compConfig
@@ -943,9 +976,9 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                 });
     }
 
-    private void addAfterViewInit(IComponentHierarchyBase<GlobalChildren, ?> component, boolean checkForParent) {
+    private void addAfterViewInit(Class<?> componentClass, boolean checkForParent) {
         AnnotationUtils
-                .getAnnotation(component.getClass(), NgAfterViewInit.class)
+                .getAnnotation(componentClass, NgAfterViewInit.class)
                 .forEach(ngMethod -> {
                     if ((ngMethod.onSelf() && !checkForParent) || (ngMethod.onParent() && checkForParent)) {
                         compConfig
@@ -961,9 +994,9 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                 });
     }
 
-    private void addAfterViewChecked(IComponentHierarchyBase<GlobalChildren, ?> component, boolean checkForParent) {
+    private void addAfterViewChecked(Class<?> componentClass, boolean checkForParent) {
         AnnotationUtils
-                .getAnnotation(component.getClass(), NgAfterViewChecked.class)
+                .getAnnotation(componentClass, NgAfterViewChecked.class)
                 .forEach(ngMethod -> {
                     if ((ngMethod.onSelf() && !checkForParent) || (ngMethod.onParent() && checkForParent)) {
                         compConfig
@@ -979,9 +1012,9 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                 });
     }
 
-    private void addAfterContentChecked(IComponentHierarchyBase<GlobalChildren, ?> component, boolean checkForParent) {
+    private void addAfterContentChecked(Class<?> componentClass, boolean checkForParent) {
         AnnotationUtils
-                .getAnnotation(component.getClass(), NgAfterContentChecked.class)
+                .getAnnotation(componentClass, NgAfterContentChecked.class)
                 .forEach(ngMethod -> {
                     if ((ngMethod.onSelf() && !checkForParent) || (ngMethod.onParent() && checkForParent)) {
                         compConfig
@@ -997,9 +1030,9 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                 });
     }
 
-    private void addAfterContentInit(IComponentHierarchyBase<GlobalChildren, ?> component, boolean checkForParent) {
+    private void addAfterContentInit(Class<?> componentClass, boolean checkForParent) {
         AnnotationUtils
-                .getAnnotation(component.getClass(), NgAfterContentInit.class)
+                .getAnnotation(componentClass, NgAfterContentInit.class)
                 .forEach(ngMethod -> {
                     if ((ngMethod.onSelf() && !checkForParent) || (ngMethod.onParent() && checkForParent)) {
                         compConfig
@@ -1016,9 +1049,9 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
     }
 
 
-    private void addImportReferences(IComponentHierarchyBase<GlobalChildren, ?> component, boolean checkForParent) {
+    private void addImportReferences(Class<?> componentClass, boolean checkForParent) {
         AnnotationUtils
-                .getAnnotation(component.getClass(), NgImportReference.class)
+                .getAnnotation(componentClass, NgImportReference.class)
                 .forEach(importReference -> {
                     if ((importReference.onSelf() && !checkForParent) || (importReference.onParent() && checkForParent)) {
                         compConfig
@@ -1074,6 +1107,16 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                                     .add(AnnotationUtils.getNgImportReference("inject", "@angular/core"));
                             processClassToComponent(importReference.value(), component, true);
                         }
+                        // For INgDataType references (not covered above), also process onParent annotations
+                        if (INgDataType.class.isAssignableFrom(importReference.value())
+                                && !INgServiceProvider.class.isAssignableFrom(importReference.value())
+                                && !INgDataService.class.isAssignableFrom(importReference.value())
+                                && !INgProvider.class.isAssignableFrom(importReference.value())
+                                && !INgDirective.class.isAssignableFrom(importReference.value())
+                                && !INgComponent.class.isAssignableFrom(importReference.value())
+                        ) {
+                            processClassToComponent(importReference.value(), component, true);
+                        }
                     }
                 });
     }
@@ -1099,18 +1142,20 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
         addMethods(componentClass, checkForParent);
         addInterfaces(componentClass, checkForParent);
 
-        addOnInit(component, checkForParent);
-        addOnDestroy(component, checkForParent);
-        addAfterContentChecked(component, checkForParent);
-        addAfterContentInit(component, checkForParent);
-        addAfterViewChecked(component, checkForParent);
-        addAfterViewInit(component, checkForParent);
+        addOnInit(componentClass, checkForParent);
+        addOnDestroy(componentClass, checkForParent);
+        addAfterContentChecked(componentClass, checkForParent);
+        addAfterContentInit(componentClass, checkForParent);
+        addAfterViewChecked(componentClass, checkForParent);
+        addAfterViewInit(componentClass, checkForParent);
 
         addImportModules(componentClass, checkForParent);
         addImportProviders(componentClass, checkForParent);
         addInjects(componentClass, checkForParent);
         addModels(componentClass, checkForParent);
         addSignals(componentClass, checkForParent);
+        addSignalComputeds(componentClass, checkForParent);
+        addSignalEffects(componentClass, checkForParent);
         addInputs(componentClass, checkForParent);
         addOutputs(componentClass, checkForParent);
 
@@ -1118,7 +1163,7 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
             unwrapMethods(component, checkForParent);
         }
 
-        addImportReferences(component, checkForParent);
+        addImportReferences(componentClass, checkForParent);
         addComponentReferences(component, checkForParent);
 
         var references = AnnotationUtils.getAnnotation(componentClass, NgComponentReference.class);

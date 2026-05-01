@@ -33,9 +33,10 @@ public class EnvironmentOptions<J extends EnvironmentOptions<J>> implements IJso
 		return appClass;
 	}
 	
-	public EnvironmentOptions<J> setAppClass(String appClass)
+    @SuppressWarnings("unchecked")
+	public J setAppClass(String appClass)
 	{
 		this.appClass = appClass;
-		return this;
+		return (J) this;
 	}
 }

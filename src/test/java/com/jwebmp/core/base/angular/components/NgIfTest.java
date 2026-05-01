@@ -13,7 +13,7 @@ class NgIfTest
         NgIf i = new NgIf("isTest");
         i.add(new DivSimple<>("Display when true"));
         div.add(i);
-        div.add(new NgElse().add("Display when false"));
+        div.add(new NgElse<>().add("Display when false"));
         System.out.println(div.toString(0));
     }
 

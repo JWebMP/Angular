@@ -26,6 +26,6 @@ public class ProductDetailPart extends DivSimple<ProductDetailPart>
         add(child_b);
 
         add("nested route below : ");
-        add(new RouterOutlet());
+        add(new RouterOutlet<>());
     }
 }

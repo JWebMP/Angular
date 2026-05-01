@@ -19,7 +19,7 @@ public class AngularTestComponent extends DivSimple<AngularTestComponent>
         add(new ProductList());
 
         add(new DivSimple<>().addClass("container")
-                .add(new RouterOutlet()));
+                .add(new RouterOutlet<>()));
 
         Button button = new Button();
         button.setText("click me");

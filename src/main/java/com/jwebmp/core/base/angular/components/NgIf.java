@@ -2,7 +2,7 @@ package com.jwebmp.core.base.angular.components;
 
 import com.jwebmp.core.base.html.DivSimple;
 
-public class NgIf extends DivSimple<NgIf>
+public class NgIf<J extends NgIf<J>> extends DivSimple<J>
 {
     private String condition;
 

@@ -7,7 +7,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class NgFor extends DivSimple<NgFor>
+public class NgFor<J extends NgFor<J>> extends DivSimple<J>
 {
     private String variableName;
     private String list;

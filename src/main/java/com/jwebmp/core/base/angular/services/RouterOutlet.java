@@ -3,7 +3,7 @@ package com.jwebmp.core.base.angular.services;
 import com.jwebmp.core.base.angular.client.services.interfaces.AnnotationUtils;
 import com.jwebmp.core.base.html.DivSimple;
 
-public class RouterOutlet extends DivSimple<RouterOutlet>
+public class RouterOutlet<J extends RouterOutlet<J>> extends DivSimple<J>
 {
     public RouterOutlet()
     {

@@ -2,7 +2,7 @@ package com.jwebmp.core.base.angular.components;
 
 import com.jwebmp.core.base.html.DivSimple;
 
-public class NgElse extends DivSimple<NgElse>
+public class NgElse<J extends NgElse<J>> extends DivSimple<J>
 {
     public NgElse()
     {

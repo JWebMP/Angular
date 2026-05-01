@@ -69,10 +69,11 @@ public class NGApplication<J extends NGApplication<J>> extends Page<J> implement
         return renderAfterImports;
     }
 
-    public NGApplication setRenderAfterImports(List<String> renderAfterImports)
+    @SuppressWarnings("unchecked")
+    public J setRenderAfterImports(List<String> renderAfterImports)
     {
         this.renderAfterImports = renderAfterImports;
-        return this;
+        return (J) this;
     }
 
     @Override

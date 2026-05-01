@@ -36,10 +36,11 @@ public class DefinedRoute<J extends DefinedRoute<J>> implements IJsonRepresentat
         return redirectTo;
     }
 
-    public DefinedRoute<J> setRedirectTo(String redirectTo)
+    @SuppressWarnings("unchecked")
+    public J setRedirectTo(String redirectTo)
     {
         this.redirectTo = redirectTo;
-        return this;
+        return (J) this;
     }
 
     public String getPathMatch()
@@ -47,10 +48,11 @@ public class DefinedRoute<J extends DefinedRoute<J>> implements IJsonRepresentat
         return pathMatch;
     }
 
-    public DefinedRoute<J> setPathMatch(String pathMatch)
+    @SuppressWarnings("unchecked")
+    public J setPathMatch(String pathMatch)
     {
         this.pathMatch = pathMatch;
-        return this;
+        return (J) this;
     }
 
     @JsonIgnore
@@ -125,16 +127,18 @@ public class DefinedRoute<J extends DefinedRoute<J>> implements IJsonRepresentat
         return renderComponent;
     }
 
-    public DefinedRoute<J> setRenderComponent(boolean renderComponent)
+    @SuppressWarnings("unchecked")
+    public J setRenderComponent(boolean renderComponent)
     {
         this.renderComponent = renderComponent;
-        return this;
+        return (J) this;
     }
 
-    public DefinedRoute<J> setChildren(List<DefinedRoute<?>> children)
+    @SuppressWarnings("unchecked")
+    public J setChildren(List<DefinedRoute<?>> children)
     {
         this.children = children;
-        return this;
+        return (J) this;
     }
 
     public String getOutlet()

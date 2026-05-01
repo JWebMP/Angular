@@ -6,7 +6,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class NgForEmpty extends DivSimple<NgForEmpty>
+public class NgForEmpty<J extends NgForEmpty<J>> extends DivSimple<J>
 {
     public NgForEmpty()
     {
