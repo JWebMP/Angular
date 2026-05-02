@@ -7,7 +7,6 @@ import com.jwebmp.core.base.angular.services.AngularTsProcessingConfig;
 import com.jwebmp.core.base.angular.services.compiler.TypeScriptCompiler;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
-import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.vertx.core.Vertx;
 import lombok.extern.log4j.Log4j2;
 
@@ -35,21 +34,21 @@ public class AngularTSPostStartup implements IGuicePostStartup<AngularTSPostStar
             return List.of(Uni.createFrom().item(true));
         }
 
-
-
         Uni<Boolean> processingUni = Multi.createFrom().iterable(TypeScriptCompiler.getAllApps())
                 .onItem().transformToUniAndConcatenate(app ->
-                        Uni.createFrom().item(() -> {
-                            try {
-                                TypeScriptCompiler compiler = new TypeScriptCompiler(app);
-                                log.info("Post Startup - Generating @NgApp (" + getTsFilename(app.getClass()) + ") " +
-                                        "in folder " + getClassDirectory(app.getClass()));
-                                compiler.compileApp();
-                            } catch (Throwable t) {
-                                log.error("Unable to generate @NgApp (" + getTsFilename(app.getClass()) + ")", t);
-                            }
-                            return app;
-                        }).runSubscriptionOn(Infrastructure.getDefaultWorkerPool())
+                        Uni.createFrom().<INgApp<?>>completionStage(
+                                vertx.executeBlocking(() -> {
+                                    try {
+                                        TypeScriptCompiler compiler = new TypeScriptCompiler(app);
+                                        log.info("Post Startup - Generating @NgApp (" + getTsFilename(app.getClass()) + ") " +
+                                                "in folder " + getClassDirectory(app.getClass()));
+                                        compiler.compileApp();
+                                    } catch (Throwable t) {
+                                        log.error("Unable to generate @NgApp (" + getTsFilename(app.getClass()) + ")", t);
+                                    }
+                                    return app;
+                                }).toCompletionStage()
+                        )
                 )
                 .collect().asList()
                 .map(apps -> true);
