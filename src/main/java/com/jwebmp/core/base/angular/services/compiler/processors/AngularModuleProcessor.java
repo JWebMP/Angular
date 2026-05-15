@@ -12,6 +12,7 @@ import com.jwebmp.core.base.html.DivSimple;
 import com.jwebmp.core.base.interfaces.IComponentHierarchyBase;
 import io.github.classgraph.ClassInfo;
 import io.github.classgraph.ScanResult;
+import io.vertx.core.Vertx;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -109,9 +110,14 @@ public class AngularModuleProcessor
     public void processNgModuleFiles(File currentApp, ClassInfo a, ScanResult scan, Class<? extends INgApp<?>> appClass, File srcDirectory)
     {
         CallScoper scoper = IGuiceContext.get(CallScoper.class);
-        scoper.enter();
+        boolean scopeStarted = false;
         try
         {
+            if (Vertx.currentContext() != null)
+            {
+                scoper.enter();
+                scopeStarted = true;
+            }
             Set<Class<?>> classes = new HashSet<>();
             if (a.isInterface() || a.isAbstract())
             {
@@ -149,7 +155,10 @@ public class AngularModuleProcessor
         }
         finally
         {
-            scoper.exit();
+            if (scopeStarted)
+            {
+                scoper.exit();
+            }
         }
     }
 

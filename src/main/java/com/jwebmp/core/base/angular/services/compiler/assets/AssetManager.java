@@ -14,6 +14,7 @@ import com.jwebmp.core.base.angular.services.RenderedAssets;
 import com.jwebmp.core.base.angular.typescript.JWebMP.ResourceLocator;
 import io.github.classgraph.Resource;
 import io.github.classgraph.ScanResult;
+import io.vertx.core.Vertx;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -281,9 +282,14 @@ public class AssetManager
     {
         currentAppFile.set(currentApp);
         CallScoper scoper = IGuiceContext.get(CallScoper.class);
-        scoper.enter();
+        boolean scopeStarted = false;
         try
         {
+            if (Vertx.currentContext() != null)
+            {
+                scoper.enter();
+                scopeStarted = true;
+            }
             log.trace("Registering Assets...");
             List<String> assetList = AppUtils.getAssetList(appClass);
             if (assetList != null)
@@ -363,7 +369,10 @@ public class AssetManager
         }
         finally
         {
-            scoper.exit();
+            if (scopeStarted)
+            {
+                scoper.exit();
+            }
         }
     }
 }

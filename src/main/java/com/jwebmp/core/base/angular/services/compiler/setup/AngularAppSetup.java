@@ -24,6 +24,7 @@ import com.jwebmp.core.base.html.Body;
 import com.jwebmp.core.base.html.DivSimple;
 import io.github.classgraph.ClassInfo;
 import io.github.classgraph.ScanResult;
+import io.vertx.core.Vertx;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -32,6 +33,8 @@ import org.apache.commons.lang3.SystemUtils;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -821,12 +824,7 @@ public class AngularAppSetup
         try
         {
             ProcessBuilder processBuilder = new ProcessBuilder(command);
-            if (inheritIo)
-            {
-                processBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
-                processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
-            }
-            else
+            if (!inheritIo)
             {
                 processBuilder.redirectErrorStream(true);
             }
@@ -857,10 +855,17 @@ public class AngularAppSetup
 
             processBuilder = processBuilder.directory(appBaseDirectory);
             Process p = processBuilder.start();
+            Thread stdout = null;
+            Thread stderr = null;
 
-            // Drain stdout/stderr when not inheriting IO to prevent buffer deadlock
-            if (!inheritIo)
+            if (inheritIo)
             {
+                stdout = streamCommandOutput(p.getInputStream(), false);
+                stderr = streamCommandOutput(p.getErrorStream(), true);
+            }
+            else
+            {
+                // Drain stdout/stderr when not inheriting IO to prevent buffer deadlock
                 p.getInputStream().readAllBytes();
             }
 
@@ -870,13 +875,53 @@ public class AngularAppSetup
                 log.warn("Command timed out after 10 minutes: {}", command);
                 return -1;
             }
+            if (stdout != null)
+            {
+                stdout.join(TimeUnit.SECONDS.toMillis(5));
+            }
+            if (stderr != null)
+            {
+                stderr.join(TimeUnit.SECONDS.toMillis(5));
+            }
             return p.exitValue();
         }
         catch (IOException | InterruptedException e)
         {
+            if (e instanceof InterruptedException)
+            {
+                Thread.currentThread().interrupt();
+            }
             log.debug("Failed to execute command {}: {}", command, e.getMessage());
             return -1;
         }
+    }
+
+    private static Thread streamCommandOutput(InputStream stream, boolean error)
+    {
+        Thread thread = new Thread(() -> {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, UTF_8)))
+            {
+                String line;
+                while ((line = reader.readLine()) != null)
+                {
+                    if (error)
+                    {
+                        log.error(line);
+                    }
+                    else
+                    {
+                        log.info(line);
+                    }
+                }
+            }
+            catch (IOException e)
+            {
+                log.debug("Unable to read command output: {}", e.getMessage());
+            }
+        }, error ? "jwebmp-angular-npm-stderr" : "jwebmp-angular-npm-stdout");
+        thread.setDaemon(true);
+        thread.start();
+        return thread;
     }
 
     private static List<String> buildNpmCommand(String npmExecutable, List<String> args)
@@ -1091,9 +1136,14 @@ public class AngularAppSetup
     public void processAppConfigFile(Class<? extends INgApp<?>> appClass, ScanResult scan) throws IOException
     {
         CallScoper scoper = IGuiceContext.get(CallScoper.class);
-        scoper.enter();
+        boolean scopeStarted = false;
         try (var is = ResourceLocator.class.getResourceAsStream("app.config.json"))
         {
+            if (Vertx.currentContext() != null)
+            {
+                scoper.enter();
+                scopeStarted = true;
+            }
             String bootAppString = IOUtils.toString(is, UTF_8);
             StringBuilder bootImportsString = new StringBuilder();
             var ir = scan.getClassesWithAnnotation(NgBootImportReference.class);
@@ -1152,7 +1202,10 @@ public class AngularAppSetup
         }
         finally
         {
-            scoper.exit();
+            if (scopeStarted)
+            {
+                scoper.exit();
+            }
         }
     }
 
