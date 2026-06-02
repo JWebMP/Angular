@@ -35,7 +35,7 @@ module com.jwebmp.core.angular {
 
     requires transitive org.apache.commons.text;
     requires transitive org.apache.commons.lang3;
-    requires transitive io.vertx.eventbusbridge;
+    requires io.vertx.eventbusbridge.common;
     requires transitive io.vertx.stomp;
 
     provides IGuiceScanModuleInclusions with AngularScanModuleInclusion;
