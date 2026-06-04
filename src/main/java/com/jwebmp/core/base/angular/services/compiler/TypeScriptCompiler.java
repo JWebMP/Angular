@@ -2,7 +2,6 @@ package com.jwebmp.core.base.angular.services.compiler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.guicedee.client.IGuiceContext;
-import com.guicedee.vertx.spi.VertXPreStartup;
 import com.jwebmp.core.base.angular.client.AppUtils;
 import com.jwebmp.core.base.angular.client.services.interfaces.IComponent;
 import com.jwebmp.core.base.angular.client.services.interfaces.INgApp;
@@ -133,7 +132,6 @@ public class TypeScriptCompiler {
         currentAppFile.set(appFile);
         IComponent.app.set(app);
         ScanResult scan = IGuiceContext.instance().getScanResult();
-        var vertx = VertXPreStartup.getVertx();
 
         try {
             // Set up environment
@@ -155,8 +153,12 @@ public class TypeScriptCompiler {
             renderAngularApplicationFiles(appClass);
 
             log.debug("Angular App Ready");
+        } catch (IOException e) {
+            log.error("Error compiling Angular application", e);
+            throw e;
         } catch (Exception e) {
             log.error("Error compiling Angular application", e);
+            throw new IOException("Error compiling Angular application: " + e.getMessage(), e);
         }
 
         return sb;
