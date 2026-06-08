@@ -51,6 +51,7 @@ import io.vertx.ext.stomp.BridgeOptions;
 import io.vertx.ext.stomp.StompServer;
 import io.vertx.ext.stomp.StompServerHandler;
 import io.vertx.ext.stomp.StompServerOptions;
+import io.vertx.ext.stomp.WebSocketFrameType;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.FileSystemAccess;
 import io.vertx.ext.web.handler.StaticHandler;
@@ -236,6 +237,12 @@ public class AngularTSSiteBinder
                         .setWebsocketBridge(true)
                         .setHeartbeat(heartbeats)
                         .setWebsocketPath("/eventbus")
+                        // Vert.x 5.1 added WebSocketFrameType (defaults to BINARY for backward compat).
+                        // The browser uses @stomp/stompjs, a JavaScript STOMP client that expects TEXT
+                        // frames. With BINARY frames the client receives Blobs and cannot reliably track
+                        // STOMP heartbeats/frames, so it treats the connection as dead and reconnects in a
+                        // loop. TEXT frames keep the WebSocket stable. See Vert.x StompServerOptions docs.
+                        .setWebSocketFrameType(WebSocketFrameType.TEXT)
                         .setMaxBodyLength(Integer.MAX_VALUE)
                         .setMaxHeaderLength(Integer.MAX_VALUE)
                         .setMaxFrameInTransaction(Integer.MAX_VALUE)
