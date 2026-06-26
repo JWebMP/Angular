@@ -1,6 +1,6 @@
 package com.jwebmp.core.base.angular.services.compiler.setup;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import com.guicedee.client.IGuiceContext;
 import com.guicedee.client.scopes.CallScoper;
@@ -721,7 +721,7 @@ public class AngularAppSetup
                 }
             }
         }
-        catch (IOException ignored)
+        catch (Exception ignored)
         {
         }
         return null;
@@ -739,7 +739,7 @@ public class AngularAppSetup
                 return versionNode.asText();
             }
         }
-        catch (IOException ignored)
+        catch (Exception ignored)
         {
         }
         return null;

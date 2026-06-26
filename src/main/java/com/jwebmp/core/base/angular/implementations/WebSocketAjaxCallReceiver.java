@@ -1,6 +1,6 @@
 package com.jwebmp.core.base.angular.implementations;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.guicedee.client.services.websocket.IGuicedWebSocket;
 import com.guicedee.client.services.websocket.WebSocketMessageReceiver;
 import com.guicedee.client.services.websocket.IWebSocketMessageReceiver;
@@ -49,7 +49,7 @@ public class WebSocketAjaxCallReceiver
                                              String originalValues = om.writeValueAsString(m.getData());
                                              AjaxCall<?> call = om.readValue(originalValues, AjaxCall.class);
                                              om.readerForUpdating(ajaxCall)
-                                               .readValue(originalValues, AjaxCall.class);
+                                               .readValue(originalValues);
 
                                              IEvent<?, ?> triggerEvent = processEvent(ajaxCall);
                                              for (AjaxCallIntercepter<?> ajaxCallIntercepter : get(AjaxCallInterceptorKey))

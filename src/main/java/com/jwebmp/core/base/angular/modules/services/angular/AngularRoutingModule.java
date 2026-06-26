@@ -1,10 +1,10 @@
 package com.jwebmp.core.base.angular.modules.services.angular;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.SerializationFeature;
 import com.google.common.base.Strings;
 import com.google.inject.Singleton;
 import com.guicedee.client.IGuiceContext;
@@ -78,12 +78,13 @@ public class AngularRoutingModule implements INgModule<AngularRoutingModule> {
             return Set.of("RouterModule.forRoot(routes)");
         } else {
             try {
-                return Set.of("RouterModule.forRoot(routes," + new ObjectMapper()
-                        .disable(JsonGenerator.Feature.QUOTE_FIELD_NAMES)
-                        .enable(DeserializationFeature.READ_ENUMS_USING_TO_STRING)
-                        .enable(SerializationFeature.WRITE_ENUMS_USING_TO_STRING)
+                return Set.of("RouterModule.forRoot(routes," + tools.jackson.databind.json.JsonMapper.builder()
+                        .configure(tools.jackson.core.json.JsonWriteFeature.QUOTE_PROPERTY_NAMES, false)
+                        .configure(tools.jackson.databind.cfg.EnumFeature.READ_ENUMS_USING_TO_STRING, true)
+                        .configure(tools.jackson.databind.cfg.EnumFeature.WRITE_ENUMS_USING_TO_STRING, true)
+                        .build()
                         .writeValueAsString(options) + ")");
-            } catch (JsonProcessingException e) {
+            } catch (JacksonException e) {
                 throw new RuntimeException(e);
             }
         }
@@ -324,7 +325,7 @@ public class AngularRoutingModule implements INgModule<AngularRoutingModule> {
                     .writeValueAsString(definedRoutesList);
             routesOutput = "export const routes: Routes = " + routesOutput + ";\n";
             return routesOutput;
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             e.printStackTrace();
         }
         return "";

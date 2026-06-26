@@ -1,6 +1,6 @@
 package com.jwebmp.core.base.angular.implementations;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.guicedee.client.scopes.CallScopeProperties;
 import com.guicedee.client.IGuiceContext;
 import com.guicedee.client.services.websocket.WebSocketMessageReceiver;

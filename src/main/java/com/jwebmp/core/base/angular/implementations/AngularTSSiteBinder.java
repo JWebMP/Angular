@@ -16,7 +16,7 @@
  */
 package com.jwebmp.core.base.angular.implementations;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import tools.jackson.core.JacksonException;
 import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
 import com.guicedee.client.IGuiceContext;
@@ -261,28 +261,44 @@ public class AngularTSSiteBinder
                                 .create(getVertx())
                                 .bridge(stompBridgeOptions));
 
-                // Register WebSocket handlers
-                log.info("Registering WebSocket handler for STOMP at /eventbus/*");
+                // Register WebSocket handlers.
+                // The STOMP client (@stomp/stompjs) connects to exactly "/eventbus", and Vert.x's
+                // StompServer.webSocketHandler() rejects the socket unless socket.path() equals the
+                // configured websocketPath ("/eventbus"). A Vert.x "/eventbus/*" route does NOT match
+                // the bare "/eventbus" path, so the EXACT path must be registered for the upgrade to
+                // succeed. The wildcard route is also registered for completeness/back-compat.
+                log.info("Registering WebSocket handler for STOMP at /eventbus (and /eventbus/*)");
+                io.vertx.core.Handler<io.vertx.ext.web.RoutingContext> stompUpgradeHandler = ctx -> {
+                    log.info("Received WebSocket connection request from: " + ctx
+                            .request()
+                            .remoteAddress());
+                    ctx
+                            .request()
+                            .toWebSocket()
+                            .onSuccess(ws -> {
+                                log.info("WebSocket connection established (subProtocol={}), passing to STOMP handler",
+                                        ws.subProtocol());
+                                // Log why the socket closes so client-vs-proxy disconnects can be told apart.
+                                // The STOMP server attaches its own exception/end handlers but not a close
+                                // handler, so this survives and reports the close code/reason.
+                                ws.closeHandler(v -> log.warn(
+                                        "STOMP WebSocket closed: code={}, reason={}",
+                                        ws.closeStatusCode(), ws.closeReason()));
+                                stompServer
+                                        .webSocketHandler()
+                                        .handle(ws);
+                            })
+                            .onFailure(err -> {
+                                log.error("Failed to establish WebSocket connection: " + err.getMessage(), err);
+                            })
+                    ;
+                };
+                router
+                        .route("/eventbus")
+                        .handler(stompUpgradeHandler);
                 router
                         .route("/eventbus/*")
-                        .handler(ctx -> {
-                            log.info("Received WebSocket connection request from: " + ctx
-                                    .request()
-                                    .remoteAddress());
-                            ctx
-                                    .request()
-                                    .toWebSocket()
-                                    .onSuccess(ws -> {
-                                        log.info("WebSocket connection established, passing to STOMP handler");
-                                        stompServer
-                                                .webSocketHandler()
-                                                .handle(ws);
-                                    })
-                                    .onFailure(err -> {
-                                        log.error("Failed to establish WebSocket connection: " + err.getMessage(), err);
-                                    })
-                            ;
-                        });
+                        .handler(stompUpgradeHandler);
 
                 // This executes when a websocket message is received via STOMP
                 log.trace("Registering event bus consumer for STOMP messages at /toBus/incoming");
@@ -300,7 +316,7 @@ public class AngularTSSiteBinder
                                             .getObjectMapper()
                                             .readerFor(WebSocketMessageReceiver.class)
                                             .readValue(message);
-                                } catch (JsonProcessingException e) {
+                                } catch (JacksonException e) {
                                     throw new RuntimeException(e);
                                 }
                                 if (mr
@@ -511,14 +527,32 @@ public class AngularTSSiteBinder
 
     @Override
     public HttpServerOptions builder(HttpServerOptions builder) {
-        // Ensure STOMP sub-protocols are advertised
-        builder.setWebSocketSubProtocols(java.util.Arrays.asList("v10.stomp", "v11.stomp", "v12.stomp"));
+        // Ensure STOMP sub-protocols are advertised, but add them ADDITIVELY so we don't
+        // clobber sub-protocols registered by other modules (e.g. GraphQL's
+        // "graphql-transport-ws"). Using setWebSocketSubProtocols() here would replace the
+        // entire list, and whichever VertxHttpServerOptionsConfigurator ran last would win -
+        // causing the other module's WebSocket handshake to be rejected by the server.
+        for (String subProtocol : java.util.List.of("v10.stomp", "v11.stomp", "v12.stomp")) {
+            java.util.List<String> existing = builder.getWebSocketSubProtocols();
+            if (existing == null || !existing.contains(subProtocol)) {
+                builder.addWebSocketSubProtocol(subProtocol);
+            }
+        }
         // Do not close idle WebSocket connections at HTTP server level; rely on STOMP heartbeats.
         // Enable TCP keep-alive at socket level for intermediaries that honor it.
         builder.setIdleTimeout(0) // 0 = disabled
                 .setTcpKeepAlive(true)
                 .setCompressionSupported(true)
                 .setDecompressionSupported(true)
+                // Disable WebSocket deflate compression (permessage-deflate / per-frame deflate).
+                // Both default to TRUE in Vert.x 5.1, so the server negotiates permessage-deflate with
+                // the browser by default. The @stomp/stompjs client (and some browsers) can drop the
+                // connection immediately after the 101 handshake when the deflate extension parameters
+                // (client_max_window_bits / context-takeover) don't line up, which surfaces server-side
+                // as an immediate HttpClosedException. STOMP frames are small text payloads, so
+                // compression provides little benefit here.
+                .setPerMessageWebSocketCompressionSupported(false)
+                .setPerFrameWebSocketCompressionSupported(false)
         ;
         return builder;
     }

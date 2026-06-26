@@ -1,8 +1,8 @@
 package com.jwebmp.core.base.angular.modules.services.base;
 
 import com.fasterxml.jackson.annotation.JsonValue;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import com.google.inject.Singleton;
 import com.guicedee.client.IGuiceContext;
 import com.jwebmp.core.base.angular.client.annotations.angular.NgDataType;
@@ -49,7 +49,7 @@ public class EnvironmentModule implements INgDataType<EnvironmentModule>
             sb.append(om.writerWithDefaultPrettyPrinter()
                         .writeValueAsString(environmentOptions));
         }
-        catch (JsonProcessingException e)
+        catch (JacksonException e)
         {
             e.printStackTrace();
         }
