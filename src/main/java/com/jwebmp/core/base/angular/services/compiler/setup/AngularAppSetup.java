@@ -60,6 +60,82 @@ public class AngularAppSetup
     private static volatile String npmExecutableOverride;
 
     /**
+     * Tracks every live child process (and, on Windows, the {@code cmd.exe} wrapper whose
+     * {@code node.exe} descendants must also be killed) started by {@link #runCommand}.
+     * A JVM shutdown hook walks this set and destroys the entire process tree of each entry
+     * so npm/node instances are never orphaned when the application exits mid-build.
+     */
+    private static final Set<Process> LIVE_PROCESSES =
+            java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    private static final java.util.concurrent.atomic.AtomicBoolean SHUTDOWN_HOOK_REGISTERED =
+            new java.util.concurrent.atomic.AtomicBoolean(false);
+
+    private static void registerShutdownHookIfNeeded()
+    {
+        if (SHUTDOWN_HOOK_REGISTERED.compareAndSet(false, true))
+        {
+            Runtime.getRuntime()
+                   .addShutdownHook(new Thread(AngularAppSetup::destroyAllLiveProcesses,
+                           "jwebmp-angular-npm-shutdown"));
+        }
+    }
+
+    /**
+     * Destroys every tracked live process together with its full descendant tree.
+     * Invoked from the JVM shutdown hook to guarantee no leaked node instances.
+     */
+    private static void destroyAllLiveProcesses()
+    {
+        for (Process process : LIVE_PROCESSES)
+        {
+            try
+            {
+                destroyProcessTree(process);
+            }
+            catch (Exception ignored)
+            {
+                // best-effort cleanup during shutdown
+            }
+        }
+    }
+
+    /**
+     * Forcibly destroys the given process and all of its descendants (depth-first).
+     * On Windows a bare {@code destroyForcibly()} only terminates the {@code cmd.exe}
+     * wrapper, leaving the {@code node.exe} grandchildren orphaned — walking the
+     * descendant tree via {@link ProcessHandle} ensures they are terminated too.
+     */
+    private static void destroyProcessTree(Process process)
+    {
+        if (process == null)
+        {
+            return;
+        }
+        try
+        {
+            ProcessHandle handle = process.toHandle();
+            // Kill descendants first so re-spawning parents can't resurrect them
+            handle.descendants()
+                  .forEach(child -> {
+                      try
+                      {
+                          child.destroyForcibly();
+                      }
+                      catch (Exception ignored)
+                      {
+                          // ignore individual failures
+                      }
+                  });
+            handle.destroyForcibly();
+        }
+        catch (Exception e)
+        {
+            process.destroyForcibly();
+        }
+    }
+
+    /**
      * Constructor
      *
      * @param app The Angular application
@@ -566,11 +642,12 @@ public class AngularAppSetup
      */
     private static String runWhereCommand(String command)
     {
+        Process p = null;
         try
         {
             ProcessBuilder pb = new ProcessBuilder("where.exe", command);
             pb.redirectErrorStream(true);
-            Process p = pb.start();
+            p = pb.start();
             String output = new String(p.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8).trim();
             if (p.waitFor(15, TimeUnit.SECONDS) && p.exitValue() == 0 && !output.isBlank())
             {
@@ -585,6 +662,13 @@ public class AngularAppSetup
         catch (IOException | InterruptedException e)
         {
             // Ignore — 'where' not available or failed
+        }
+        finally
+        {
+            if (p != null && p.isAlive())
+            {
+                destroyProcessTree(p);
+            }
         }
         return null;
     }
@@ -821,6 +905,7 @@ public class AngularAppSetup
 
     private static int runCommand(File appBaseDirectory, List<String> command, boolean inheritIo)
     {
+        Process p = null;
         try
         {
             ProcessBuilder processBuilder = new ProcessBuilder(command);
@@ -854,7 +939,12 @@ public class AngularAppSetup
             }
 
             processBuilder = processBuilder.directory(appBaseDirectory);
-            Process p = processBuilder.start();
+
+            // Register the shutdown hook before spawning so an early JVM exit still cleans up
+            registerShutdownHookIfNeeded();
+
+            p = processBuilder.start();
+            LIVE_PROCESSES.add(p);
             Thread stdout = null;
             Thread stderr = null;
 
@@ -871,7 +961,9 @@ public class AngularAppSetup
 
             if (!p.waitFor(10, TimeUnit.MINUTES))
             {
-                p.destroyForcibly();
+                // destroyForcibly() alone leaves node.exe grandchildren orphaned on Windows;
+                // tear down the whole tree instead.
+                destroyProcessTree(p);
                 log.warn("Command timed out after 10 minutes: {}", command);
                 return -1;
             }
@@ -890,9 +982,18 @@ public class AngularAppSetup
             if (e instanceof InterruptedException)
             {
                 Thread.currentThread().interrupt();
+                // Ensure the child (and its node descendants) don't outlive the interruption
+                destroyProcessTree(p);
             }
             log.debug("Failed to execute command {}: {}", command, e.getMessage());
             return -1;
+        }
+        finally
+        {
+            if (p != null)
+            {
+                LIVE_PROCESSES.remove(p);
+            }
         }
     }
 
