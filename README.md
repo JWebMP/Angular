@@ -19,7 +19,7 @@ Generates **Angular 21** TypeScript projects from JWebMP annotation metadata and
 - **Reactive message processing** — inbound STOMP messages on `/toBus/incoming` are deserialised to `WebSocketMessageReceiver`, dispatched to registered `IWebSocketMessageReceiver` listeners, and responses are published back via the event bus (data returns, session/local storage)
 - **Built-in WebSocket receivers** — `WebSocketAjaxCallReceiver` (action: `ajax`), `WebSocketDataRequestCallReceiver` (action: `data`), `WebSocketDataSendCallReceiver` (action: `dataSend`), `WSAddToGroupMessageReceiver` (action: `AddToWebSocketGroup`), `WSRemoveFromWebsocketGroupMessageReceiver` (action: `RemoveFromWebSocketGroup`)
 - **Angular control-flow components** — `NgIf`, `NgIfElse`, `NgElse`, `NgFor`, `NgForEmpty`, `NgLet` rendering Angular 17+ `@if`, `@for`, `@let` template syntax from Java
-- **Angular modules** — pre-built `CommonsModule`, `FormsModule`, `RouterModule` wrappers
+- **Angular modules** — pre-built `CommonModule`, `FormsModule`, `RouterConfig` wrappers
 - **Routing** — `AngularRoutingModule` scans `@NgRoutable`-annotated classes, builds a `DefinedRoute` tree with parent/child nesting, and generates `RouterModule.forRoot(routes)` with configurable `RoutingModuleOptions`
 - **Environment module** — `EnvironmentModule` + `EnvironmentOptions` generates a TypeScript `const environment = { ... }` from Java configuration
 - **RouterLink** — server-side `RouterLink` component with `[routerLink]`, `[queryParams]`, and `[state]` binding

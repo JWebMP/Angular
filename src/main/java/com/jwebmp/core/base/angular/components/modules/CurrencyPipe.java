@@ -4,8 +4,8 @@ import com.jwebmp.core.base.angular.client.annotations.references.NgImportModule
 import com.jwebmp.core.base.angular.client.annotations.references.NgImportReference;
 import com.jwebmp.core.base.angular.client.services.interfaces.INgConfig;
 
-@NgImportReference(value = "CommonModule", reference = "@angular/core")
-@NgImportModule("CommonModule")
-public class CommonsModule implements INgConfig<CommonsModule>
+@NgImportReference(value = "CurrencyPipe", reference = "@angular/common",onSelf = false,onParent = true)
+@NgImportModule(value = "CurrencyPipe", onSelf = false,onParent = true)
+public class CurrencyPipe implements INgConfig<CurrencyPipe>
 {
 }

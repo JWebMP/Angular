@@ -132,13 +132,13 @@ public class TypeScriptFileManager
                 if (shouldWrite || !file.exists())
                 {
                     FileUtils.writeStringToFile(file, typeScript, UTF_8, false);
-                    log.debug("Wrote TypeScript file for component {}: {}",
+                    log.trace("Wrote TypeScript file for component {}: {}",
                             component.getClass()
                                      .getSimpleName(), file.getAbsolutePath());
                 }
                 else
                 {
-                    log.debug("File content unchanged for component {}, skipping write",
+                    log.trace("File content unchanged for component {}, skipping write",
                             component.getClass()
                                      .getSimpleName());
                 }

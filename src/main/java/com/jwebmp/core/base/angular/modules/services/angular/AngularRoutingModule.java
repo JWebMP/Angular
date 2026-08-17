@@ -341,7 +341,6 @@ public class AngularRoutingModule implements INgModule<AngularRoutingModule> {
             pathRoute = pathRoute.substring(0, pathRoute.length() - 1);
         }
 
-
         component.addAttribute("[routerLink]", "['" + pathRoute + "'" + (Strings.isNullOrEmpty(variablePath) ? "" : "," +
                 variablePath) + "]");
 

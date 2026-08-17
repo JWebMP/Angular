@@ -27,8 +27,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  * Responsible for processing Angular modules and components
  */
 @Log4j2
-public class AngularModuleProcessor
-{
+public class AngularModuleProcessor {
     private final INgApp<?> app;
     private final TypeScriptCodeGenerator codeGenerator;
     private final TypeScriptFileManager fileManager;
@@ -42,9 +41,10 @@ public class AngularModuleProcessor
      * @param fileManager        The TypeScript file manager
      * @param componentProcessor The component processor
      */
-    public AngularModuleProcessor(INgApp<?> app, TypeScriptCodeGenerator codeGenerator,
-                                  TypeScriptFileManager fileManager, ComponentProcessor componentProcessor)
-    {
+    public AngularModuleProcessor(INgApp<?> app,
+                                  TypeScriptCodeGenerator codeGenerator,
+                                  TypeScriptFileManager fileManager,
+                                  ComponentProcessor componentProcessor) {
         this.app = app;
         this.codeGenerator = codeGenerator;
         this.fileManager = fileManager;
@@ -59,15 +59,21 @@ public class AngularModuleProcessor
      * @param appClass     The Angular application class
      * @param srcDirectory The source directory
      */
-    public void processAngularModules(File currentApp, ScanResult scan, Class<? extends INgApp<?>> appClass, File srcDirectory)
-    {
-        scan.getClassesWithAnnotation(NgModule.class)
-            .stream()
-            .forEach(a -> {
-                LogManager.getLogger("TypescriptCompiler")
-                          .debug("Rendering NgModule [{}]", a.getSimpleName());
+    public void processAngularModules(File currentApp,
+                                      ScanResult scan,
+                                      Class<? extends INgApp<?>> appClass,
+                                      File srcDirectory) {
+        var ngModules = scan.getClassesWithAnnotation(NgModule.class);
+        LogManager.getLogger("TypescriptCompiler").debug("Found [{}] @NgModule annotated classes to render", ngModules.size());
+        ngModules.forEach(a -> {
+            LogManager.getLogger("TypescriptCompiler").trace("Rendering NgModule [{}]", a.getSimpleName());
+            try {
                 processNgModuleFiles(currentApp, a, scan, appClass, srcDirectory);
-            });
+            } catch (Throwable t) {
+                // never allow a single module failure to abort the remaining modules
+                log.error("Unable to render module - " + a.getSimpleName(), t);
+            }
+        });
     }
 
     /**
@@ -78,23 +84,25 @@ public class AngularModuleProcessor
      * @param appClass     The Angular application class
      * @param srcDirectory The source directory
      */
-    public void processStandaloneComponents(File currentApp, ScanResult scan, Class<? extends INgApp<?>> appClass, File srcDirectory)
-    {
-        if (app instanceof NGApplication<?> application)
-        {
-            var standaloneComponents = scan.getClassesWithAnnotation(NgComponent.class)
-                                           .stream()
+    public void processStandaloneComponents(File currentApp,
+                                            ScanResult scan,
+                                            Class<? extends INgApp<?>> appClass,
+                                            File srcDirectory) {
+        if (app instanceof NGApplication<?> application) {
+            var standaloneComponents = scan.getClassesWithAnnotation(NgComponent.class).stream()
                                            .filter(a -> !a.isAbstract() && !a.isInterface())
-                                           .filter(a -> a.loadClass()
-                                                         .getAnnotation(NgComponent.class)
-                                                         .standalone());
+                                           .filter(a -> a.loadClass().getAnnotation(NgComponent.class).standalone());
 
-            standaloneComponents.distinct()
-                                .forEach(aClass -> {
-                                    LogManager.getLogger("TypescriptCompiler")
-                                              .debug("Rendering Standalone Component [{}]", aClass.getSimpleName());
-                                    processStandaloneComponent(currentApp, application, aClass, appClass, srcDirectory);
-                                });
+            standaloneComponents.distinct().forEach(aClass -> {
+                LogManager.getLogger("TypescriptCompiler")
+                          .trace("Rendering Standalone Component [{}]", aClass.getSimpleName());
+                try {
+                    processStandaloneComponent(currentApp, application, aClass, appClass, srcDirectory);
+                } catch (Throwable t) {
+                    // never allow a single component failure to abort the remaining components
+                    log.error("Unable to render standalone component - " + aClass.getSimpleName(), t);
+                }
+            });
         }
     }
 
@@ -107,57 +115,57 @@ public class AngularModuleProcessor
      * @param appClass     The Angular application class
      * @param srcDirectory The source directory
      */
-    public void processNgModuleFiles(File currentApp, ClassInfo a, ScanResult scan, Class<? extends INgApp<?>> appClass, File srcDirectory)
-    {
+    public void processNgModuleFiles(File currentApp,
+                                     ClassInfo a,
+                                     ScanResult scan,
+                                     Class<? extends INgApp<?>> appClass,
+                                     File srcDirectory) {
         CallScoper scoper = IGuiceContext.get(CallScoper.class);
         boolean scopeStarted = false;
-        try
-        {
-            if (Vertx.currentContext() != null)
-            {
+        try {
+            // only take ownership of the scope when this call actually created it,
+            // otherwise an outer (or concurrently running) scope would be torn down here
+            if (Vertx.currentContext() != null && !scoper.isStartedScope()) {
                 scoper.enter();
                 scopeStarted = true;
             }
             Set<Class<?>> classes = new HashSet<>();
-            if (a.isInterface() || a.isAbstract())
-            {
-                for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
-                {
-                    if (!subclass.isAbstract() && !subclass.isInterface())
-                    {
+            if (a.isInterface() || a.isAbstract()) {
+                for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(
+                        a.loadClass())) {
+                    if (!subclass.isAbstract() && !subclass.isInterface()) {
                         classes.add(subclass.loadClass());
                     }
                 }
-            }
-            else
-            {
+            } else {
                 Class<?> aClass = a.loadClass();
                 classes.add(aClass);
             }
 
-            for (Class<?> aClass : classes)
-            {
-                if (INgModule.class.isAssignableFrom(aClass))
-                {
+            for (Class<?> aClass : classes) {
+                if (INgModule.class.isAssignableFrom(aClass)) {
                     INgModule<?> module = (INgModule<?>) IGuiceContext.get(aClass);
                     module.setApp(app);
                     File file = fileManager.getComponentFilePath(module);
-                    if (file != null)
-                    {
-                        fileManager.writeComponentToFile(module);
+                    if (file != null) {
+                        try {
+                            fileManager.writeComponentToFile(module);
+                        } catch (Throwable T) {
+                            log.error("Unable to write component file - " + module.getClass().getSimpleName(), T);
+                        }
                     }
                 }
             }
-        }
-        catch (Exception e)
-        {
+        } catch (Throwable e) {
             log.error("Unable to render module - " + a.getSimpleName(), e);
-        }
-        finally
-        {
-            if (scopeStarted)
-            {
-                scoper.exit();
+        } finally {
+            if (scopeStarted && scoper.isStartedScope()) {
+                try {
+                    scoper.exit();
+                } catch (IllegalStateException alreadyExited) {
+                    // the scope was closed by another participant on this context - nothing to do
+                    log.trace("Call scope already exited while rendering module - {}", a.getSimpleName());
+                }
             }
         }
     }
@@ -172,21 +180,19 @@ public class AngularModuleProcessor
      * @param srcDirectory The source directory
      * @return Whether the component was processed successfully
      */
-    protected boolean processStandaloneComponent(File currentApp, NGApplication<?> application, ClassInfo aClass,
-                                                 Class<? extends INgApp<?>> appClass, File srcDirectory)
-    {
-        IComponent.getCurrentAppFile()
-                  .set(currentApp);
-        try
-        {
+    protected boolean processStandaloneComponent(File currentApp,
+                                                 NGApplication<?> application,
+                                                 ClassInfo aClass,
+                                                 Class<? extends INgApp<?>> appClass,
+                                                 File srcDirectory) {
+        IComponent.getCurrentAppFile().set(currentApp);
+        try {
             IComponent.app.set(application);
             File appPath = AppUtils.getAppPath((Class<? extends INgApp<?>>) application.getClass());
-            IComponent.getCurrentAppFile()
-                      .set(appPath);
+            IComponent.getCurrentAppFile().set(appPath);
 
             Class<?> clazz = aClass.loadClass();
-            if (clazz.isAnnotationPresent(NgComponent.class) && INgComponent.class.isAssignableFrom(clazz))
-            {
+            if (clazz.isAnnotationPresent(NgComponent.class) && INgComponent.class.isAssignableFrom(clazz)) {
                 // Get the component instance
                 Object componentObj = IGuiceContext.get(clazz);
 
@@ -210,20 +216,15 @@ public class AngularModuleProcessor
 
                 // Get file paths
                 File tsFile = fileManager.getComponentFilePath(component);
-                if (tsFile == null || !tsFile.getCanonicalPath()
-                                             .replace('\\', '/')
-                                             .contains("src/app/"))
-                {
+                if (tsFile == null || !tsFile.getCanonicalPath().replace('\\', '/').contains("src/app/")) {
                     log.error("Unable to write out component file - {}",
-                            tsFile != null ? tsFile.getCanonicalPath() : "null path");
+                              tsFile != null ? tsFile.getCanonicalPath() : "null path");
                     return false;
                 }
 
 
                 // Generate CSS using the style base
-                StringBuilder cssString = hierarchyBase.cast()
-                                                       .asStyleBase()
-                                                       .renderCss(1);
+                StringBuilder cssString = hierarchyBase.cast().asStyleBase().renderCss(1);
 
                 // Get HTML and CSS file paths
                 String tsPath = tsFile.getPath();
@@ -231,23 +232,18 @@ public class AngularModuleProcessor
                 File cssFile = new File(tsPath.substring(0, tsPath.lastIndexOf(".")) + ".scss");
 
                 // Write files
-                try
-                {
+                try {
                     FileUtils.forceMkdirParent(tsFile);
                     fileManager.writeComponentToFile(component, true);
                     FileUtils.writeStringToFile(htmlFile, html, UTF_8);
                     FileUtils.writeStringToFile(cssFile, cssString.toString(), UTF_8);
                     return true;
-                }
-                catch (Exception e)
-                {
+                } catch (Exception e) {
                     log.error("Unable to write component files", e);
                     return false;
                 }
             }
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             log.error("Unable to render standalone component - " + aClass.getSimpleName(), e);
         }
         return false;
@@ -262,45 +258,37 @@ public class AngularModuleProcessor
      * @param appClass     The Angular application class
      * @param srcDirectory The source directory
      */
-    public void processNgServiceProviderFiles(File currentApp, ClassInfo a, ScanResult scan, Class<? extends INgApp<?>> appClass, File srcDirectory)
-    {
-        try
-        {
+    public void processNgServiceProviderFiles(File currentApp,
+                                              ClassInfo a,
+                                              ScanResult scan,
+                                              Class<? extends INgApp<?>> appClass,
+                                              File srcDirectory) {
+        try {
             Set<Class<?>> classes = new HashSet<>();
             Class<?> aClass = a.loadClass();
 
-            if (a.isInterface() || a.isAbstract())
-            {
-                for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(aClass) : scan.getClassesImplementing(aClass))
-                {
-                    if (!subclass.isAbstract() && !subclass.isInterface())
-                    {
+            if (a.isInterface() || a.isAbstract()) {
+                for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(aClass) : scan.getClassesImplementing(
+                        aClass)) {
+                    if (!subclass.isAbstract() && !subclass.isInterface()) {
                         classes.add(subclass.loadClass());
                     }
                 }
-            }
-            else
-            {
+            } else {
                 classes.add(aClass);
             }
 
-            for (Class<?> clazz : classes)
-            {
-                if (INgServiceProvider.class.isAssignableFrom(clazz))
-                {
+            for (Class<?> clazz : classes) {
+                if (INgServiceProvider.class.isAssignableFrom(clazz)) {
                     INgServiceProvider<?> component = (INgServiceProvider<?>) IGuiceContext.get(clazz);
-                    String typeScript = codeGenerator.renderServiceProviderTS(component)
-                                                     .toString();
+                    String typeScript = codeGenerator.renderServiceProviderTS(component).toString();
                     File file = fileManager.getComponentFilePath(component);
-                    if (file != null)
-                    {
+                    if (file != null) {
                         fileManager.writeComponentToFile(component);
                     }
                 }
             }
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             log.error("Unable to render service provider - " + a.getSimpleName(), e);
         }
     }
@@ -314,45 +302,37 @@ public class AngularModuleProcessor
      * @param appClass     The Angular application class
      * @param srcDirectory The source directory
      */
-    public void processNgDataTypeFiles(File currentApp, ClassInfo a, ScanResult scan, Class<? extends INgApp<?>> appClass, File srcDirectory)
-    {
-        try
-        {
+    public void processNgDataTypeFiles(File currentApp,
+                                       ClassInfo a,
+                                       ScanResult scan,
+                                       Class<? extends INgApp<?>> appClass,
+                                       File srcDirectory) {
+        try {
             Set<Class<?>> classes = new HashSet<>();
             Class<?> aClass = a.loadClass();
 
-            if (a.isInterface() || a.isAbstract())
-            {
-                for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(aClass) : scan.getClassesImplementing(aClass))
-                {
-                    if (!subclass.isAbstract() && !subclass.isInterface())
-                    {
+            if (a.isInterface() || a.isAbstract()) {
+                for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(aClass) : scan.getClassesImplementing(
+                        aClass)) {
+                    if (!subclass.isAbstract() && !subclass.isInterface()) {
                         classes.add(subclass.loadClass());
                     }
                 }
-            }
-            else
-            {
+            } else {
                 classes.add(aClass);
             }
 
-            for (Class<?> clazz : classes)
-            {
-                if (INgDataType.class.isAssignableFrom(clazz))
-                {
+            for (Class<?> clazz : classes) {
+                if (INgDataType.class.isAssignableFrom(clazz)) {
                     INgDataType<?> component = (INgDataType<?>) IGuiceContext.get(clazz);
-                    String typeScript = codeGenerator.renderDataTypeTS(component)
-                                                     .toString();
+                    String typeScript = codeGenerator.renderDataTypeTS(component).toString();
                     File file = fileManager.getComponentFilePath(component);
-                    if (file != null)
-                    {
+                    if (file != null) {
                         fileManager.writeComponentToFile(component);
                     }
                 }
             }
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             log.error("Unable to render data type - " + a.getSimpleName(), e);
         }
     }
@@ -366,45 +346,37 @@ public class AngularModuleProcessor
      * @param appClass     The Angular application class
      * @param srcDirectory The source directory
      */
-    public void processNgProviderFiles(File currentApp, ClassInfo a, ScanResult scan, Class<? extends INgApp<?>> appClass, File srcDirectory)
-    {
-        try
-        {
+    public void processNgProviderFiles(File currentApp,
+                                       ClassInfo a,
+                                       ScanResult scan,
+                                       Class<? extends INgApp<?>> appClass,
+                                       File srcDirectory) {
+        try {
             Set<Class<?>> classes = new HashSet<>();
             Class<?> aClass = a.loadClass();
 
-            if (a.isInterface() || a.isAbstract())
-            {
-                for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(aClass) : scan.getClassesImplementing(aClass))
-                {
-                    if (!subclass.isAbstract() && !subclass.isInterface())
-                    {
+            if (a.isInterface() || a.isAbstract()) {
+                for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(aClass) : scan.getClassesImplementing(
+                        aClass)) {
+                    if (!subclass.isAbstract() && !subclass.isInterface()) {
                         classes.add(subclass.loadClass());
                     }
                 }
-            }
-            else
-            {
+            } else {
                 classes.add(aClass);
             }
 
-            for (Class<?> clazz : classes)
-            {
-                if (INgProvider.class.isAssignableFrom(clazz))
-                {
+            for (Class<?> clazz : classes) {
+                if (INgProvider.class.isAssignableFrom(clazz)) {
                     INgProvider<?> component = (INgProvider<?>) IGuiceContext.get(clazz);
-                    String typeScript = codeGenerator.renderProviderTS(component)
-                                                     .toString();
+                    String typeScript = codeGenerator.renderProviderTS(component).toString();
                     File file = fileManager.getComponentFilePath(component);
-                    if (file != null)
-                    {
+                    if (file != null) {
                         fileManager.writeComponentToFile(component);
                     }
                 }
             }
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             log.error("Unable to render provider - " + a.getSimpleName(), e);
         }
     }
@@ -418,45 +390,37 @@ public class AngularModuleProcessor
      * @param appClass     The Angular application class
      * @param srcDirectory The source directory
      */
-    public void processNgDataServiceFiles(File currentApp, ClassInfo a, ScanResult scan, Class<? extends INgApp<?>> appClass, File srcDirectory)
-    {
-        try
-        {
+    public void processNgDataServiceFiles(File currentApp,
+                                          ClassInfo a,
+                                          ScanResult scan,
+                                          Class<? extends INgApp<?>> appClass,
+                                          File srcDirectory) {
+        try {
             Set<Class<?>> classes = new HashSet<>();
             Class<?> aClass = a.loadClass();
 
-            if (a.isInterface() || a.isAbstract())
-            {
-                for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(aClass) : scan.getClassesImplementing(aClass))
-                {
-                    if (!subclass.isAbstract() && !subclass.isInterface())
-                    {
+            if (a.isInterface() || a.isAbstract()) {
+                for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(aClass) : scan.getClassesImplementing(
+                        aClass)) {
+                    if (!subclass.isAbstract() && !subclass.isInterface()) {
                         classes.add(subclass.loadClass());
                     }
                 }
-            }
-            else
-            {
+            } else {
                 classes.add(aClass);
             }
 
-            for (Class<?> clazz : classes)
-            {
-                if (INgDataService.class.isAssignableFrom(clazz))
-                {
+            for (Class<?> clazz : classes) {
+                if (INgDataService.class.isAssignableFrom(clazz)) {
                     INgDataService<?> component = (INgDataService<?>) IGuiceContext.get(clazz);
-                    String typeScript = codeGenerator.renderServiceTS(component)
-                                                     .toString();
+                    String typeScript = codeGenerator.renderServiceTS(component).toString();
                     File file = fileManager.getComponentFilePath(component);
-                    if (file != null)
-                    {
+                    if (file != null) {
                         fileManager.writeComponentToFile(component);
                     }
                 }
             }
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             log.error("Unable to render data service - " + a.getSimpleName(), e);
         }
     }
@@ -470,42 +434,35 @@ public class AngularModuleProcessor
      * @param appClass     The Angular application class
      * @param srcDirectory The source directory
      */
-    public void processNgDirectiveFiles(File currentApp, ClassInfo a, ScanResult scan, Class<? extends INgApp<?>> appClass, File srcDirectory)
-    {
-        try
-        {
+    public void processNgDirectiveFiles(File currentApp,
+                                        ClassInfo a,
+                                        ScanResult scan,
+                                        Class<? extends INgApp<?>> appClass,
+                                        File srcDirectory) {
+        try {
             Set<Class<?>> classes = new HashSet<>();
-            if (a.isInterface() || a.isAbstract())
-            {
-                for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(a.loadClass()))
-                {
-                    if (!subclass.isAbstract() && !subclass.isInterface())
-                    {
+            if (a.isInterface() || a.isAbstract()) {
+                for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(
+                        a.loadClass())) {
+                    if (!subclass.isAbstract() && !subclass.isInterface()) {
                         classes.add(subclass.loadClass());
                     }
                 }
-            }
-            else
-            {
+            } else {
                 Class<?> aClass = a.loadClass();
                 classes.add(aClass);
             }
 
-            for (Class<?> aClass : classes)
-            {
-                if (INgDirective.class.isAssignableFrom(aClass))
-                {
+            for (Class<?> aClass : classes) {
+                if (INgDirective.class.isAssignableFrom(aClass)) {
                     INgDirective<?> component = (INgDirective<?>) IGuiceContext.get(aClass);
                     File file = fileManager.getComponentFilePath(component);
-                    if (file != null)
-                    {
+                    if (file != null) {
                         fileManager.writeComponentToFile(component);
                     }
                 }
             }
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             log.error("Unable to render directive - " + a.getSimpleName(), e);
         }
     }
@@ -518,15 +475,14 @@ public class AngularModuleProcessor
      * @param appClass     The Angular application class
      * @param srcDirectory The source directory
      */
-    public void processDirectives(File currentApp, ScanResult scan, Class<? extends INgApp<?>> appClass, File srcDirectory)
-    {
-        scan.getClassesWithAnnotation(NgDirective.class)
-            .stream()
-            .forEach(a -> {
-                LogManager.getLogger("TypescriptCompiler")
-                          .debug("Rendering NgDirective [{}]", a.getSimpleName());
-                processNgDirectiveFiles(currentApp, a, scan, appClass, srcDirectory);
-            });
+    public void processDirectives(File currentApp,
+                                  ScanResult scan,
+                                  Class<? extends INgApp<?>> appClass,
+                                  File srcDirectory) {
+        scan.getClassesWithAnnotation(NgDirective.class).stream().forEach(a -> {
+            LogManager.getLogger("TypescriptCompiler").trace("Rendering NgDirective [{}]", a.getSimpleName());
+            processNgDirectiveFiles(currentApp, a, scan, appClass, srcDirectory);
+        });
     }
 
     /**
@@ -537,15 +493,14 @@ public class AngularModuleProcessor
      * @param appClass     The Angular application class
      * @param srcDirectory The source directory
      */
-    public void processDataServices(File currentApp, ScanResult scan, Class<? extends INgApp<?>> appClass, File srcDirectory)
-    {
-        scan.getClassesWithAnnotation(NgDataService.class)
-            .stream()
-            .forEach(a -> {
-                LogManager.getLogger("TypescriptCompiler")
-                          .debug("Rendering NgDataService [{}]", a.getSimpleName());
-                processNgDataServiceFiles(currentApp, a, scan, appClass, srcDirectory);
-            });
+    public void processDataServices(File currentApp,
+                                    ScanResult scan,
+                                    Class<? extends INgApp<?>> appClass,
+                                    File srcDirectory) {
+        scan.getClassesWithAnnotation(NgDataService.class).stream().forEach(a -> {
+            LogManager.getLogger("TypescriptCompiler").trace("Rendering NgDataService [{}]", a.getSimpleName());
+            processNgDataServiceFiles(currentApp, a, scan, appClass, srcDirectory);
+        });
     }
 
     /**
@@ -556,15 +511,14 @@ public class AngularModuleProcessor
      * @param appClass     The Angular application class
      * @param srcDirectory The source directory
      */
-    public void processProviders(File currentApp, ScanResult scan, Class<? extends INgApp<?>> appClass, File srcDirectory)
-    {
-        scan.getClassesWithAnnotation(NgProvider.class)
-            .stream()
-            .forEach(a -> {
-                LogManager.getLogger("TypescriptCompiler")
-                          .debug("Rendering NgProvider [{}]", a.getSimpleName());
-                processNgProviderFiles(currentApp, a, scan, appClass, srcDirectory);
-            });
+    public void processProviders(File currentApp,
+                                 ScanResult scan,
+                                 Class<? extends INgApp<?>> appClass,
+                                 File srcDirectory) {
+        scan.getClassesWithAnnotation(NgProvider.class).stream().forEach(a -> {
+            LogManager.getLogger("TypescriptCompiler").trace("Rendering NgProvider [{}]", a.getSimpleName());
+            processNgProviderFiles(currentApp, a, scan, appClass, srcDirectory);
+        });
     }
 
     /**
@@ -575,15 +529,14 @@ public class AngularModuleProcessor
      * @param appClass     The Angular application class
      * @param srcDirectory The source directory
      */
-    public void processDataTypes(File currentApp, ScanResult scan, Class<? extends INgApp<?>> appClass, File srcDirectory)
-    {
-        scan.getClassesWithAnnotation(NgDataType.class)
-            .stream()
-            .forEach(a -> {
-                LogManager.getLogger("TypescriptCompiler")
-                          .debug("Rendering NgDataType [{}]", a.getSimpleName());
-                processNgDataTypeFiles(currentApp, a, scan, appClass, srcDirectory);
-            });
+    public void processDataTypes(File currentApp,
+                                 ScanResult scan,
+                                 Class<? extends INgApp<?>> appClass,
+                                 File srcDirectory) {
+        scan.getClassesWithAnnotation(NgDataType.class).stream().forEach(a -> {
+            LogManager.getLogger("TypescriptCompiler").trace("Rendering NgDataType [{}]", a.getSimpleName());
+            processNgDataTypeFiles(currentApp, a, scan, appClass, srcDirectory);
+        });
     }
 
     /**
@@ -594,15 +547,14 @@ public class AngularModuleProcessor
      * @param appClass     The Angular application class
      * @param srcDirectory The source directory
      */
-    public void processServiceProviders(File currentApp, ScanResult scan, Class<? extends INgApp<?>> appClass, File srcDirectory)
-    {
-        scan.getClassesWithAnnotation(NgServiceProvider.class)
-            .stream()
-            .forEach(a -> {
-                LogManager.getLogger("TypescriptCompiler")
-                          .debug("Rendering NgServiceProvider [{}]", a.getSimpleName());
-                processNgServiceProviderFiles(currentApp, a, scan, appClass, srcDirectory);
-            });
+    public void processServiceProviders(File currentApp,
+                                        ScanResult scan,
+                                        Class<? extends INgApp<?>> appClass,
+                                        File srcDirectory) {
+        scan.getClassesWithAnnotation(NgServiceProvider.class).stream().forEach(a -> {
+            LogManager.getLogger("TypescriptCompiler").trace("Rendering NgServiceProvider [{}]", a.getSimpleName());
+            processNgServiceProviderFiles(currentApp, a, scan, appClass, srcDirectory);
+        });
     }
 
     /**
@@ -614,45 +566,37 @@ public class AngularModuleProcessor
      * @param appClass     The Angular application class
      * @param srcDirectory The source directory
      */
-    public void processNgRestClientFiles(File currentApp, ClassInfo a, ScanResult scan, Class<? extends INgApp<?>> appClass, File srcDirectory)
-    {
-        try
-        {
+    public void processNgRestClientFiles(File currentApp,
+                                         ClassInfo a,
+                                         ScanResult scan,
+                                         Class<? extends INgApp<?>> appClass,
+                                         File srcDirectory) {
+        try {
             Set<Class<?>> classes = new HashSet<>();
             Class<?> aClass = a.loadClass();
 
-            if (a.isInterface() || a.isAbstract())
-            {
-                for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(aClass) : scan.getClassesImplementing(aClass))
-                {
-                    if (!subclass.isAbstract() && !subclass.isInterface())
-                    {
+            if (a.isInterface() || a.isAbstract()) {
+                for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(aClass) : scan.getClassesImplementing(
+                        aClass)) {
+                    if (!subclass.isAbstract() && !subclass.isInterface()) {
                         classes.add(subclass.loadClass());
                     }
                 }
-            }
-            else
-            {
+            } else {
                 classes.add(aClass);
             }
 
-            for (Class<?> clazz : classes)
-            {
-                if (INgRestClient.class.isAssignableFrom(clazz))
-                {
+            for (Class<?> clazz : classes) {
+                if (INgRestClient.class.isAssignableFrom(clazz)) {
                     INgRestClient<?> component = (INgRestClient<?>) IGuiceContext.get(clazz);
-                    String typeScript = codeGenerator.renderRestClientTS(component)
-                                                     .toString();
+                    String typeScript = codeGenerator.renderRestClientTS(component).toString();
                     File file = fileManager.getComponentFilePath(component);
-                    if (file != null)
-                    {
+                    if (file != null) {
                         fileManager.writeComponentToFile(component);
                     }
                 }
             }
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             log.error("Unable to render rest client - " + a.getSimpleName(), e);
         }
     }
@@ -665,15 +609,14 @@ public class AngularModuleProcessor
      * @param appClass     The Angular application class
      * @param srcDirectory The source directory
      */
-    public void processRestClients(File currentApp, ScanResult scan, Class<? extends INgApp<?>> appClass, File srcDirectory)
-    {
-        scan.getClassesWithAnnotation(NgRestClient.class)
-            .stream()
-            .forEach(a -> {
-                LogManager.getLogger("TypescriptCompiler")
-                          .debug("Rendering NgRestClient [{}]", a.getSimpleName());
-                processNgRestClientFiles(currentApp, a, scan, appClass, srcDirectory);
-            });
+    public void processRestClients(File currentApp,
+                                   ScanResult scan,
+                                   Class<? extends INgApp<?>> appClass,
+                                   File srcDirectory) {
+        scan.getClassesWithAnnotation(NgRestClient.class).stream().forEach(a -> {
+            LogManager.getLogger("TypescriptCompiler").trace("Rendering NgRestClient [{}]", a.getSimpleName());
+            processNgRestClientFiles(currentApp, a, scan, appClass, srcDirectory);
+        });
     }
 
     /**
@@ -685,34 +628,37 @@ public class AngularModuleProcessor
      * @param appClass     The Angular application class
      * @param srcDirectory The source directory
      */
-    public void processAllComponents(File currentApp, ScanResult scan, Class<? extends INgApp<?>> appClass, File srcDirectory)
-    {
+    public void processAllComponents(File currentApp,
+                                     ScanResult scan,
+                                     Class<? extends INgApp<?>> appClass,
+                                     File srcDirectory) {
         log.info("Processing all Angular components");
 
-        // Process Angular modules
-        processAngularModules(currentApp, scan, appClass, srcDirectory);
-
-        // Process standalone components
-        processStandaloneComponents(currentApp, scan, appClass, srcDirectory);
-
-        // Process directives
-        processDirectives(currentApp, scan, appClass, srcDirectory);
-
-        // Process data services
-        processDataServices(currentApp, scan, appClass, srcDirectory);
-
-        // Process providers
-        processProviders(currentApp, scan, appClass, srcDirectory);
-
-        // Process data types
-        processDataTypes(currentApp, scan, appClass, srcDirectory);
-
-        // Process service providers
-        processServiceProviders(currentApp, scan, appClass, srcDirectory);
-
-        // Process REST clients
-        processRestClients(currentApp, scan, appClass, srcDirectory);
+        // Each phase is isolated so that a single failing phase can never stop the
+        // remaining TypeScript from being generated
+        runPhase("Angular Modules", () -> processAngularModules(currentApp, scan, appClass, srcDirectory));
+        runPhase("Standalone Components", () -> processStandaloneComponents(currentApp, scan, appClass, srcDirectory));
+        runPhase("Directives", () -> processDirectives(currentApp, scan, appClass, srcDirectory));
+        runPhase("Data Services", () -> processDataServices(currentApp, scan, appClass, srcDirectory));
+        runPhase("Providers", () -> processProviders(currentApp, scan, appClass, srcDirectory));
+        runPhase("Data Types", () -> processDataTypes(currentApp, scan, appClass, srcDirectory));
+        runPhase("Service Providers", () -> processServiceProviders(currentApp, scan, appClass, srcDirectory));
+        runPhase("Rest Clients", () -> processRestClients(currentApp, scan, appClass, srcDirectory));
 
         log.info("Finished processing all Angular components");
+    }
+
+    /**
+     * Runs a processing phase, logging (and swallowing) any failure so the remaining phases still run
+     *
+     * @param name  The phase name used for logging
+     * @param phase The phase to run
+     */
+    private void runPhase(String name, Runnable phase) {
+        try {
+            phase.run();
+        } catch (Throwable t) {
+            log.error("Unable to complete Angular processing phase - " + name, t);
+        }
     }
 }

@@ -1,6 +1,8 @@
 package com.jwebmp.core.base.angular.modules.services.angular;
 
 import com.guicedee.modules.services.jsonrepresentation.IJsonRepresentation;
+import com.jwebmp.core.base.angular.client.annotations.references.NgComponentReference;
+import com.jwebmp.core.base.angular.components.modules.RouterModuleConfig;
 import com.jwebmp.core.base.html.Link;
 import lombok.*;
 
@@ -10,6 +12,7 @@ import java.util.Map;
 @AllArgsConstructor
 @Getter
 @Setter
+@NgComponentReference(RouterModuleConfig.class)
 public class RouterLink extends Link<RouterLink>
 {
     private String location;

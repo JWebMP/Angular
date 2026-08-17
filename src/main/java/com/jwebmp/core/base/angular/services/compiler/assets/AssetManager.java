@@ -285,7 +285,8 @@ public class AssetManager
         boolean scopeStarted = false;
         try
         {
-            if (Vertx.currentContext() != null)
+            // only take ownership of the scope when this call actually created it
+            if (Vertx.currentContext() != null && !scoper.isStartedScope())
             {
                 scoper.enter();
                 scopeStarted = true;
@@ -369,9 +370,16 @@ public class AssetManager
         }
         finally
         {
-            if (scopeStarted)
+            if (scopeStarted && scoper.isStartedScope())
             {
-                scoper.exit();
+                try
+                {
+                    scoper.exit();
+                }
+                catch (IllegalStateException alreadyExited)
+                {
+                    log.trace("Call scope already exited while rendering the angular application files");
+                }
             }
         }
     }

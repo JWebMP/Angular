@@ -3,6 +3,7 @@ package com.jwebmp.core.base.angular.implementations.configurations;
 import com.google.common.base.Strings;
 import com.jwebmp.core.base.angular.client.annotations.angular.NgComponent;
 import com.jwebmp.core.base.angular.client.annotations.angular.NgDirective;
+import com.jwebmp.core.base.angular.client.annotations.angular.NgRestClient;
 import com.jwebmp.core.base.angular.client.annotations.angular.NgServiceProvider;
 import com.jwebmp.core.base.angular.client.annotations.components.NgComponentTagAttribute;
 import com.jwebmp.core.base.angular.client.annotations.components.NgInput;
@@ -186,16 +187,34 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
         for (IConfiguration configuration : component.getConfigurations()) {
             if (configuration instanceof NgComponentReference ngComponentReference && component instanceof ImportsStatementsComponent<?> imp && compConfig instanceof INgComponent) {
                 if ((ngComponentReference.onSelf() && !checkForParent) || (ngComponentReference.onParent() && checkForParent)) {
-                    List<NgImportReference> ngImportReferences = imp.putRelativeLinkInMap(((INgComponent<?>) compConfig.getRootComponent()).getClass(), ngComponentReference);
+                    if (INgConfig.class.isAssignableFrom(ngComponentReference.value())) {
+                        processClassToComponent(ngComponentReference.value(), component, true);
+                    } else {
+                        List<NgImportReference> ngImportReferences = imp.putRelativeLinkInMap(((INgComponent<?>) compConfig.getRootComponent()).getClass(), ngComponentReference);
+                        for (NgImportReference ngImportReference : ngImportReferences) {
+                            compConfig
+                                    .getImportReferences()
+                                    .add((AnnotationUtils.getNgImportReference(ngImportReference.value(), ngImportReference.reference())));
+                        }
+                    }
+                }
+            } else if (configuration instanceof NgComponentReference ngComponentReference) {
+                Class<?> configReferenceClass = ngComponentReference.value();
+                if (INgConfig.class.isAssignableFrom(configReferenceClass)) {
+                    processClassToComponent(configReferenceClass, component, true);
+                } else if (INgRestClient.class.isAssignableFrom(configReferenceClass)) {
+                    @SuppressWarnings({"unchecked", "rawtypes"})
+                    List<NgImportReference>
+                            ngImportReferences = new ImportsStatementsComponent() {
+                    }
+                            .putRelativeLinkInMap(((INgComponent<?>) compConfig.getRootComponent()).getClass(), ngComponentReference);
                     for (NgImportReference ngImportReference : ngImportReferences) {
                         compConfig
                                 .getImportReferences()
                                 .add((AnnotationUtils.getNgImportReference(ngImportReference.value(), ngImportReference.reference())));
                     }
-                }
-            } else if (configuration instanceof NgComponentReference ngComponentReference) {
-                Class<?> configReferenceClass = ngComponentReference.value();
-                if (INgDirective.class.isAssignableFrom(configReferenceClass) ||
+                    addRestClientField(configReferenceClass);
+                } else if (INgDirective.class.isAssignableFrom(configReferenceClass) ||
                         INgModule.class.isAssignableFrom(configReferenceClass)) {
                     @SuppressWarnings({"unchecked", "rawtypes"})
                     List<NgImportReference>
@@ -1070,11 +1089,15 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                 .getAnnotation(component.getClass(), NgComponentReference.class)
                 .forEach(importReference -> {
                     if ((importReference.onSelf() && !checkForParent) || (importReference.onParent() && checkForParent)) {
-                        List<NgImportReference> irs = retrieveRelativePathForReference(importReference);
-                        for (NgImportReference ir : irs) {
-                            compConfig
-                                    .getImportReferences()
-                                    .add(AnnotationUtils.getNgImportReference(ir.value(), ir.reference()));
+                        if (INgConfig.class.isAssignableFrom(importReference.value())) {
+                            processClassToComponent(importReference.value(), component, true);
+                        } else {
+                            List<NgImportReference> irs = retrieveRelativePathForReference(importReference);
+                            for (NgImportReference ir : irs) {
+                                compConfig
+                                        .getImportReferences()
+                                        .add(AnnotationUtils.getNgImportReference(ir.value(), ir.reference()));
+                            }
                         }
 
                         if (
@@ -1090,6 +1113,9 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                                             )
                                     );
                         }
+                        if (INgRestClient.class.isAssignableFrom(importReference.value())) {
+                            addRestClientField(importReference.value());
+                        }
                         if (
                                 INgDirective.class.isAssignableFrom(importReference.value())
                         ) {
@@ -1100,6 +1126,7 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                         }
                         if (INgServiceProvider.class.isAssignableFrom(importReference.value()) ||
                                 INgDataService.class.isAssignableFrom(importReference.value()) ||
+                                INgRestClient.class.isAssignableFrom(importReference.value()) ||
                                 INgProvider.class.isAssignableFrom(importReference.value())
                         ) {
                             compConfig
@@ -1131,7 +1158,6 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
 
     private void processClassToComponent(Class<?> componentClass, IComponentHierarchyBase<GlobalChildren, ?> component, boolean checkForParent) {
         addPipes(component, checkForParent);
-        addLogicDirectives(checkForParent);
         addFieldInputDirectives(componentClass, checkForParent);
         addFormsImports(component, checkForParent);
 
@@ -1210,8 +1236,27 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                 compConfig
                         .getInjects()
                         .add(AnnotationUtils.getNgInject(anno.referenceName(), AnnotationUtils.getTsFilename(configClass)));
+            } else if (INgRestClient.class.isAssignableFrom(configClass)) {
+                addRestClientField(configClass);
             }
         }
+    }
+
+    private void addRestClientField(Class<?> configReferenceClass) {
+        compConfig
+                .getImportReferences()
+                .add(AnnotationUtils.getNgImportReference("inject", "@angular/core"));
+        compConfig
+                .getFields()
+                .add(AnnotationUtils.getNgField("readonly " + getRestClientFieldName(configReferenceClass) + " = inject(" + AnnotationUtils.getTsFilename(configReferenceClass) + ");", true, false));
+    }
+
+    private String getRestClientFieldName(Class<?> configReferenceClass) {
+        NgRestClient restClient = configReferenceClass.getAnnotation(NgRestClient.class);
+        if (restClient == null || Strings.isNullOrEmpty(restClient.value())) {
+            throw new IllegalStateException("@NgRestClient.value() must specify the injected field name for " + configReferenceClass.getName());
+        }
+        return restClient.value();
     }
 
 
@@ -1425,7 +1470,6 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
         boolean decimalAdded = false;
         boolean asyncAdded = false;
         boolean dateAdded = false;
-        boolean currencyAdded = false;
 
         if (componentString.contains("| json")) {
             compConfig
@@ -1466,16 +1510,6 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
                     .getImportModules()
                     .add(AnnotationUtils.getNgImportModule("DatePipe"));
             dateAdded = true;
-        }
-
-        if (componentString.contains("| currency")) {
-            compConfig
-                    .getImportReferences()
-                    .add(AnnotationUtils.getNgImportReference("CurrencyPipe", "@angular/common"));
-            compConfig
-                    .getImportModules()
-                    .add(AnnotationUtils.getNgImportModule("CurrencyPipe"));
-            currencyAdded = true;
         }
 
         for (String value : component
@@ -1548,59 +1582,6 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
             }
         }
 
-        for (String value : component
-                .asAttributeBase()
-                .getAttributes()
-                .values()) {
-            if (!currencyAdded && !Strings.isNullOrEmpty(value) && value.contains("| currency")) {
-                compConfig
-                        .getImportReferences()
-                        .add(AnnotationUtils.getNgImportReference("CurrencyPipe", "@angular/common"));
-                compConfig
-                        .getImportModules()
-                        .add(AnnotationUtils.getNgImportModule("CurrencyPipe"));
-                currencyAdded = true;
-            }
-        }
-
-        for (String value : component
-                .asAttributeBase()
-                .getAttributes()
-                .keySet()) {
-            boolean routerAdded = false;
-            if (!routerAdded && !Strings.isNullOrEmpty(value) && value.contains("routerLink")) {
-                compConfig
-                        .getImportReferences()
-                        .add(AnnotationUtils.getNgImportReference("RouterModule", "@angular/router"));
-                compConfig
-                        .getImportModules()
-                        .add(AnnotationUtils.getNgImportModule("RouterModule"));
-                routerAdded = true;
-            }
-        }
-
-    }
-
-
-    private void addLogicDirectives(boolean checkForParent) {
-        if (!checkForParent) {
-            if (componentString.contains("*ngIf")) {
-                compConfig
-                        .getImportReferences()
-                        .add(AnnotationUtils.getNgImportReference("NgIf", "@angular/common"));
-                compConfig
-                        .getImportModules()
-                        .add(AnnotationUtils.getNgImportModule("NgIf"));
-            }
-            if (componentString.contains("*ngFor")) {
-                compConfig
-                        .getImportReferences()
-                        .add(AnnotationUtils.getNgImportReference("NgFor", "@angular/common"));
-                compConfig
-                        .getImportModules()
-                        .add(AnnotationUtils.getNgImportModule("NgFor"));
-            }
-        }
     }
 
     private void addFieldInputDirectives(Class<?> comp, boolean checkForParent) {
@@ -1631,6 +1612,5 @@ public class ConfigureImportReferences implements IOnComponentConfigured<Configu
             }
         }
     }
-
 
 }

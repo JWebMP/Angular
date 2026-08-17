@@ -1240,7 +1240,8 @@ public class AngularAppSetup
         boolean scopeStarted = false;
         try (var is = ResourceLocator.class.getResourceAsStream("app.config.json"))
         {
-            if (Vertx.currentContext() != null)
+            // only take ownership of the scope when this call actually created it
+            if (Vertx.currentContext() != null && !scoper.isStartedScope())
             {
                 scoper.enter();
                 scopeStarted = true;
@@ -1303,9 +1304,16 @@ public class AngularAppSetup
         }
         finally
         {
-            if (scopeStarted)
+            if (scopeStarted && scoper.isStartedScope())
             {
-                scoper.exit();
+                try
+                {
+                    scoper.exit();
+                }
+                catch (IllegalStateException alreadyExited)
+                {
+                    log.trace("Call scope already exited while processing the app config file");
+                }
             }
         }
     }

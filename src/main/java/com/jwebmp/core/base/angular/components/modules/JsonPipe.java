@@ -4,8 +4,8 @@ import com.jwebmp.core.base.angular.client.annotations.references.NgImportModule
 import com.jwebmp.core.base.angular.client.annotations.references.NgImportReference;
 import com.jwebmp.core.base.angular.client.services.interfaces.INgConfig;
 
-@NgImportReference(value = "RouterModule", reference = "@angular/router")
-@NgImportModule("RouterModule")
-public class RouterModule implements INgConfig<RouterModule>
+@NgImportReference(value = "JsonPipe", reference = "@angular/common",onSelf = false,onParent = true)
+@NgImportModule(value = "JsonPipe", onSelf = false,onParent = true)
+public class JsonPipe implements INgConfig<JsonPipe>
 {
 }

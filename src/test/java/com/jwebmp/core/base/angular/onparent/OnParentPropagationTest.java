@@ -81,6 +81,27 @@ public class OnParentPropagationTest
     }
 
     @Test
+    public void testNgConfigReferencePropagatesWithoutImportingConfigClass()
+    {
+        if (testApp == null) return;
+        String rendered = renderComponent(TestRouterConfigConsumerComponent.class);
+
+        System.out.println("[DEBUG_LOG] TestRouterConfigConsumerComponent rendered:\n" + rendered);
+
+        assertTrue(rendered.contains("import {Router} from '@angular/router';")
+                        || rendered.contains("import { Router } from '@angular/router';"),
+                "Should contain Router import propagated from RouterConfig, but was:\n" + rendered);
+        assertTrue(rendered.contains("readonly router = inject(Router)"),
+                "Should contain RouterConfig parent field, but was:\n" + rendered);
+        assertTrue(rendered.contains("Router"),
+                "Should contain Router module import entry, but was:\n" + rendered);
+        assertFalse(rendered.contains("import {RouterConfig}"),
+                "INgConfig references should not generate an import for the config class, but was:\n" + rendered);
+        assertFalse(rendered.contains("import { RouterConfig }"),
+                "INgConfig references should not generate an import for the config class, but was:\n" + rendered);
+    }
+
+    @Test
     public void testOnSelfFalseDoesNotAppearOnReferencedClassOwnOutput()
     {
         if (testApp == null) return;
