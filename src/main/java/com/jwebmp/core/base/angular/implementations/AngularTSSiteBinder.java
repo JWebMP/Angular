@@ -269,19 +269,19 @@ public class AngularTSSiteBinder
                 // succeed. The wildcard route is also registered for completeness/back-compat.
                 log.info("Registering WebSocket handler for STOMP at /eventbus (and /eventbus/*)");
                 io.vertx.core.Handler<io.vertx.ext.web.RoutingContext> stompUpgradeHandler = ctx -> {
-                    log.info("Received WebSocket connection request from: " + ctx
+                    log.trace("Received WebSocket connection request from: " + ctx
                             .request()
                             .remoteAddress());
                     ctx
                             .request()
                             .toWebSocket()
                             .onSuccess(ws -> {
-                                log.info("WebSocket connection established (subProtocol={}), passing to STOMP handler",
+                                log.trace("WebSocket connection established (subProtocol={}), passing to STOMP handler",
                                         ws.subProtocol());
                                 // Log why the socket closes so client-vs-proxy disconnects can be told apart.
                                 // The STOMP server attaches its own exception/end handlers but not a close
                                 // handler, so this survives and reports the close code/reason.
-                                ws.closeHandler(v -> log.warn(
+                                ws.closeHandler(v -> log.trace(
                                         "STOMP WebSocket closed: code={}, reason={}",
                                         ws.closeStatusCode(), ws.closeReason()));
                                 stompServer
@@ -385,7 +385,7 @@ public class AngularTSSiteBinder
                                 //   handler.reply("{}");
                             } else if (o instanceof JsonObject jo) {
                                 String jsonString = jo.toString();
-                                log.info("Processing JSON message: " + jsonString);
+                                log.debug("Processing JSON message: " + jsonString);
                                 var mr = jo.mapTo(WebSocketMessageReceiver.class);
                                 if (mr
                                         .getData()

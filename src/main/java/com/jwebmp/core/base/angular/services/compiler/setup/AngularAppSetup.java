@@ -186,6 +186,13 @@ public class AngularAppSetup
         processTsDependencies(dependencies, overrideDependencies);
         processTsDevDependencies(devDependencies);
 
+        var translations = AngularTranslationConfiguration.configuration(appClass);
+        if (translations != null)
+        {
+            dependencies.putIfAbsent("@jsverse/transloco", "8.4.0");
+            if (translations.messageFormat()) dependencies.putIfAbsent("@jsverse/transloco-messageformat", "8.4.0");
+        }
+
         ObjectMapper om = IGuiceContext.get(DefaultObjectMapper);
         processPackageJsonFile(appClass, packageTemplate, om, dependencies, devDependencies, overrideDependencies, packageJsonFile);
     }
@@ -1236,6 +1243,9 @@ public class AngularAppSetup
      */
     public void processAppConfigFile(Class<? extends INgApp<?>> appClass, ScanResult scan) throws IOException
     {
+        // Validate before the legacy best-effort config writer: dictionary conflicts must fail generation.
+        var translations = AngularTranslationConfiguration.collect(appClass, scan);
+        if (translations != null) AngularTranslationConfiguration.write(translations, AppUtils.getAppAssetsPath(appClass).toPath());
         CallScoper scoper = IGuiceContext.get(CallScoper.class);
         boolean scopeStarted = false;
         try (var is = ResourceLocator.class.getResourceAsStream("app.config.json"))
@@ -1295,6 +1305,8 @@ public class AngularAppSetup
                 }
             }
 
+            AngularLocaleConfiguration.append(appClass, bootImportsString, bootImportProviders);
+            AngularTranslationConfiguration.append(translations, appClass, bootImportsString, bootImportProviders);
             bootAppString = bootAppString.formatted(bootImportsString.toString(), bootImportProviders.toString());
             FileUtils.writeStringToFile(new File(AppUtils.getAppSrcPath(appClass) + "/app.config.ts"), bootAppString, UTF_8);
         }

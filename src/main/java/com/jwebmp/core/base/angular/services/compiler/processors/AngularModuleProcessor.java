@@ -368,6 +368,10 @@ public class AngularModuleProcessor {
 
             for (Class<?> clazz : classes) {
                 if (INgProvider.class.isAssignableFrom(clazz)) {
+                    if (clazz == com.jwebmp.core.base.angular.client.services.TranslationService.class
+                            && com.jwebmp.core.base.angular.services.compiler.setup.AngularTranslationConfiguration.configuration(appClass) == null) {
+                        continue;
+                    }
                     INgProvider<?> component = (INgProvider<?>) IGuiceContext.get(clazz);
                     String typeScript = codeGenerator.renderProviderTS(component).toString();
                     File file = fileManager.getComponentFilePath(component);

@@ -1,5 +1,105 @@
 # JWebMP Angular Plugin
 
+## Locale formatting
+
+Declare the locale on your application (or its boot component):
+
+```java
+import com.jwebmp.core.base.angular.client.annotations.angular.NgLocale;
+
+@NgLocale("en-ZA")
+@NgApp(value = "my-app", bootComponent = AppComponent.class)
+public class MyApp extends NGApplication<MyApp> { }
+```
+
+The generator imports Angular locale data, calls `registerLocaleData` in
+`app.config.ts` before bootstrap, and provides `LOCALE_ID` application-wide.
+This replaces the manual locale imports, constructor registration, and provider
+annotations. An application annotation takes precedence over its boot component;
+inherited annotations are supported and unrelated apps are unaffected.
+
+Use `@NgLocale(value = "fr-CA", dataLocale = "fr", extraData = true)` to select
+a different Angular data file and include extra day-period data. By default the
+file name matches the locale identifier (`en-US` uses Angular's `en` file).
+The selected file must exist in your installed `@angular/common/locales` package.
+This configures date, number, percentage, and currency formatting; message
+translation is a separate concern. Regenerate
+and rebuild the Angular application after changing the annotation.
+
+### User-selected formatting locale
+
+Register the additional locale data on your app:
+
+```java
+@NgLocale(value = "en-ZA", supportedLocales = {"de", "fr"})
+```
+
+Reference the root-scoped service from components that select or display the locale:
+
+```java
+import com.jwebmp.core.base.angular.client.services.LocaleService;
+
+@NgComponentReference(LocaleService.class)
+```
+
+This supplies `public localeService: LocaleService` in the generated constructor.
+Use `localeService.setLocale('de')` in a template event, or
+`this.localeService.setLocale('de');` inside an `@NgMethod`. Bind the read-only
+locale signal explicitly when formatting:
+
+```html
+{{ orderDate | date:'longDate':undefined:localeService.locale() }}
+{{ amount | number:'1.2-2':localeService.locale() }}
+{{ amount | currency:'ZAR':'symbol':'1.2-2':localeService.locale() }}
+{{ ratio | percent:'1.0-2':localeService.locale() }}
+```
+
+The signal updates these bindings without a reload, including in OnPush components.
+`resetLocale()` restores the application default. Missing locale data throws before
+the preference changes; include the desired locale in `supportedLocales` first.
+Angular's fallback to registered parent-language data still applies. `extraData`
+also applies to all supported locales. Duplicate IDs are registered once.
+
+`LOCALE_ID` stays at the app default: existing pipes without an explicit locale
+argument and third-party controls do not automatically switch. Pass the selected
+locale to those controls through their own APIs. Currency codes and timezones are
+independent of locale. The service keeps state in the current Angular application
+instance; save/restore the preference through your user-profile flow and call
+`resetLocale()` when switching users or logging out. It does not write browser
+storage, cookies, or backend records, and does not translate application text.
+
+## Runtime translations
+
+Enable Transloco generation on the app or boot component:
+
+```java
+@NgTranslations(defaultLanguage = "en", supportedLanguages = {"en", "de", "fr"}, namespaces = {"orders"})
+@NgTranslationSource(namespace = "orders", resource = "META-INF/jwebmp/i18n/orders")
+@NgTranslationSource(namespace = "orders", url = "/rest/translations/orders/{language}", priority = 200)
+```
+
+Libraries can package defaults in `META-INF/jwebmp/i18n/<namespace>/<language>.json`.
+The generator discovers those files from ClassGraph, writes merged bundles to
+`public/i18n/jwebmp`, and emits a language manifest. Bundled dictionaries have
+priority `0`; application and URL sources default to `100`, and higher priorities
+override lower ones. Equal-priority conflicts fail with both origins reported.
+
+The generated `TranslationService` loads the selected and fallback languages through
+Angular `HttpClient`, so application interceptors and authenticated REST endpoints
+apply. Optional URL sources fall back to bundled dictionaries. Requests are
+deduplicated and stale responses are discarded after a newer language or context
+selection.
+
+Reference `TranslationService` with `@NgComponentReference(TranslationService.class)`.
+It exposes `language()`, `loading()`, `errors()`, `setLanguage`,
+`setLanguageAndLocale`, `reload`, `clearContext`, and
+`applyTranslations(language, namespace, data)` for dictionaries returned by an
+existing REST client. Use `{{ 'orders.save' | transloco }}` or the `transloco`
+directive in generated templates. ICU plural/select messages are enabled by default;
+set `messageFormat = false` when they are unnecessary. Translation language and
+formatting locale remain independent. Call `clearContext()` on logout, tenant
+changes, or user switches; persistence remains the consumer application's concern.
+
 [![Build](https://github.com/JWebMP/Plugins/Angular/actions/workflows/maven-package.yml/badge.svg)](https://github.com/JWebMP/Plugins/actions/workflows/maven-package.yml)
 [![Maven Central](https://img.shields.io/maven-central/v/com.jwebmp.plugins/angular)](https://central.sonatype.com/artifact/com.jwebmp.plugins/angular)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue)](https://www.apache.org/licenses/LICENSE-2.0)
