@@ -31,10 +31,8 @@ module com.jwebmp.core.angular {
 
     requires static lombok;
 
-    requires org.apache.commons.io;
 
     requires transitive org.apache.commons.text;
-    requires transitive org.apache.commons.lang3;
     requires io.vertx.eventbusbridge.common;
     requires transitive io.vertx.stomp;
 

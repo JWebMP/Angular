@@ -23,10 +23,6 @@
     </properties>
 
     <dependencies>
-        <dependency>
-            <groupId>com.jwebmp</groupId>
-            <artifactId>jwebmp-core</artifactId>
-        </dependency>
 
         <dependency>
             <groupId>com.jwebmp.plugins</groupId>
@@ -50,15 +46,7 @@
             </exclusions>
         </dependency>
 
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-text</artifactId>
-        </dependency>
 
-        <dependency>
-            <groupId>com.guicedee</groupId>
-            <artifactId>inject</artifactId>
-        </dependency>
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>
