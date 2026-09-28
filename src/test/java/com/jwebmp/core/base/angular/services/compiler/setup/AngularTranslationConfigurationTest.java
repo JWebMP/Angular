@@ -111,6 +111,46 @@ class AngularTranslationConfigurationTest
     }
 
     @Test
+    void acceptsEmptyLibraryAndExplicitDictionariesWithoutRemovingExistingTranslations() throws Exception
+    {
+        String[] emptyDictionaries = {"", " \t\r\n", "\uFEFF \r\n", "{}"};
+        for (int i = 0; i < emptyDictionaries.length; i++)
+        {
+            String empty = emptyDictionaries[i];
+            Path library = jar("empty-library-" + i, Map.of(
+                    "META-INF/jwebmp/i18n/orders/en.json", "{\"save\":\"Save\"}",
+                    "META-INF/jwebmp/i18n/orders/de.json", empty));
+            Path application = jar("empty-override-" + i, Map.of("custom/orders/en.json", empty));
+            try (var scan = scan(library, application))
+            {
+                var generated = AngularTranslationConfiguration.collect(Application.class, scan);
+                assertEquals(Map.of("orders.save", "Save"), generated.bundles().get("en"));
+                assertEquals(Map.of(), generated.bundles().get("de"));
+                assertTrue(generated.bundles().get("fr").isEmpty());
+                assertEquals(java.util.Set.of("orders"), generated.config().get("namespaces"));
+                Path output = directory.resolve("public-" + i);
+                AngularTranslationConfiguration.write(generated, output);
+                assertEquals("{}", Files.readString(output.resolve("i18n/jwebmp/de.json")));
+            }
+        }
+    }
+
+    @Test
+    void acceptsEmptyDictionaryFromExplodedClassesDirectory() throws Exception
+    {
+        Path classes = directory.resolve("classes");
+        Path dictionary = classes.resolve("META-INF/jwebmp/i18n/orders/en.json");
+        Files.createDirectories(dictionary.getParent());
+        Files.writeString(dictionary, "");
+        try (var scan = scan(classes))
+        {
+            var generated = AngularTranslationConfiguration.collect(LibraryOnly.class, scan);
+            assertEquals(Map.of(), generated.bundles().get("en"));
+            assertEquals(java.util.Set.of("orders"), generated.config().get("namespaces"));
+        }
+    }
+
+    @Test
     void reportsEqualPriorityConflictWithBothOrigins() throws Exception
     {
         Path a = jar("first", Map.of("META-INF/jwebmp/i18n/orders/en.json", "{\"save\":\"Save\"}"));
@@ -127,13 +167,15 @@ class AngularTranslationConfigurationTest
     @Test
     void rejectsInvalidAndDuplicateDictionaryKeys() throws Exception
     {
-        for (String json : new String[]{"{\"x\":1}", "{\"x\":\"a\",\"x\":\"b\"}",
+        for (String json : new String[]{"{", "{\"x\":", "[]", "null", "\"\"", "{\"x\":1}", "{\"x\":\"a\",\"x\":\"b\"}",
                 "{\"a.b\":\"x\",\"a\":{\"b\":\"y\"}}", "{\"__proto__\":{\"x\":\"y\"}}"})
         {
             Path jar = jar("invalid" + Math.abs(json.hashCode()), Map.of("META-INF/jwebmp/i18n/orders/en.json", json));
             try (var scan = scan(jar))
             {
-                assertThrows(IllegalArgumentException.class, () -> AngularTranslationConfiguration.collect(LibraryOnly.class, scan));
+                var error = assertThrows(IllegalArgumentException.class,
+                        () -> AngularTranslationConfiguration.collect(LibraryOnly.class, scan));
+                assertTrue(error.getMessage().contains("orders/en.json"), error.getMessage());
             }
         }
     }

@@ -324,7 +324,9 @@ public class AngularModuleProcessor {
 
             for (Class<?> clazz : classes) {
                 if (INgDataType.class.isAssignableFrom(clazz)) {
-                    INgDataType<?> component = (INgDataType<?>) IGuiceContext.get(clazz);
+                    INgDataType<?> component = (INgDataType<?>) (clazz.isRecord()
+                            ? RecordDataTypeFactory.create(clazz)
+                            : IGuiceContext.get(clazz));
                     String typeScript = codeGenerator.renderDataTypeTS(component).toString();
                     File file = fileManager.getComponentFilePath(component);
                     if (file != null) {

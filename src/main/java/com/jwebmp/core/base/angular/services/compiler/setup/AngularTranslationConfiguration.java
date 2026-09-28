@@ -6,6 +6,7 @@ import com.jwebmp.core.base.angular.client.services.TranslationService;
 import com.jwebmp.core.base.angular.client.services.interfaces.INgApp;
 import io.github.classgraph.Resource;
 import io.github.classgraph.ScanResult;
+import lombok.extern.log4j.Log4j2;
 import tools.jackson.core.StreamReadFeature;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -15,6 +16,7 @@ import java.nio.file.Path;
 import java.util.*;
 
 /** Discovers and merges app-selected library dictionaries using the existing ClassGraph scan. */
+@Log4j2
 public final class AngularTranslationConfiguration
 {
     private static final String ROOT = "META-INF/jwebmp/i18n/";
@@ -123,9 +125,14 @@ public final class AngularTranslationConfiguration
     private static Entry read(Resource resource, String language, String namespace, int priority) throws IOException
     {
         String origin = resource.getURI().toString();
-        try (var stream = resource.open())
+        try (var stream = resource.open(); var parser = JSON.createParser(stream))
         {
-            Map<?, ?> dictionary = JSON.readValue(stream, Map.class);
+            if (parser.nextToken() == null)
+            {
+                log.warn("Empty translation dictionary {}; treating it as an empty object", origin);
+                return new Entry(language, namespace, priority, origin, Map.of());
+            }
+            Map<?, ?> dictionary = JSON.readValue(parser, Map.class);
             Map<String, String> values = new TreeMap<>();
             flatten(dictionary, namespace, values);
             return new Entry(language, namespace, priority, origin, values);

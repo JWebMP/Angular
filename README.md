@@ -1,5 +1,62 @@
 # JWebMP Angular Plugin
 
+## Angular build budgets and options
+
+Configure the generated `angular.json` build environments directly on `@NgApp`:
+
+```java
+import com.jwebmp.core.base.angular.client.annotations.angular.NgApp;
+import com.jwebmp.core.base.angular.client.annotations.angularconfig.NgBudget;
+import com.jwebmp.core.base.angular.client.annotations.angularconfig.NgBuildConfiguration;
+
+import static com.jwebmp.core.base.angular.client.annotations.angularconfig.NgBudget.Type.ANY_COMPONENT_STYLE;
+import static com.jwebmp.core.base.angular.client.annotations.angularconfig.NgBuildConfiguration.BooleanOption.*;
+
+@NgApp(
+    value = "my-app",
+    bootComponent = AppComponent.class,
+    production = @NgBuildConfiguration(
+        budgets = @NgBudget(type = ANY_COMPONENT_STYLE, maximumWarning = "30kb", maximumError = "50kb"),
+        optimization = TRUE,
+        sourceMap = FALSE,
+        extractLicenses = TRUE,
+        outputHashing = NgBuildConfiguration.OutputHashing.ALL,
+        optionsJson = """
+            {"optimization": {"scripts": true, "styles": true, "fonts": false}}
+            """),
+    development = @NgBuildConfiguration(
+        budgets = @NgBudget(type = ANY_COMPONENT_STYLE, maximumWarning = "50kb", maximumError = "100kb"),
+        optimization = FALSE,
+        sourceMap = TRUE))
+public class MyApp extends NGApplication<MyApp> { }
+```
+
+These settings target `projects.JWebMP.architect.build.configurations.production`
+and `.development` independently; they do not change the selected/default build
+configuration or serve settings. Regenerate and rebuild the application to apply them.
+The example accommodates a 22.39 kB component stylesheet without disabling budgets.
+
+Unspecified values preserve the template defaults: production has an initial
+budget of `2500kb` warning / `10mb` error, a component-style budget of `6kb` warning /
+`10kb` error, and `outputHashing: "all"`. Development has no budgets,
+`optimization: false`, `extractLicenses: false`, and `sourceMap: true`.
+Boolean and hashing `DEFAULT` values leave the existing property untouched.
+
+Typed budgets replace the **whole matching budget** by type and name, retaining
+unrelated template budgets. Supply both warning and error limits when both are wanted.
+All Angular budget types and threshold fields are supported, including named `BUNDLE`
+budgets, `baseline`, minimum thresholds, and symmetric `warning`/`error` thresholds.
+Set `inheritBudgets = false` to replace the entire budget list; with no supplied
+budgets, this explicitly disables budgets for that environment.
+
+`optionsJson` is a JSON **object of build options**, applied after typed values.
+Nested objects merge recursively, arrays and scalars replace, and `null` removes
+a property. For example, `{"budgets":[]}` clears budgets and
+`{"sourceMap":{"scripts":true,"styles":false,"hidden":true}}` uses advanced source maps.
+It is not a complete workspace document. Invalid/non-object JSON and duplicate typed
+budgets fail generation; Angular CLI validates option names, values, and size syntax.
+Inherited `@NgApp` declarations are supported.
+
 ## Locale formatting
 
 Declare the locale on your application (or its boot component):
@@ -83,6 +140,12 @@ The generator discovers those files from ClassGraph, writes merged bundles to
 `public/i18n/jwebmp`, and emits a language manifest. Bundled dictionaries have
 priority `0`; application and URL sources default to `100`, and higher priorities
 override lower ones. Equal-priority conflicts fail with both origins reported.
+
+Empty or whitespace-only classpath dictionary files are accepted as empty objects
+and logged as warnings; `{}` is the preferred explicit placeholder. They contribute
+no keys, so existing lower-priority translations remain intact and missing translated
+keys can fall back to the default language at runtime. Malformed JSON, non-object
+dictionaries, and invalid translation values still fail generation.
 
 The generated `TranslationService` loads the selected and fallback languages through
 Angular `HttpClient`, so application interceptors and authenticated REST endpoints

@@ -218,12 +218,14 @@ public class AngularTSSiteBinder
     @Override
     public Router builder(Router router) {
         System.setProperty("vertx.disableFileCPResolving", "true");
+        boolean stompConfigured = false;
         for (var app : TypeScriptCompiler.getAllAppsClasses()) {
             try {
                 String staticFileLocationPath = AppUtils
                         .getDistPath(app)
                         .getCanonicalPath();
 
+                if (!stompConfigured) {
                 // Configure STOMP heartbeats.
                 // x = server->client send interval; y = expected client->server interval.
                 // Browsers may throttle timers in background tabs; set y=0 to not require client heartbeats
@@ -255,11 +257,13 @@ public class AngularTSSiteBinder
 
                 log.info("STOMP bridge configured with inbound pattern /toBus.* and outbound pattern /toStomp.*");
 
+                StompServerHandler stompHandler = StompServerHandler.create(getVertx()).bridge(stompBridgeOptions);
+                com.jwebmp.core.base.angular.services.StompServerHandlerConfigurator.configureAll(getVertx(), stompHandler,
+                        java.util.ServiceLoader.load(com.jwebmp.core.base.angular.services.StompServerHandlerConfigurator.class)
+                                .stream().map(java.util.ServiceLoader.Provider::get).toList());
                 StompServer stompServer = StompServer
                         .create(getVertx(), stompOptions)
-                        .handler(StompServerHandler
-                                .create(getVertx())
-                                .bridge(stompBridgeOptions));
+                        .handler(stompHandler);
 
                 // Register WebSocket handlers.
                 // The STOMP client (@stomp/stompjs) connects to exactly "/eventbus", and Vert.x's
@@ -457,6 +461,8 @@ public class AngularTSSiteBinder
                         });
 
 
+                stompConfigured = true;
+                }
                 String path = "";
                 for (DefinedRoute<?> route : AngularRoutingModule.getRoutes(app)) {
                     bindRouteToPath(router, path, staticFileLocationPath, siteHostingLocation, route);

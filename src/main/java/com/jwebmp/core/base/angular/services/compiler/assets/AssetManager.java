@@ -11,6 +11,7 @@ import com.jwebmp.core.base.angular.client.annotations.angularconfig.NgStyleShee
 import com.jwebmp.core.base.angular.client.services.AnnotationHelper;
 import com.jwebmp.core.base.angular.client.services.interfaces.INgApp;
 import com.jwebmp.core.base.angular.services.RenderedAssets;
+import com.jwebmp.core.base.angular.services.compiler.setup.AngularBuildConfiguration;
 import com.jwebmp.core.base.angular.typescript.JWebMP.ResourceLocator;
 import io.github.classgraph.Resource;
 import io.github.classgraph.ScanResult;
@@ -360,13 +361,15 @@ public class AssetManager
 
             // Replace MainTSFile with a simple string
             angularTemplate = angularTemplate.replace("/*MainTSFile*/", "\"src/main.ts\"");
+            angularTemplate = AngularBuildConfiguration.apply(angularTemplate, appClass);
 
             File angularFile = AppUtils.getAngularJsonPath(appClass, true);
             FileUtils.writeStringToFile(angularFile, angularTemplate, UTF_8, false);
         }
-        catch (Throwable e)
+        catch (IOException | RuntimeException e)
         {
             log.error("Unable to write out angular.json file", e);
+            throw e;
         }
         finally
         {
