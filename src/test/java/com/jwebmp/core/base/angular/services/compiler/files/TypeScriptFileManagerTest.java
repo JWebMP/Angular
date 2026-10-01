@@ -1,7 +1,8 @@
 package com.jwebmp.core.base.angular.services.compiler.files;
 
 import com.guicedee.client.IGuiceContext;
-import com.jwebmp.core.base.angular.client.AppUtils;
+import com.jwebmp.core.base.angular.AngularApp;
+import com.jwebmp.core.base.angular.ProductDetail;
 import com.jwebmp.core.base.angular.client.services.interfaces.*;
 import com.jwebmp.core.base.angular.services.compiler.generators.TypeScriptCodeGenerator;
 import com.jwebmp.core.base.angular.services.compiler.validators.TypeScriptCodeValidator;
@@ -9,10 +10,12 @@ import io.github.classgraph.ClassInfo;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -26,30 +29,15 @@ public class TypeScriptFileManagerTest {
     private TypeScriptCodeValidator codeValidator;
     private INgApp<?> testApp;
 
+    @TempDir
+    Path tempDir;
+
     @BeforeEach
     public void setup() {
-        // Find a test app to use
-        for (ClassInfo classInfo : IGuiceContext.instance().getScanResult().getAllClasses()) {
-            try {
-                Class<?> aClass = classInfo.loadClass();
-                if (INgApp.class.isAssignableFrom(aClass) && !aClass.isInterface()) {
-                    testApp = (INgApp<?>) IGuiceContext.get(aClass);
-                    break;
-                }
-            } catch (Exception e) {
-                // Continue to next class
-            }
-        }
-
-        if (testApp == null) {
-            System.out.println("[DEBUG_LOG] No test app found. Skipping tests.");
-            return;
-        }
-
-        // Set up the currentAppFile ThreadLocal with the actual app path
-        File appPath = AppUtils.getAppPath((Class<? extends INgApp<?>>) testApp.getClass());
-        IComponent.getCurrentAppFile().set(appPath);
-        System.out.println("[DEBUG_LOG] Set currentAppFile to: " + appPath.getAbsolutePath());
+        testApp = IGuiceContext.get(AngularApp.class);
+        Assertions.assertNotNull(testApp, "Angular test app must be available");
+        IComponent.getCurrentAppFile().set(tempDir.toFile());
+        IComponent.app.set(testApp);
 
         // Initialize the dependencies
         codeGenerator = new TypeScriptCodeGenerator(testApp);
@@ -116,6 +104,8 @@ public class TypeScriptFileManagerTest {
             String content = Files.readString(file.toPath());
             System.out.println("[DEBUG_LOG] File content length: " + content.length());
             Assertions.assertFalse(content.isEmpty());
+            Assertions.assertTrue(content.contains("selector:'product-detail'"));
+            Assertions.assertTrue(content.contains("export class ProductDetail"));
 
             // Test writing with force flag
             File forcedFile = fileManager.writeComponentToFile(component, true);
@@ -184,6 +174,11 @@ public class TypeScriptFileManagerTest {
      * Find a component of a specific type
      */
     private <T> T findComponentOfType(Class<T> componentType) {
+        if (componentType == INgComponent.class) {
+            ProductDetail component = IGuiceContext.get(ProductDetail.class);
+            Assertions.assertNotNull(component, "Annotated component must be available");
+            return componentType.cast(component);
+        }
         for (ClassInfo classInfo : IGuiceContext.instance().getScanResult().getAllClasses()) {
             try {
                 Class<?> clazz = classInfo.loadClass();

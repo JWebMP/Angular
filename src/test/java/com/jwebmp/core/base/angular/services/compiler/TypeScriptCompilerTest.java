@@ -1,7 +1,6 @@
 package com.jwebmp.core.base.angular.services.compiler;
 import com.guicedee.client.IGuiceContext;
 import com.jwebmp.core.base.angular.ProductDetail;
-import com.jwebmp.core.base.angular.client.AppUtils;
 import com.jwebmp.core.base.angular.client.annotations.angular.NgApp;
 import com.jwebmp.core.base.angular.client.services.interfaces.IComponent;
 import com.jwebmp.core.base.angular.client.services.interfaces.INgApp;
@@ -13,14 +12,18 @@ import com.jwebmp.core.base.angular.services.compiler.validators.TypeScriptCodeV
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import static org.junit.jupiter.api.Assertions.*;
 public class TypeScriptCompilerTest
 {
     private TypeScriptCodeGenerator codeGenerator;
     private TypeScriptFileManager fileManager;
     private INgApp<?> app;
+    @TempDir
+    Path tempDir;
     // Mock app class with NgApp annotation for testing
     @NgApp(value = "test-app", bootComponent = ProductDetail.class)
     public static class TestApp extends NGApplication<TestApp>
@@ -34,6 +37,16 @@ public class TypeScriptCompilerTest
     public static void initGuice()
     {
         IGuiceContext.instance().inject();
+    }
+    @BeforeEach
+    public void setup()
+    {
+        app = IGuiceContext.get(TestApp.class);
+        assertNotNull(app, "Compiler test app must be available");
+        IComponent.getCurrentAppFile().set(tempDir.toFile());
+        IComponent.app.set(app);
+        codeGenerator = new TypeScriptCodeGenerator(app);
+        fileManager = new TypeScriptFileManager(app, codeGenerator, new TypeScriptCodeValidator());
     }
 
     @Test
@@ -56,7 +69,7 @@ public class TypeScriptCompilerTest
         assertTrue(generatedTs.contains("export class ProductDetail"), "Should contain the class declaration");
         // Verify it contains import statements (the key fix)
         assertTrue(generatedTs.contains("import"), "Should contain import statements");
-        assertTrue(generatedTs.contains("Component"), "Should import Component from @angular/core");
+        assertTrue(generatedTs.contains("import {Component} from '@angular/core';"), "Should import Component from @angular/core");
         // Write the component to a file
         File file = fileManager.writeComponentToFile(productDetail, true);
         assertNotNull(file, "Component file should not be null");
@@ -78,7 +91,7 @@ public class TypeScriptCompilerTest
         assertFalse(generatedTs.isEmpty(), "Generated TypeScript should not be empty");
         // Verify it contains import statements
         assertTrue(generatedTs.contains("import"), "Should contain import statements");
-        assertTrue(generatedTs.contains("Directive"), "Should import Directive");
+        assertTrue(generatedTs.contains("import { Directive } from '@angular/core';"), "Should import Directive from @angular/core");
         assertTrue(generatedTs.contains("@Directive("), "Should contain @Directive decorator");
         assertTrue(generatedTs.contains("selector:'[clickClassName]'"), "Should contain the selector");
         assertTrue(generatedTs.contains("export class OnClickListenerDirective"), "Should contain the class declaration");

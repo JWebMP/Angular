@@ -1,7 +1,8 @@
 package com.jwebmp.core.base.angular.typescript;
 
 import com.guicedee.client.IGuiceContext;
-import com.jwebmp.core.base.angular.client.annotations.angular.NgApp;
+import com.jwebmp.core.base.angular.AngularApp;
+import com.jwebmp.core.base.angular.ProductDetail;
 import com.jwebmp.core.base.angular.client.services.interfaces.*;
 import com.jwebmp.core.base.angular.services.compiler.generators.TypeScriptCodeGenerator;
 import org.junit.jupiter.api.Assertions;
@@ -30,19 +31,9 @@ public class TypeScriptCodeGeneratorTest {
         IComponent.getCurrentAppFile().set(tempAppDir);
         System.out.println("[DEBUG_LOG] Set currentAppFile to: " + tempAppDir.getAbsolutePath());
 
-        // Find a test app to use
-        for (io.github.classgraph.ClassInfo classInfo : IGuiceContext.instance().getScanResult().getAllClasses()) {
-            try {
-                Class<?> aClass = classInfo.loadClass();
-                if (INgApp.class.isAssignableFrom(aClass) && !aClass.isInterface() && 
-                    aClass.isAnnotationPresent(NgApp.class)) {
-                    testApp = (INgApp<?>) IGuiceContext.get(aClass);
-                    break;
-                }
-            } catch (Exception e) {
-                // Continue to next class
-            }
-        }
+        testApp = IGuiceContext.get(AngularApp.class);
+        Assertions.assertNotNull(testApp, "Angular test app must be available");
+        IComponent.app.set(testApp);
 
         if (testApp == null) {
             System.out.println("[DEBUG_LOG] No test app found. Skipping tests.");
@@ -77,6 +68,8 @@ public class TypeScriptCodeGeneratorTest {
         System.out.println("[DEBUG_LOG] " + typeScript);
         Assertions.assertNotNull(typeScript);
         Assertions.assertFalse(typeScript.isEmpty());
+        Assertions.assertTrue(typeScript.contains("@Component("));
+        Assertions.assertTrue(typeScript.contains("selector:'product-detail'"));
     }
 
     @Test
@@ -103,6 +96,8 @@ public class TypeScriptCodeGeneratorTest {
         System.out.println("[DEBUG_LOG] " + typeScript);
         Assertions.assertNotNull(typeScript);
         Assertions.assertTrue(typeScript.length() > 0);
+        Assertions.assertTrue(typeScript.toString().contains("@Component("));
+        Assertions.assertTrue(typeScript.toString().contains("export class ProductDetail"));
     }
 
     @Test
@@ -187,6 +182,11 @@ public class TypeScriptCodeGeneratorTest {
      * Helper method to find a test component of a specific type
      */
     private <T> T findTestComponent(Class<T> componentType) {
+        if (componentType == INgComponent.class) {
+            ProductDetail component = IGuiceContext.get(ProductDetail.class);
+            Assertions.assertNotNull(component, "Annotated component must be available");
+            return componentType.cast(component);
+        }
         for (io.github.classgraph.ClassInfo classInfo : IGuiceContext.instance().getScanResult().getAllClasses()) {
             try {
                 Class<?> aClass = classInfo.loadClass();

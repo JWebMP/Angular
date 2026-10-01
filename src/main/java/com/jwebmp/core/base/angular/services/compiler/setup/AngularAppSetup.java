@@ -190,7 +190,7 @@ public class AngularAppSetup
         if (translations != null)
         {
             dependencies.putIfAbsent("@jsverse/transloco", "8.4.0");
-            if (translations.messageFormat()) dependencies.putIfAbsent("@jsverse/transloco-messageformat", "8.4.0");
+            if (translations.messageFormat()) dependencies.putIfAbsent("intl-messageformat", "12.1.2");
         }
 
         ObjectMapper om = IGuiceContext.get(DefaultObjectMapper);

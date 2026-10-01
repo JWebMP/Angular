@@ -119,8 +119,10 @@ public class AngularRoutingModule implements INgModule<AngularRoutingModule> {
                 if (definedRoute.getComponent() == null) {
                     continue;
                 }
-                NgComponentReference ngComponentReference = getNgComponentReference(definedRoute.getComponent());
-                out.addAll(putRelativeLinkInMap(getClass(), ngComponentReference));
+                if (!definedRoute.isLazy()) {
+                    NgComponentReference ngComponentReference = getNgComponentReference(definedRoute.getComponent());
+                    out.addAll(putRelativeLinkInMap(getClass(), ngComponentReference));
+                }
                 buildImportReferenceNest(out, definedRoute);
             }
         }
@@ -241,6 +243,7 @@ public class AngularRoutingModule implements INgModule<AngularRoutingModule> {
         dr.setRenderComponent(!annotation.ignoreComponent());
         dr.setComponent(aClass);
         dr.setComponentName(getTsFilename(aClass));
+        dr.setLazy(annotation.lazy());
 
         if (!Strings.isNullOrEmpty(annotation.redirectTo())) {
             dr.setRedirectTo(annotation.redirectTo());
@@ -255,11 +258,26 @@ public class AngularRoutingModule implements INgModule<AngularRoutingModule> {
     }
 
     private List<NgImportReference> addImportToMap(DefinedRoute<?> definedRoute) {
-        NgComponentReference reference = getNgComponentReference(definedRoute.getComponent());
-        if (definedRoute.getComponent() != null) {
+        if (definedRoute.getComponent() != null && !definedRoute.isLazy()) {
+            NgComponentReference reference = getNgComponentReference(definedRoute.getComponent());
             return putRelativeLinkInMap(getClass(), reference);
         }
         return new ArrayList<>();
+    }
+
+    /**
+     * Lazy routes are imported dynamically, so they need the same module-relative path a static import would use.
+     */
+    private void resolveLazyImports(List<DefinedRoute<?>> definedRoutes) {
+        for (DefinedRoute<?> definedRoute : definedRoutes) {
+            if (definedRoute.isLazy() && definedRoute.getComponent() != null && definedRoute.getLazyImportPath() == null) {
+                putRelativeLinkInMap(getClass(), getNgComponentReference(definedRoute.getComponent()))
+                        .stream()
+                        .findFirst()
+                        .ifPresent(reference -> definedRoute.setLazyImportPath(reference.reference()));
+            }
+            resolveLazyImports(definedRoute.getChildren());
+        }
     }
 
     private List<NgImportReference> buildRoutePathwayImports(DefinedRoute<?> definedRoute, List<NgImportReference> out) {
@@ -321,6 +339,10 @@ public class AngularRoutingModule implements INgModule<AngularRoutingModule> {
         //render the const class
         ObjectMapper om = IGuiceContext.get(DefaultObjectMapper);
         try {
+            if (definedRoutesList == null) {
+                buildRoutes();
+            }
+            resolveLazyImports(definedRoutesList);
             String routesOutput = om.writerWithDefaultPrettyPrinter()
                     .writeValueAsString(definedRoutesList);
             routesOutput = "export const routes: Routes = " + routesOutput + ";\n";

@@ -31,6 +31,51 @@ public class DefinedRoute<J extends DefinedRoute<J>> implements IJsonRepresentat
     @JsonIgnore
     private boolean renderComponent;
 
+    @JsonIgnore
+    private boolean lazy;
+
+    @JsonIgnore
+    private String lazyImportPath;
+
+    public boolean isLazy()
+    {
+        return lazy;
+    }
+
+    @SuppressWarnings("unchecked")
+    public J setLazy(boolean lazy)
+    {
+        this.lazy = lazy;
+        return (J) this;
+    }
+
+    public String getLazyImportPath()
+    {
+        return lazyImportPath;
+    }
+
+    @SuppressWarnings("unchecked")
+    public J setLazyImportPath(String lazyImportPath)
+    {
+        this.lazyImportPath = lazyImportPath;
+        return (J) this;
+    }
+
+    /**
+     * Renders the Angular {@code loadComponent} factory for lazy routes; absent for eager routes.
+     */
+    @JsonRawValue
+    @JsonProperty("loadComponent")
+    @JsonInclude(NON_NULL)
+    public String getLoadComponent()
+    {
+        if (!isRenderComponent() || !lazy || lazyImportPath == null || componentName == null)
+        {
+            return null;
+        }
+        return "() => import('" + lazyImportPath + "').then(m => m." + componentName + ")";
+    }
+
     public String getRedirectTo()
     {
         return redirectTo;
@@ -93,7 +138,7 @@ public class DefinedRoute<J extends DefinedRoute<J>> implements IJsonRepresentat
     @JsonProperty("component")
     public String getComponentName()
     {
-        if (isRenderComponent())
+        if (isRenderComponent() && getLoadComponent() == null)
         {
             return componentName;
         }

@@ -65,7 +65,22 @@ class AngularTranslationConfigurationTest
             AngularTranslationConfiguration.append(generated, TestApplication.class, imports, providers);
             assertTrue(imports.toString().contains("TranslationService/TranslationService"));
             assertTrue(providers.toString().contains("provideAppInitializer"));
+            assertTrue(providers.toString().contains("TRANSLOCO_TRANSPILER"));
+            assertFalse(imports.toString().contains("@jsverse/transloco-messageformat"));
+            Files.writeString(output.resolve("messageformat-transpiler.ts"), AngularTranslationConfiguration.messageFormatTranspiler());
             Files.writeString(output.resolve("app.config.ts"), imports + "\nexport const appConfig = {providers: [" + providers + "]};\n");
+        }
+    }
+
+    @Test
+    void mergesEveryDiscoveredNamespaceWhenNoFilterIsConfigured() throws Exception
+    {
+        try (var scan = scan(jar("all-namespaces", Map.of(
+                "META-INF/jwebmp/i18n/landing/en.json", "{\"title\":\"Welcome\"}",
+                "META-INF/jwebmp/i18n/profile/en.json", "{\"title\":\"Profile\"}"))))
+        {
+            var generated = AngularTranslationConfiguration.collect(TestApplication.class, scan);
+            assertEquals(Map.of("landing.title", "Welcome", "profile.title", "Profile"), generated.bundles().get("en"));
         }
     }
 

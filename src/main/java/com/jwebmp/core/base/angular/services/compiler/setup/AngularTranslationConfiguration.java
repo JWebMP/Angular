@@ -205,11 +205,55 @@ public final class AngularTranslationConfiguration
                 + "provideHttpClient(withInterceptorsFromDi()),\nprovideTransloco({config: " + JSON.writeValueAsString(engine) + "}),\n";
         if (generated.messageFormat())
         {
-            imports.append("import {provideTranslocoMessageformat} from '@jsverse/transloco-messageformat';\n");
-            value += "provideTranslocoMessageformat(),\n";
+            imports.append(messageFormatTranspiler());
+            value += "{provide: TRANSLOCO_TRANSPILER, useFactory: () => new JWebMPMessageFormatTranspiler()},\n";
         }
         value += "provideAppInitializer(() => jwebmpInject(TranslationService).initialize()),\n";
         // Consumer providers follow these defaults, preserving application HTTP overrides.
         providers.insert(0, value);
+    }
+
+    /** Interpret ICU messages as data; runtime JavaScript compilation is forbidden by strict CSP. */
+    static String messageFormatTranspiler()
+    {
+        return """
+                import {DefaultTranspiler, TRANSLOCO_TRANSPILER, TranspileParams} from '@jsverse/transloco';
+                import {IntlMessageFormat} from 'intl-messageformat';
+
+                export class JWebMPMessageFormatTranspiler extends DefaultTranspiler {
+                    private language = this.config.defaultLang;
+                    private readonly messages = new Map<string, IntlMessageFormat>();
+
+                    onLangChanged(language: string): void {
+                        this.language = language;
+                        this.messages.clear();
+                    }
+
+                    override transpile(input: TranspileParams): unknown {
+                        if (typeof input.value !== 'string' || !/(?<!\\{)\\{(?!\\{)/.test(input.value)) {
+                            return super.transpile(input);
+                        }
+                        const params = {...input.params};
+                        let index = 0;
+                        // Keep interpolated values out of the ICU parser, including values containing braces.
+                        const pattern = input.value.replace(this.interpolationMatcher, match => {
+                            let name: string;
+                            do { name = 'jwebmpInterpolation' + index++; }
+                            while (Object.hasOwn(params, name) || input.value!.toString().includes(name));
+                            params[name] = super.transpile({...input, value: match});
+                            return '{' + name + '}';
+                        });
+                        let message = this.messages.get(pattern);
+                        if (!message) {
+                            message = new IntlMessageFormat(pattern, this.language, undefined, {ignoreTag: true});
+                            // Bound the cache when dictionaries change with user/tenant context.
+                            if (this.messages.size >= 256) this.messages.clear();
+                            this.messages.set(pattern, message);
+                        }
+                        return message.format(params);
+                    }
+                }
+
+                """;
     }
 }

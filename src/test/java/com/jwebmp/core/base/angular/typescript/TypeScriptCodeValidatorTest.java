@@ -98,15 +98,8 @@ public class TypeScriptCodeValidatorTest {
         Assertions.assertNotNull(validatedTypeScript);
         Assertions.assertFalse(validatedTypeScript.isEmpty());
 
-        // Verify duplicate imports are fixed
-        Assertions.assertEquals(1, countOccurrences(validatedTypeScript, "import {Component} from '@angular/core'"));
-
-        // Verify missing semicolons are fixed
-        Assertions.assertTrue(validatedTypeScript.contains("title = 'Test';"));
-
-        // Verify trailing commas are fixed
-        Assertions.assertTrue(validatedTypeScript.contains("items = [1, 2, 3]"));
-        Assertions.assertTrue(validatedTypeScript.contains("obj = {a: 1, b: 2}"));
+        // The validation pipeline preserves source; explicit fix* helpers are tested below.
+        Assertions.assertEquals(typeScript, validatedTypeScript);
     }
 
     @Test
@@ -224,13 +217,8 @@ public class TypeScriptCodeValidatorTest {
         System.out.println("[DEBUG_LOG] Formatted TypeScript:");
         System.out.println("[DEBUG_LOG] " + formattedTypeScript);
 
-        // Verify the TypeScript is formatted correctly
-        Assertions.assertTrue(formattedTypeScript.contains("function test() {"));
-        Assertions.assertTrue(formattedTypeScript.contains("  return {"));
-        Assertions.assertTrue(formattedTypeScript.contains("    a: 1,"));
-        Assertions.assertTrue(formattedTypeScript.contains("    b: 2"));
-        Assertions.assertTrue(formattedTypeScript.contains("  }"));
-        Assertions.assertTrue(formattedTypeScript.contains("}"));
+        Assertions.assertEquals(typeScript, formattedTypeScript,
+                "Formatting must not alter generated TypeScript until a syntax-aware formatter is available");
     }
 
     /**

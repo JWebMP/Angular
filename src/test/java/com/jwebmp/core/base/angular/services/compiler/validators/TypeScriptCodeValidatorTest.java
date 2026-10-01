@@ -89,18 +89,9 @@ public class TypeScriptCodeValidatorTest {
         System.out.println("[DEBUG_LOG] Validated TypeScript:");
         System.out.println("[DEBUG_LOG] " + validatedTypeScript);
 
-        // Verify that issues were fixed
-        // 1. Duplicate imports should be removed
-        int importCount = countOccurrences(validatedTypeScript, "import {Component} from '@angular/core'");
-        Assertions.assertEquals(1, importCount, "Duplicate imports should be removed");
-
-        // 2. Missing semicolons should be added
-        Assertions.assertTrue(validatedTypeScript.contains("title = 'Test Component';"), "Missing semicolons should be added");
-        Assertions.assertTrue(validatedTypeScript.contains("console.log('Test Component initialized');"), "Missing semicolons should be added");
-
-        // 3. Trailing commas should be removed
-        Assertions.assertFalse(validatedTypeScript.contains("styleUrls: ['./test.component.scss'],"), "Trailing commas should be removed");
-        Assertions.assertTrue(validatedTypeScript.contains("styleUrls: ['./test.component.scss']"), "Trailing commas should be removed");
+        // Automatic fixes are disabled because they can corrupt valid generated TypeScript.
+        // The explicit fix* methods below remain separately tested.
+        Assertions.assertEquals(typeScript, validatedTypeScript);
     }
 
     @Test
@@ -273,15 +264,8 @@ public class TypeScriptCodeValidatorTest {
         System.out.println("[DEBUG_LOG] Formatted TypeScript:");
         System.out.println("[DEBUG_LOG] " + formattedTypeScript);
 
-        // Verify that the code is properly indented
-        Assertions.assertTrue(formattedTypeScript.contains("  selector: 'app-test',"), "Code should be properly indented");
-        Assertions.assertTrue(formattedTypeScript.contains("  title = 'Test Component';"), "Code should be properly indented");
-        Assertions.assertTrue(formattedTypeScript.contains("  constructor() {"), "Code should be properly indented");
-        Assertions.assertTrue(formattedTypeScript.contains("    console.log('Test Component initialized');"), "Code should be properly indented");
-        Assertions.assertTrue(formattedTypeScript.contains("  increment() {"), "Code should be properly indented");
-        Assertions.assertTrue(formattedTypeScript.contains("    let count = 0;"), "Code should be properly indented");
-        Assertions.assertTrue(formattedTypeScript.contains("    count++;"), "Code should be properly indented");
-        Assertions.assertTrue(formattedTypeScript.contains("    return count;"), "Code should be properly indented");
+        Assertions.assertEquals(typeScript, formattedTypeScript,
+                "Formatting must not alter generated TypeScript until a syntax-aware formatter is available");
     }
 
     /**

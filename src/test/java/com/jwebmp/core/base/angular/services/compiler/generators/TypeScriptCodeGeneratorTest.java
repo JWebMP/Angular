@@ -1,15 +1,17 @@
 package com.jwebmp.core.base.angular.services.compiler.generators;
 
 import com.guicedee.client.IGuiceContext;
-import com.jwebmp.core.base.angular.client.AppUtils;
+import com.jwebmp.core.base.angular.AngularApp;
+import com.jwebmp.core.base.angular.ProductDetail;
 import com.jwebmp.core.base.angular.client.services.interfaces.*;
 import io.github.classgraph.ClassInfo;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 
 /**
  * Tests for the TypeScriptCodeGenerator class
@@ -18,30 +20,15 @@ public class TypeScriptCodeGeneratorTest {
     private TypeScriptCodeGenerator codeGenerator;
     private INgApp<?> testApp;
 
+    @TempDir
+    Path tempDir;
+
     @BeforeEach
     public void setup() {
-        // Find a test app to use
-        for (ClassInfo classInfo : IGuiceContext.instance().getScanResult().getAllClasses()) {
-            try {
-                Class<?> aClass = classInfo.loadClass();
-                if (INgApp.class.isAssignableFrom(aClass) && !aClass.isInterface()) {
-                    testApp = (INgApp<?>) IGuiceContext.get(aClass);
-                    break;
-                }
-            } catch (Exception e) {
-                // Continue to next class
-            }
-        }
-
-        if (testApp == null) {
-            System.out.println("[DEBUG_LOG] No test app found. Skipping tests.");
-            return;
-        }
-
-        // Set up the currentAppFile ThreadLocal with the actual app path
-        File appPath = AppUtils.getAppPath((Class<? extends INgApp<?>>) testApp.getClass());
-        IComponent.getCurrentAppFile().set(appPath);
-        System.out.println("[DEBUG_LOG] Set currentAppFile to: " + appPath.getAbsolutePath());
+        testApp = IGuiceContext.get(AngularApp.class);
+        Assertions.assertNotNull(testApp, "Angular test app must be available");
+        IComponent.getCurrentAppFile().set(tempDir.toFile());
+        IComponent.app.set(testApp);
 
         // Initialize the code generator
         codeGenerator = new TypeScriptCodeGenerator(testApp);
@@ -65,6 +52,8 @@ public class TypeScriptCodeGeneratorTest {
             // Verify the TypeScript is not null or empty
             Assertions.assertNotNull(typeScript);
             Assertions.assertFalse(typeScript.isEmpty());
+            Assertions.assertTrue(typeScript.contains("selector:'product-detail'"));
+            Assertions.assertTrue(typeScript.contains("export class ProductDetail"));
 
             System.out.println("[DEBUG_LOG] Generated TypeScript for component " + component.getClass().getSimpleName() + ":");
             System.out.println("[DEBUG_LOG] " + typeScript);
@@ -101,6 +90,8 @@ public class TypeScriptCodeGeneratorTest {
             // Verify the TypeScript is not null or empty
             Assertions.assertNotNull(typeScript);
             Assertions.assertTrue(typeScript.length() > 0);
+            Assertions.assertTrue(typeScript.toString().contains("@Component("));
+            Assertions.assertTrue(typeScript.toString().contains("selector:'product-detail'"));
 
             System.out.println("[DEBUG_LOG] Rendered TypeScript for component " + component.getClass().getSimpleName() + ":");
             System.out.println("[DEBUG_LOG] " + typeScript);
@@ -294,6 +285,11 @@ public class TypeScriptCodeGeneratorTest {
      * Find a component of a specific type
      */
     private <T> T findComponentOfType(Class<T> componentType) {
+        if (componentType == INgComponent.class) {
+            ProductDetail component = IGuiceContext.get(ProductDetail.class);
+            Assertions.assertNotNull(component, "Annotated component must be available");
+            return componentType.cast(component);
+        }
         for (ClassInfo classInfo : IGuiceContext.instance().getScanResult().getAllClasses()) {
             try {
                 Class<?> clazz = classInfo.loadClass();
