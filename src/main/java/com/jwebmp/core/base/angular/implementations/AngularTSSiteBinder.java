@@ -76,6 +76,9 @@ public class AngularTSSiteBinder
 
     private File siteHostingLocation;
 
+    public AngularTSSiteBinder() { }
+    public AngularTSSiteBinder(Vertx vertx) { this.vertx = java.util.Objects.requireNonNull(vertx); }
+
     public Uni<AjaxResponse<?>> receiveMessage(WebSocketMessageReceiver<?> messageReceived) {
         return Uni
                 .createFrom()
@@ -226,241 +229,9 @@ public class AngularTSSiteBinder
                         .getCanonicalPath();
 
                 if (!stompConfigured) {
-                // Configure STOMP heartbeats.
-                // x = server->client send interval; y = expected client->server interval.
-                // Browsers may throttle timers in background tabs; set y=0 to not require client heartbeats
-                // and keep x reasonably frequent so clients detect drops.
-                JsonObject heartbeats = new JsonObject()
-                        .put("x", 10000) // server sends heartbeat every 10s
-                        .put("y", 50000);    // do not expect client heartbeats (avoid idle disconnects)
-
-
-                StompServerOptions stompOptions = new StompServerOptions()
-                        .setWebsocketBridge(true)
-                        .setHeartbeat(heartbeats)
-                        .setWebsocketPath("/eventbus")
-                        // Vert.x 5.1 added WebSocketFrameType (defaults to BINARY for backward compat).
-                        // The browser uses @stomp/stompjs, a JavaScript STOMP client that expects TEXT
-                        // frames. With BINARY frames the client receives Blobs and cannot reliably track
-                        // STOMP heartbeats/frames, so it treats the connection as dead and reconnects in a
-                        // loop. TEXT frames keep the WebSocket stable. See Vert.x StompServerOptions docs.
-                        .setWebSocketFrameType(WebSocketFrameType.TEXT)
-                        .setMaxBodyLength(Integer.MAX_VALUE)
-                        .setMaxHeaderLength(Integer.MAX_VALUE)
-                        .setMaxFrameInTransaction(Integer.MAX_VALUE)
-                        .setTransactionChunkSize(Integer.MAX_VALUE);
-
-                log.info("Configuring STOMP server with WebSocket bridge at /eventbus");
-                BridgeOptions stompBridgeOptions = new BridgeOptions()
-                        .addInboundPermitted(new PermittedOptions().setAddressRegex("/toBus.*"))
-                        .addOutboundPermitted(new PermittedOptions().setAddressRegex("/toStomp.*"));
-
-                log.info("STOMP bridge configured with inbound pattern /toBus.* and outbound pattern /toStomp.*");
-
-                StompServerHandler stompHandler = StompServerHandler.create(getVertx()).bridge(stompBridgeOptions);
-                com.jwebmp.core.base.angular.services.StompServerHandlerConfigurator.configureAll(getVertx(), stompHandler,
-                        java.util.ServiceLoader.load(com.jwebmp.core.base.angular.services.StompServerHandlerConfigurator.class)
-                                .stream().map(java.util.ServiceLoader.Provider::get).toList());
-                StompServer stompServer = StompServer
-                        .create(getVertx(), stompOptions)
-                        .handler(stompHandler);
-
-                // Register WebSocket handlers.
-                // The STOMP client (@stomp/stompjs) connects to exactly "/eventbus", and Vert.x's
-                // StompServer.webSocketHandler() rejects the socket unless socket.path() equals the
-                // configured websocketPath ("/eventbus"). A Vert.x "/eventbus/*" route does NOT match
-                // the bare "/eventbus" path, so the EXACT path must be registered for the upgrade to
-                // succeed. The wildcard route is also registered for completeness/back-compat.
-                log.info("Registering WebSocket handler for STOMP at /eventbus (and /eventbus/*)");
-                io.vertx.core.Handler<io.vertx.ext.web.RoutingContext> stompUpgradeHandler = ctx -> {
-                    log.trace("Received WebSocket connection request from: " + ctx
-                            .request()
-                            .remoteAddress());
-                    ctx
-                            .request()
-                            .toWebSocket()
-                            .onSuccess(ws -> {
-                                log.trace("WebSocket connection established (subProtocol={}), passing to STOMP handler",
-                                        ws.subProtocol());
-                                // Log why the socket closes so client-vs-proxy disconnects can be told apart.
-                                // The STOMP server attaches its own exception/end handlers but not a close
-                                // handler, so this survives and reports the close code/reason.
-                                ws.closeHandler(v -> log.trace(
-                                        "STOMP WebSocket closed: code={}, reason={}",
-                                        ws.closeStatusCode(), ws.closeReason()));
-                                stompServer
-                                        .webSocketHandler()
-                                        .handle(ws);
-                            })
-                            .onFailure(err -> {
-                                log.error("Failed to establish WebSocket connection: " + err.getMessage(), err);
-                            })
-                    ;
-                };
-                router
-                        .route("/eventbus")
-                        .handler(stompUpgradeHandler);
-                router
-                        .route("/eventbus/*")
-                        .handler(stompUpgradeHandler);
-
-                // This executes when a websocket message is received via STOMP
-                log.trace("Registering event bus consumer for STOMP messages at /toBus/incoming");
-                getVertx()
-                        .eventBus()
-                        .consumer("/toBus/incoming", handler -> {
-                            var o = handler.body();
-                            log.trace("Received message on /toBus/incoming: " + o);
-
-                            if (o instanceof Buffer buffer) {
-                                String message = buffer.toString();
-                                WebSocketMessageReceiver<?> mr;
-                                try {
-                                    mr = IJsonRepresentation
-                                            .getObjectMapper()
-                                            .readerFor(WebSocketMessageReceiver.class)
-                                            .readValue(message);
-                                } catch (JacksonException e) {
-                                    throw new RuntimeException(e);
-                                }
-                                if (mr
-                                        .getData()
-                                        .containsKey("guid")) {
-                                    mr.setWebSocketSessionId(mr
-                                            .getData()
-                                            .get("guid")
-                                            .toString());
-                                }
-                                if (mr
-                                        .getData()
-                                        .containsKey("dataService")) {
-                                    mr.setBroadcastGroup(mr
-                                            .getData()
-                                            .get("dataService")
-                                            .toString());
-                                }
-
-                                WebSocketMessageReceiver<?> finalMr = mr;
-                                receiveMessage(finalMr)
-                                        .subscribe()
-                                        .with(ajaxResponse -> {
-                                            DeliveryOptions options = new DeliveryOptions()
-                                                    .addHeader("Content-Type", "application/json");
-
-                                            if (ajaxResponse.getSessionStorage() != null && !ajaxResponse
-                                                    .getSessionStorage()
-                                                    .isEmpty()) {
-                                                vertx
-                                                        .eventBus()
-                                                        .publish("SessionStorage", ajaxResponse.getSessionStorage());
-                                            }
-                                            if (ajaxResponse.getLocalStorage() != null && !ajaxResponse
-                                                    .getLocalStorage()
-                                                    .isEmpty()) {
-                                                vertx
-                                                        .eventBus()
-                                                        .publish("LocalStorage", ajaxResponse.getLocalStorage());
-                                            }
-                                            if (ajaxResponse.getDataReturns() != null) {
-                                                handler.reply("{}");
-                                                ajaxResponse
-                                                        .getDataReturns()
-                                                        .forEach((key, value) -> {
-                                                            if (value instanceof DynamicData dd) {
-                                                                for (Object object : dd.getOut()) {
-                                                                    vertx
-                                                                            .eventBus()
-                                                                            .publish(key, object);
-                                                                }
-                                                            } else {
-                                                                vertx
-                                                                        .eventBus()
-                                                                        .publish(key, value);
-                                                            }
-                                                        });
-                                            } else {
-                                                handler.reply(ajaxResponse, options);
-                                            }
-                                        }, failure -> {
-                                            log.fatal("Failed to process message: " + failure.getMessage());
-                                            handler.fail(500, failure.getMessage());
-                                        })
-                                ;
-                                //   handler.reply("{}");
-                            } else if (o instanceof JsonObject jo) {
-                                String jsonString = jo.toString();
-                                log.debug("Processing JSON message: " + jsonString);
-                                var mr = jo.mapTo(WebSocketMessageReceiver.class);
-                                if (mr
-                                        .getData()
-                                        .containsKey("guid")) {
-                                    mr.setWebSocketSessionId(mr
-                                            .getData()
-                                            .get("guid")
-                                            .toString());
-                                }
-                                if (mr
-                                        .getData()
-                                        .containsKey("dataService")) {
-                                    mr.setBroadcastGroup(mr
-                                            .getData()
-                                            .get("dataService")
-                                            .toString());
-                                }
-                                receiveMessage(mr)
-                                        .subscribe()
-                                        .with(ajaxResponse -> {
-                                            DeliveryOptions options = new DeliveryOptions()
-                                                    .addHeader("Content-Type", "application/json");
-
-                                            if (ajaxResponse.getSessionStorage() != null && !ajaxResponse
-                                                    .getSessionStorage()
-                                                    .isEmpty()) {
-                                                vertx
-                                                        .eventBus()
-                                                        .publish("SessionStorage", ajaxResponse.getSessionStorage());
-                                            }
-                                            if (ajaxResponse.getLocalStorage() != null && !ajaxResponse
-                                                    .getLocalStorage()
-                                                    .isEmpty()) {
-                                                vertx
-                                                        .eventBus()
-                                                        .publish("LocalStorage", ajaxResponse.getLocalStorage());
-                                            }
-                                            if (ajaxResponse.getDataReturns() != null) {
-                                                handler.reply("{}");
-                                                ajaxResponse
-                                                        .getDataReturns()
-                                                        .forEach((key, value) -> {
-                                                            if (value instanceof DynamicData dd) {
-                                                                for (Object object : dd.getOut()) {
-                                                                    vertx
-                                                                            .eventBus()
-                                                                            .publish(key, object);
-                                                                }
-                                                            } else {
-                                                                vertx
-                                                                        .eventBus()
-                                                                        .publish(key, value);
-                                                            }
-                                                        });
-                                            } else {
-                                                handler.reply(ajaxResponse, options);
-                                            }
-                                        }, failure -> {
-                                            log.fatal("Failed to process message: " + failure.getMessage());
-                                            handler.fail(500, failure.getMessage());
-                                        })
-                                ;
-                                //   handler.reply("{}");
-                            } else {
-                                log.fatal("Failed to process message: " + o.toString() + " - " + o
-                                        .getClass()
-                                        .getCanonicalName());
-                            }
-                        });
-
-
+                configureStomp(router, java.util.ServiceLoader.load(
+                        com.jwebmp.core.base.angular.services.StompServerHandlerConfigurator.class)
+                        .stream().map(java.util.ServiceLoader.Provider::get).toList());
                 stompConfigured = true;
                 }
                 String path = "";
@@ -522,6 +293,245 @@ public class AngularTSSiteBinder
             }
         }
         return router;
+    }
+
+    /** Shared production assembly, also usable by isolated transport acceptance fixtures. */
+    public void configureStomp(Router router,
+            java.util.List<com.jwebmp.core.base.angular.services.StompServerHandlerConfigurator> policies) {
+                // Configure STOMP heartbeats.
+                // x = server->client send interval; y = expected client->server interval.
+                // Browsers may throttle timers in background tabs; set y=0 to not require client heartbeats
+                // and keep x reasonably frequent so clients detect drops.
+                JsonObject heartbeats = new JsonObject()
+                        .put("x", 10000) // server sends heartbeat every 10s
+                        .put("y", 50000);    // do not expect client heartbeats (avoid idle disconnects)
+
+
+                StompServerOptions stompOptions = new StompServerOptions()
+                        .setWebsocketBridge(true)
+                        .setHeartbeat(heartbeats)
+                        .setWebsocketPath("/eventbus")
+                        // Vert.x 5.1 added WebSocketFrameType (defaults to BINARY for backward compat).
+                        // The browser uses @stomp/stompjs, a JavaScript STOMP client that expects TEXT
+                        // frames. With BINARY frames the client receives Blobs and cannot reliably track
+                        // STOMP heartbeats/frames, so it treats the connection as dead and reconnects in a
+                        // loop. TEXT frames keep the WebSocket stable. See Vert.x StompServerOptions docs.
+                        .setWebSocketFrameType(WebSocketFrameType.TEXT)
+                        .setMaxBodyLength(1024 * 1024)
+                        .setMaxHeaderLength(8192)
+                        .setMaxHeaders(32)
+                        .setMaxSubscriptionsByClient(128)
+                        .setMaxFrameInTransaction(32)
+                        .setTransactionChunkSize(16);
+
+                log.info("Configuring STOMP server with WebSocket bridge at /eventbus");
+                BridgeOptions stompBridgeOptions = new BridgeOptions()
+                        .addInboundPermitted(new PermittedOptions().setAddressRegex("/toBus.*"))
+                        .addOutboundPermitted(new PermittedOptions().setAddressRegex("/toStomp.*"));
+
+                log.info("STOMP bridge configured with inbound pattern /toBus.* and outbound pattern /toStomp.*");
+
+                StompServerHandler stompHandler = StompServerHandler.create(getVertx()).bridge(stompBridgeOptions);
+                com.jwebmp.core.base.angular.services.StompServerHandlerConfigurator.configureAll(getVertx(), stompHandler,
+                        policies);
+                StompServer stompServer = StompServer
+                        .create(getVertx(), stompOptions)
+                        .handler(stompHandler);
+
+                // Register WebSocket handlers.
+                // The STOMP client (@stomp/stompjs) connects to exactly "/eventbus", and Vert.x's
+                // StompServer.webSocketHandler() rejects the socket unless socket.path() equals the
+                // configured websocketPath ("/eventbus"). A Vert.x "/eventbus/*" route does NOT match
+                // the bare "/eventbus" path, so the EXACT path must be registered for the upgrade to
+                // succeed. The wildcard route is also registered for completeness/back-compat.
+                log.info("Registering WebSocket handler for STOMP at /eventbus (and /eventbus/*)");
+                io.vertx.core.Handler<io.vertx.ext.web.RoutingContext> stompUpgradeHandler = ctx -> {
+                    log.trace("Received WebSocket connection request from: " + ctx
+                            .request()
+                            .remoteAddress());
+                    ctx
+                            .request()
+                            .toWebSocket()
+                            .onSuccess(ws -> {
+                                log.trace("WebSocket connection established (subProtocol={}), passing to STOMP handler",
+                                        ws.subProtocol());
+                                stompServer
+                                        .webSocketHandler()
+                                        .handle(BoundedStompSocket.wrap(ws, ctx.request().connection()));
+                            })
+                            .onFailure(err -> {
+                                log.error("Failed to establish WebSocket connection: " + err.getMessage(), err);
+                            })
+                    ;
+                };
+                router
+                        .route("/eventbus")
+                        .handler(stompUpgradeHandler);
+                router
+                        .route("/eventbus/*")
+                        .handler(stompUpgradeHandler);
+
+                // This executes when a websocket message is received via STOMP
+                log.trace("Registering event bus consumer for STOMP messages at /toBus/incoming");
+                getVertx()
+                        .eventBus()
+                        .localConsumer("/toBus/incoming", handler -> {
+                            var o = handler.body();
+                            log.trace("Received message on /toBus/incoming: " + o);
+
+                            if (o instanceof Buffer buffer) {
+                                String message = buffer.toString();
+                                WebSocketMessageReceiver<?> mr;
+                                try {
+                                    mr = IJsonRepresentation
+                                            .getObjectMapper()
+                                            .readerFor(WebSocketMessageReceiver.class)
+                                            .readValue(message);
+                                } catch (JacksonException e) {
+                                    handler.fail(400, "Invalid command"); return;
+                                }
+                                if (mr
+                                        .getData()
+                                        .containsKey("guid")) {
+                                    mr.setWebSocketSessionId(mr
+                                            .getData()
+                                            .get("guid")
+                                            .toString());
+                                }
+                                if (mr
+                                        .getData()
+                                        .containsKey("dataService")) {
+                                    mr.setBroadcastGroup(mr
+                                            .getData()
+                                            .get("dataService")
+                                            .toString());
+                                }
+
+                                WebSocketMessageReceiver<?> finalMr = mr;
+                                receiveMessage(finalMr)
+                                        .subscribe()
+                                        .with(ajaxResponse -> {
+                                            DeliveryOptions options = new DeliveryOptions()
+                                                    .addHeader("Content-Type", "application/json");
+
+                                            if (ajaxResponse.getSessionStorage() != null && !ajaxResponse
+                                                    .getSessionStorage()
+                                                    .isEmpty()) {
+                                                privateStorage(handler, mr.getWebSocketSessionId(), "SessionStorage", ajaxResponse.getSessionStorage(), options);
+                                            }
+                                            if (ajaxResponse.getLocalStorage() != null && !ajaxResponse
+                                                    .getLocalStorage()
+                                                    .isEmpty()) {
+                                                privateStorage(handler, mr.getWebSocketSessionId(), "LocalStorage", ajaxResponse.getLocalStorage(), options);
+                                            }
+                                            if (ajaxResponse.getDataReturns() != null) {
+                                                handler.reply("{}", options);
+                                                ajaxResponse
+                                                        .getDataReturns()
+                                                        .forEach((key, value) -> {
+                                                            if (value instanceof DynamicData dd) {
+                                                                for (Object object : dd.getOut()) {
+                                                                    vertx
+                                                                            .eventBus()
+                                                                            .publish(key, object);
+                                                                }
+                                                            } else {
+                                                                vertx
+                                                                        .eventBus()
+                                                                        .publish(key, value);
+                                                            }
+                                                        });
+                                            } else {
+                                                handler.reply(ajaxResponse, options);
+                                            }
+                                        }, failure -> {
+                                            log.fatal("Failed to process message: " + failure.getMessage());
+                                            handler.fail(500, failure.getMessage());
+                                        })
+                                ;
+                                //   handler.reply("{}", options);
+                            } else if (o instanceof JsonObject jo) {
+                                String jsonString = jo.toString();
+                                log.debug("Processing JSON message: " + jsonString);
+                                var mr = jo.mapTo(WebSocketMessageReceiver.class);
+                                if (mr
+                                        .getData()
+                                        .containsKey("guid")) {
+                                    mr.setWebSocketSessionId(mr
+                                            .getData()
+                                            .get("guid")
+                                            .toString());
+                                }
+                                if (mr
+                                        .getData()
+                                        .containsKey("dataService")) {
+                                    mr.setBroadcastGroup(mr
+                                            .getData()
+                                            .get("dataService")
+                                            .toString());
+                                }
+                                receiveMessage(mr)
+                                        .subscribe()
+                                        .with(ajaxResponse -> {
+                                            DeliveryOptions options = new DeliveryOptions()
+                                                    .addHeader("Content-Type", "application/json");
+
+                                            if (ajaxResponse.getSessionStorage() != null && !ajaxResponse
+                                                    .getSessionStorage()
+                                                    .isEmpty()) {
+                                                privateStorage(handler, mr.getWebSocketSessionId(), "SessionStorage", ajaxResponse.getSessionStorage(), options);
+                                            }
+                                            if (ajaxResponse.getLocalStorage() != null && !ajaxResponse
+                                                    .getLocalStorage()
+                                                    .isEmpty()) {
+                                                privateStorage(handler, mr.getWebSocketSessionId(), "LocalStorage", ajaxResponse.getLocalStorage(), options);
+                                            }
+                                            if (ajaxResponse.getDataReturns() != null) {
+                                                handler.reply("{}", options);
+                                                ajaxResponse
+                                                        .getDataReturns()
+                                                        .forEach((key, value) -> {
+                                                            if (value instanceof DynamicData dd) {
+                                                                for (Object object : dd.getOut()) {
+                                                                    vertx
+                                                                            .eventBus()
+                                                                            .publish(key, object);
+                                                                }
+                                                            } else {
+                                                                vertx
+                                                                        .eventBus()
+                                                                        .publish(key, value);
+                                                            }
+                                                        });
+                                            } else {
+                                                handler.reply(ajaxResponse, options);
+                                            }
+                                        }, failure -> {
+                                            log.fatal("Failed to process message: " + failure.getMessage());
+                                            handler.fail(500, failure.getMessage());
+                                        })
+                                ;
+                                //   handler.reply("{}", options);
+                            } else {
+                                log.fatal("Failed to process message: " + o.toString() + " - " + o
+                                        .getClass()
+                                        .getCanonicalName());
+                            }
+                        });
+
+
+    }
+
+    private void privateStorage(io.vertx.core.eventbus.Message<?> command, String guid, String scope,
+                                java.util.Map<String, ?> values, DeliveryOptions reply) {
+        String encoded = new JsonObject(new java.util.HashMap<>(values)).encode();
+        if (command.headers().get("stomp-session") != null) {
+            // The ingress writes these to the requesting socket. A guessed GUID cannot receive its storage.
+            reply.addHeader("jwebmp-" + scope.toLowerCase(java.util.Locale.ROOT), encoded);
+        } else {
+            // Preserve legacy internal event-bus callers and the browser's existing private wire address.
+            getVertx().eventBus().publish("/toStomp/" + guid + "." + scope, encoded);
+        }
     }
 
     public Vertx getVertx() {

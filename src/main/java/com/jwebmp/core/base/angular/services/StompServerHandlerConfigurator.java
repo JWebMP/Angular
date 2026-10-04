@@ -23,22 +23,26 @@ public interface StompServerHandlerConfigurator {
 
     static void configureAll(Vertx vertx, StompServerHandler handler,
                              java.util.List<StompServerHandlerConfigurator> policies) {
+        var ingress = new com.jwebmp.core.base.angular.implementations.OwnerLocalCommandIngress(vertx);
         var subscribe = new DefaultSubscribeHandler();
         var send = new DefaultSendHandler();
         var unsubscribe = new DefaultUnsubscribeHandler();
         handler.subscribeHandler(frame -> {
             for (var policy : policies) if (policy.subscribe(frame)) return;
             subscribe.handle(frame);
+            ingress.subscribed(frame);
         });
         handler.sendHandler(frame -> {
             for (var policy : policies) if (policy.send(frame)) return;
-            send.handle(frame);
+            if (!ingress.send(frame)) send.handle(frame);
         });
         handler.unsubscribeHandler(frame -> {
             for (var policy : policies) if (policy.unsubscribe(frame)) return;
             unsubscribe.handle(frame);
+            ingress.unsubscribed(frame);
         });
         handler.closeHandler(connection -> {
+            ingress.closed(connection);
             for (var policy : policies) policy.closed(connection);
         });
     }
