@@ -1,5 +1,7 @@
 package com.jwebmp.core.base.angular.typescript;
 
+import com.guicedee.client.utils.ClassLoading;
+
 import com.guicedee.client.IGuiceContext;
 import com.jwebmp.core.base.angular.client.annotations.angular.NgApp;
 import com.jwebmp.core.base.angular.client.services.interfaces.*;
@@ -45,7 +47,7 @@ public class AngularModuleProcessorTest {
         // Find a test app to use
         for (io.github.classgraph.ClassInfo classInfo : scanResult.getAllClasses()) {
             try {
-                Class<?> aClass = classInfo.loadClass();
+                Class<?> aClass = ClassLoading.loadClass(classInfo);
                 if (INgApp.class.isAssignableFrom(aClass) && !aClass.isInterface() && 
                     aClass.isAnnotationPresent(NgApp.class)) {
                     testApp = (INgApp<?>) IGuiceContext.get(aClass);
@@ -200,7 +202,7 @@ public class AngularModuleProcessorTest {
     private <T> T findTestComponent(Class<T> componentType) {
         for (io.github.classgraph.ClassInfo classInfo : scanResult.getAllClasses()) {
             try {
-                Class<?> aClass = classInfo.loadClass();
+                Class<?> aClass = ClassLoading.loadClass(classInfo);
                 if (componentType.isAssignableFrom(aClass) && !aClass.isInterface() && !aClass.isAnnotation()) {
                     try {
                         return (T) IGuiceContext.get(aClass);

@@ -1,5 +1,7 @@
 package com.jwebmp.core.base.angular.onparent;
 
+import com.guicedee.client.utils.ClassLoading;
+
 import com.guicedee.client.IGuiceContext;
 import com.jwebmp.core.base.angular.client.AppUtils;
 import com.jwebmp.core.base.angular.client.annotations.angular.NgApp;
@@ -38,7 +40,7 @@ public class ConstructorParameterDeduplicationTest
         {
             try
             {
-                Class<?> aClass = classInfo.loadClass();
+                Class<?> aClass = ClassLoading.loadClass(classInfo);
                 if (INgApp.class.isAssignableFrom(aClass) && !aClass.isInterface() &&
                         aClass.isAnnotationPresent(NgApp.class))
                 {

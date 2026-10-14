@@ -1,5 +1,7 @@
 package com.jwebmp.core.base.angular.typescript;
 
+import com.guicedee.client.utils.ClassLoading;
+
 import com.guicedee.client.IGuiceContext;
 import com.jwebmp.core.base.angular.client.services.interfaces.IComponent;
 import com.jwebmp.core.base.angular.client.services.interfaces.INgApp;
@@ -32,7 +34,7 @@ public class DependencyManagerTest {
         // Find a test app to use
         for (io.github.classgraph.ClassInfo classInfo : IGuiceContext.instance().getScanResult().getAllClasses()) {
             try {
-                Class<?> aClass = classInfo.loadClass();
+                Class<?> aClass = ClassLoading.loadClass(classInfo);
                 if (INgApp.class.isAssignableFrom(aClass) && !aClass.isInterface()) {
                     testApp = (INgApp<?>) IGuiceContext.get(aClass);
                     break;

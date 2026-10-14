@@ -1,5 +1,7 @@
 package com.jwebmp.core.base.angular.services.compiler;
 
+import com.guicedee.client.utils.ClassLoading;
+
 import tools.jackson.databind.ObjectMapper;
 import com.guicedee.client.IGuiceContext;
 import com.jwebmp.core.base.angular.client.AppUtils;
@@ -83,7 +85,7 @@ public class TypeScriptCompiler {
                     continue;
                 }
                 try {
-                    INgApp<?> clazz = (INgApp<?>) IGuiceContext.get(classInfo.loadClass());
+                    INgApp<?> clazz = (INgApp<?>) IGuiceContext.get(ClassLoading.loadClass(classInfo));
                     IComponent.app.set(clazz);
                     File appPath = AppUtils.getAppPath((Class<? extends INgApp<?>>) clazz.getClass());
                     currentAppFile.set(appPath);
@@ -111,7 +113,7 @@ public class TypeScriptCompiler {
                 continue;
             }
             try {
-                appClasses.add((Class<INgApp<?>>) classInfo.loadClass());
+                appClasses.add((Class<INgApp<?>>) ClassLoading.loadClass(classInfo));
             } catch (ClassCastException e) {
                 log.error("Cannot render app - {} / Annotated @NgApp does not implement INgApp", classInfo.getSimpleName(), e);
             }

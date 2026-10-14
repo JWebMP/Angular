@@ -1,5 +1,7 @@
 package com.jwebmp.core.base.angular.services.compiler.validators;
 
+import com.guicedee.client.utils.ClassLoading;
+
 import com.guicedee.client.IGuiceContext;
 import com.jwebmp.core.base.angular.client.AppUtils;
 import com.jwebmp.core.base.angular.client.services.interfaces.IComponent;
@@ -28,7 +30,7 @@ public class TypeScriptCodeValidatorTest {
         // Find a test app to use
         for (ClassInfo classInfo : IGuiceContext.instance().getScanResult().getAllClasses()) {
             try {
-                Class<?> aClass = classInfo.loadClass();
+                Class<?> aClass = ClassLoading.loadClass(classInfo);
                 if (INgApp.class.isAssignableFrom(aClass) && !aClass.isInterface()) {
                     testApp = (INgApp<?>) IGuiceContext.get(aClass);
                     break;
@@ -289,7 +291,7 @@ public class TypeScriptCodeValidatorTest {
         // Try to find a component
         for (ClassInfo classInfo : IGuiceContext.instance().getScanResult().getAllClasses()) {
             try {
-                Class<?> clazz = classInfo.loadClass();
+                Class<?> clazz = ClassLoading.loadClass(classInfo);
                 if (INgComponent.class.isAssignableFrom(clazz) && !clazz.isInterface() && !clazz.isAnnotation()) {
                     try {
                         return (IComponent<?>) IGuiceContext.get(clazz);

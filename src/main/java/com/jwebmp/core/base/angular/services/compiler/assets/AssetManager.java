@@ -263,7 +263,7 @@ public class AssetManager
         log.info("Loading resources from app directory");
         for (Resource resource : scan.getResourcesMatchingWildcard("app/**"))
         {
-            String assetLocation = resource.getPathRelativeToClasspathElement();
+            String assetLocation = resource.getPath();
             AppUtils.saveAppResourceFile(appClass, resource.getURL()
                                                            .openStream(), assetLocation);
         }

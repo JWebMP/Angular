@@ -1,5 +1,7 @@
 package com.jwebmp.core.base.angular.services.compiler.processors;
 
+import com.guicedee.client.utils.ClassLoading;
+
 import com.guicedee.client.IGuiceContext;
 import com.jwebmp.core.base.angular.client.services.interfaces.IComponent;
 import com.jwebmp.core.base.angular.client.services.interfaces.INgApp;
@@ -74,7 +76,7 @@ public class ComponentProcessor {
         // Find all components of the specified type
         for (ClassInfo classInfo : IGuiceContext.instance().getScanResult().getAllClasses()) {
             try {
-                Class<?> clazz = classInfo.loadClass();
+                Class<?> clazz = ClassLoading.loadClass(classInfo);
                 if (componentType.isAssignableFrom(clazz) && !clazz.isInterface() && !clazz.isAnnotation()) {
                     try {
                         IComponent<?> component = (IComponent<?>) IGuiceContext.get(clazz);

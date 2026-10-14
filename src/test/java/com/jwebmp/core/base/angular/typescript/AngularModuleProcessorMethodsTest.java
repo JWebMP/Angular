@@ -1,5 +1,7 @@
 package com.jwebmp.core.base.angular.typescript;
 
+import com.guicedee.client.utils.ClassLoading;
+
 import com.guicedee.client.IGuiceContext;
 import com.jwebmp.core.base.angular.AngularTestComponent;
 import com.jwebmp.core.base.angular.client.services.interfaces.*;
@@ -59,7 +61,7 @@ public class AngularModuleProcessorMethodsTest
         {
             try
             {
-                Class<?> aClass = classInfo.loadClass();
+                Class<?> aClass = ClassLoading.loadClass(classInfo);
                 if (INgApp.class.isAssignableFrom(aClass) && !aClass.isInterface())
                 {
                     testApp = (INgApp<?>) IGuiceContext.get(aClass);
@@ -105,7 +107,7 @@ public class AngularModuleProcessorMethodsTest
         {
             try
             {
-                Class<?> aClass = classInfo.loadClass();
+                Class<?> aClass = ClassLoading.loadClass(classInfo);
                 if (INgModule.class.isAssignableFrom(aClass) && !aClass.isInterface())
                 {
                     testModuleClassInfo = classInfo;
@@ -123,7 +125,7 @@ public class AngularModuleProcessorMethodsTest
         {
             try
             {
-                Class<?> aClass = classInfo.loadClass();
+                Class<?> aClass = ClassLoading.loadClass(classInfo);
                 if (INgComponent.class.isAssignableFrom(aClass) && !aClass.isInterface())
                 {
                     testComponentClassInfo = classInfo;
@@ -141,7 +143,7 @@ public class AngularModuleProcessorMethodsTest
         {
             try
             {
-                Class<?> aClass = classInfo.loadClass();
+                Class<?> aClass = ClassLoading.loadClass(classInfo);
                 if (INgDirective.class.isAssignableFrom(aClass) && !aClass.isInterface())
                 {
                     testDirectiveClassInfo = classInfo;
@@ -159,7 +161,7 @@ public class AngularModuleProcessorMethodsTest
         {
             try
             {
-                Class<?> aClass = classInfo.loadClass();
+                Class<?> aClass = ClassLoading.loadClass(classInfo);
                 if (INgDataService.class.isAssignableFrom(aClass) && !aClass.isInterface())
                 {
                     testServiceClassInfo = classInfo;
@@ -177,7 +179,7 @@ public class AngularModuleProcessorMethodsTest
         {
             try
             {
-                Class<?> aClass = classInfo.loadClass();
+                Class<?> aClass = ClassLoading.loadClass(classInfo);
                 if (INgDataType.class.isAssignableFrom(aClass) && !aClass.isInterface())
                 {
                     testDataTypeClassInfo = classInfo;
@@ -195,7 +197,7 @@ public class AngularModuleProcessorMethodsTest
         {
             try
             {
-                Class<?> aClass = classInfo.loadClass();
+                Class<?> aClass = ClassLoading.loadClass(classInfo);
                 if (INgProvider.class.isAssignableFrom(aClass) && !aClass.isInterface())
                 {
                     testProviderClassInfo = classInfo;
@@ -213,7 +215,7 @@ public class AngularModuleProcessorMethodsTest
         {
             try
             {
-                Class<?> aClass = classInfo.loadClass();
+                Class<?> aClass = ClassLoading.loadClass(classInfo);
                 if (INgServiceProvider.class.isAssignableFrom(aClass) && !aClass.isInterface())
                 {
                     testServiceProviderClassInfo = classInfo;
@@ -246,7 +248,7 @@ public class AngularModuleProcessorMethodsTest
 
         try
         {
-            Class<?> moduleClass = testModuleClassInfo.loadClass();
+            Class<?> moduleClass = ClassLoading.loadClass(testModuleClassInfo);
             System.out.println("[DEBUG_LOG] Module class: " + moduleClass.getName());
             System.out.println("[DEBUG_LOG] Module is assignable from INgModule: " + INgModule.class.isAssignableFrom(moduleClass));
 

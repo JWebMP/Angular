@@ -1,5 +1,7 @@
 package com.jwebmp.core.base.angular.services.compiler.files;
 
+import com.guicedee.client.utils.ClassLoading;
+
 import com.guicedee.client.IGuiceContext;
 import com.jwebmp.core.base.angular.AngularApp;
 import com.jwebmp.core.base.angular.ProductDetail;
@@ -181,7 +183,7 @@ public class TypeScriptFileManagerTest {
         }
         for (ClassInfo classInfo : IGuiceContext.instance().getScanResult().getAllClasses()) {
             try {
-                Class<?> clazz = classInfo.loadClass();
+                Class<?> clazz = ClassLoading.loadClass(classInfo);
                 if (componentType.isAssignableFrom(clazz) && !clazz.isInterface() && !clazz.isAnnotation()) {
                     try {
                         return (T) IGuiceContext.get(clazz);

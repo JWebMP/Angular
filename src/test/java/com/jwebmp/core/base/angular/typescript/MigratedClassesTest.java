@@ -1,5 +1,7 @@
 package com.jwebmp.core.base.angular.typescript;
 
+import com.guicedee.client.utils.ClassLoading;
+
 import com.guicedee.client.IGuiceContext;
 import com.jwebmp.core.base.angular.client.services.interfaces.*;
 import com.jwebmp.core.base.angular.services.compiler.TypeScriptCompiler;
@@ -279,7 +281,7 @@ public class MigratedClassesTest
     private <T> IComponent<?> findComponentOfType(Class<T> componentType) {
         for (ClassInfo classInfo : IGuiceContext.instance().getScanResult().getAllClasses()) {
             try {
-                Class<?> clazz = classInfo.loadClass();
+                Class<?> clazz = ClassLoading.loadClass(classInfo);
                 if (componentType.isAssignableFrom(clazz) && !clazz.isInterface() && !clazz.isAnnotation()) {
                     try {
                         return (IComponent<?>) IGuiceContext.get(clazz);

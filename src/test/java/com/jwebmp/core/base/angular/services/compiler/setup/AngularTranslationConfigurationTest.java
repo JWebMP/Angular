@@ -101,7 +101,7 @@ class AngularTranslationConfigurationTest
 
     private ScanResult scan(Path... jars)
     {
-        return new ClassGraph().overrideClasspath((Object[]) jars).scan();
+        return new ClassGraph().enableClasspathEntries((Object[]) jars).scan();
     }
 
     @Test

@@ -1,5 +1,7 @@
 package com.jwebmp.core.base.angular.services.compiler.assets;
 
+import com.guicedee.client.utils.ClassLoading;
+
 import tools.jackson.databind.ObjectMapper;
 import com.guicedee.client.IGuiceContext;
 import com.jwebmp.core.base.angular.client.AppUtils;
@@ -39,7 +41,7 @@ public class AssetManagerTest {
         // Find a test app to use
         for (io.github.classgraph.ClassInfo classInfo : scanResult.getAllClasses()) {
             try {
-                Class<?> aClass = classInfo.loadClass();
+                Class<?> aClass = ClassLoading.loadClass(classInfo);
                 if (INgApp.class.isAssignableFrom(aClass) && !aClass.isInterface()) {
                     testApp = (INgApp<?>) IGuiceContext.get(aClass);
                     break;

@@ -1,5 +1,7 @@
 package com.jwebmp.core.base.angular.modules.services.angular;
 
+import com.guicedee.client.utils.ClassLoading;
+
 import tools.jackson.core.JsonGenerator;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.DeserializationFeature;
@@ -157,11 +159,11 @@ public class AngularRoutingModule implements INgModule<AngularRoutingModule> {
         scan
                 .getClassesWithAnnotation(NgRoutable.class)
                 .stream()
-                .sorted(Comparator.comparingInt(o -> o.loadClass()
+                .sorted(Comparator.comparingInt(o -> ClassLoading.loadClass(o)
                         .getAnnotation(NgRoutable.class)
                         .sortOrder()))
                 .forEach(a -> {
-                            Class<? extends INgComponent<?>> aClass = (Class<? extends INgComponent<?>>) a.loadClass();
+                            Class<? extends INgComponent<?>> aClass = (Class<? extends INgComponent<?>>) ClassLoading.loadClass(a);
                             var component = IGuiceContext.get(aClass);
                             var nApp = IGuiceContext.get(this.app);
                             nApp.getRoutes()
@@ -315,11 +317,11 @@ public class AngularRoutingModule implements INgModule<AngularRoutingModule> {
             if (classInfo.isAbstract() || classInfo.isInterface()) {
                 continue;
             }
-            NgRoutable routable = classInfo.loadClass()
+            NgRoutable routable = ClassLoading.loadClass(classInfo)
                     .getAnnotation(NgRoutable.class);
             for (Class<? extends IComponent<?>> aClass : routable.parent()) {
                 if (aClass.equals(clazz)) {
-                    out.add((Class<? extends IComponent<?>>) classInfo.loadClass());
+                    out.add((Class<? extends IComponent<?>>) ClassLoading.loadClass(classInfo));
                 }
             }
         }

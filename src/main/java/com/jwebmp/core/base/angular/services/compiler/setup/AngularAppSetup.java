@@ -1,5 +1,7 @@
 package com.jwebmp.core.base.angular.services.compiler.setup;
 
+import com.guicedee.client.utils.ClassLoading;
+
 import tools.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import com.guicedee.client.IGuiceContext;
@@ -242,7 +244,7 @@ public class AngularAppSetup
                      .getClassesWithAnnotation(TsDependency.class)
                      .stream()
                      .forEach(a -> {
-                         TsDependency annotation = a.loadClass()
+                         TsDependency annotation = ClassLoading.loadClass(a)
                                                     .getAnnotation(TsDependency.class);
                          if (annotation != null)
                          {
@@ -260,7 +262,7 @@ public class AngularAppSetup
                      .getClassesWithAnnotation(TsDependencies.class)
                      .stream()
                      .forEach(a -> {
-                         TsDependencies annotations = a.loadClass()
+                         TsDependencies annotations = ClassLoading.loadClass(a)
                                                        .getAnnotation(TsDependencies.class);
                          if (annotations != null)
                          {
@@ -330,7 +332,7 @@ public class AngularAppSetup
                      .getClassesWithAnnotation(TsDevDependency.class)
                      .stream()
                      .forEach(a -> {
-                         TsDevDependency annotation = a.loadClass()
+                         TsDevDependency annotation = ClassLoading.loadClass(a)
                                                        .getAnnotation(TsDevDependency.class);
                          if (annotation != null)
                          {
@@ -343,7 +345,7 @@ public class AngularAppSetup
                      .getClassesWithAnnotation(TsDevDependencies.class)
                      .stream()
                      .forEach(a -> {
-                         TsDevDependencies annotations = a.loadClass()
+                         TsDevDependencies annotations = ClassLoading.loadClass(a)
                                                           .getAnnotation(TsDevDependencies.class);
                          if (annotations != null)
                          {
@@ -1264,7 +1266,7 @@ public class AngularAppSetup
             List<String> globalAssignments = new ArrayList<>();
             for (ClassInfo classInfo : ir)
             {
-                var a = classInfo.loadClass()
+                var a = ClassLoading.loadClass(classInfo)
                                  .getAnnotationsByType(NgBootImportReference.class);
                 for (NgBootImportReference ngBootImportReference : a)
                 {
@@ -1296,7 +1298,7 @@ public class AngularAppSetup
             StringBuilder bootImportProviders = new StringBuilder();
             for (ClassInfo classInfo : scan.getClassesWithAnnotation(NgBootImportProvider.class))
             {
-                var a = classInfo.loadClass()
+                var a = ClassLoading.loadClass(classInfo)
                                  .getAnnotationsByType(NgBootImportProvider.class);
                 for (NgBootImportProvider ngBootImportProvider : a)
                 {

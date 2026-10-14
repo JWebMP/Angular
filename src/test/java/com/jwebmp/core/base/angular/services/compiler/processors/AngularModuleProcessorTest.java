@@ -1,5 +1,7 @@
 package com.jwebmp.core.base.angular.services.compiler.processors;
 
+import com.guicedee.client.utils.ClassLoading;
+
 import com.guicedee.client.IGuiceContext;
 import com.jwebmp.core.base.angular.client.AppUtils;
 import com.jwebmp.core.base.angular.client.services.interfaces.*;
@@ -37,7 +39,7 @@ public class AngularModuleProcessorTest {
         // Find a test app to use
         for (ClassInfo classInfo : scanResult.getAllClasses()) {
             try {
-                Class<?> aClass = classInfo.loadClass();
+                Class<?> aClass = ClassLoading.loadClass(classInfo);
                 if (INgApp.class.isAssignableFrom(aClass) && !aClass.isInterface()) {
                     testApp = (INgApp<?>) IGuiceContext.get(aClass);
                     break;
@@ -136,7 +138,7 @@ public class AngularModuleProcessorTest {
             
             // Verify the module was processed
             try {
-                INgModule<?> module = (INgModule<?>) IGuiceContext.get(moduleClassInfo.loadClass());
+                INgModule<?> module = (INgModule<?>) IGuiceContext.get(ClassLoading.loadClass(moduleClassInfo));
                 File moduleFile = fileManager.getComponentFilePath(module);
                 if (moduleFile != null) {
                     Assertions.assertTrue(moduleFile.exists(), "Module file should exist");
@@ -186,9 +188,9 @@ public class AngularModuleProcessorTest {
             if (result) {
                 try {
                     // Check if the component files were created
-                    File tsFile = AppUtils.getFile((Class<? extends INgApp<?>>) testApp.getClass(), componentClassInfo.loadClass(), ".ts");
-                    File htmlFile = AppUtils.getFile((Class<? extends INgApp<?>>) testApp.getClass(), componentClassInfo.loadClass(), ".html");
-                    File cssFile = AppUtils.getFile((Class<? extends INgApp<?>>) testApp.getClass(), componentClassInfo.loadClass(), ".scss");
+                    File tsFile = AppUtils.getFile((Class<? extends INgApp<?>>) testApp.getClass(), ClassLoading.loadClass(componentClassInfo), ".ts");
+                    File htmlFile = AppUtils.getFile((Class<? extends INgApp<?>>) testApp.getClass(), ClassLoading.loadClass(componentClassInfo), ".html");
+                    File cssFile = AppUtils.getFile((Class<? extends INgApp<?>>) testApp.getClass(), ClassLoading.loadClass(componentClassInfo), ".scss");
                     
                     if (tsFile != null) {
                         Assertions.assertTrue(tsFile.exists(), "TypeScript file should exist");
@@ -251,7 +253,7 @@ public class AngularModuleProcessorTest {
             .stream()
             .filter(classInfo -> {
                 try {
-                    Class<?> clazz = classInfo.loadClass();
+                    Class<?> clazz = ClassLoading.loadClass(classInfo);
                     return type.isAssignableFrom(clazz) && !clazz.isInterface() && !clazz.isAnnotation();
                 } catch (Exception e) {
                     return false;
@@ -271,7 +273,7 @@ public class AngularModuleProcessorTest {
             .filter(classInfo -> {
                 try {
                     // Check if the component is standalone
-                    return classInfo.getAnnotationInfo("com.jwebmp.core.base.angular.client.annotations.angular.NgComponent")
+                    return classInfo.getAllAnnotationInfo("com.jwebmp.core.base.angular.client.annotations.angular.NgComponent")
                         .getParameterValues()
                         .stream()
                         .anyMatch(param -> param.getName().equals("standalone") && Boolean.TRUE.equals(param.getValue()));

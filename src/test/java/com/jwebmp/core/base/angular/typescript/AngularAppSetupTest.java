@@ -1,5 +1,7 @@
 package com.jwebmp.core.base.angular.typescript;
 
+import com.guicedee.client.utils.ClassLoading;
+
 import com.guicedee.client.IGuiceContext;
 import com.jwebmp.core.base.angular.AngularDataComponent;
 import com.jwebmp.core.base.angular.AngularFormDataProvider;
@@ -44,7 +46,7 @@ public class AngularAppSetupTest {
         // Find a test app to use
         for (io.github.classgraph.ClassInfo classInfo : scanResult.getAllClasses()) {
             try {
-                Class<?> aClass = classInfo.loadClass();
+                Class<?> aClass = ClassLoading.loadClass(classInfo);
                 if (INgApp.class.isAssignableFrom(aClass) && !aClass.isInterface() &&
                     aClass.isAnnotationPresent(NgApp.class)) {
                     testApp = (INgApp<?>) IGuiceContext.get(aClass);
@@ -488,7 +490,7 @@ public class AngularAppSetupTest {
 
         for (ClassInfo classInfo : scanResult.getAllClasses()) {
             try {
-                Class<?> aClass = classInfo.loadClass();
+                Class<?> aClass = ClassLoading.loadClass(classInfo);
                 // Only test actual @NgComponent-annotated classes, skip INgApp implementations
                 // (app classes like AngularApp/NGApplication correctly return empty TypeScript
                 // since they are bootstrapped via main.ts, not rendered as components)

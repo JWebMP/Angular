@@ -16,6 +16,8 @@
  */
 package com.jwebmp.core.base.angular.implementations;
 
+import com.guicedee.client.utils.ClassLoading;
+
 import tools.jackson.core.JacksonException;
 import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
@@ -158,7 +160,7 @@ public class AngularTSSiteBinder
                 continue;
             }
 
-            Class<?> loadClass = classInfo.loadClass();
+            Class<?> loadClass = ClassLoading.loadClass(classInfo);
             NgApp app = loadClass.getAnnotation(NgApp.class);
             /*PageConfiguration pc = loadClass.getAnnotation(PageConfiguration.class);
             String userDir = GlobalProperties.getSystemPropertyOrEnvironment("jwebmp", new File(System.getProperty("user.dir"))

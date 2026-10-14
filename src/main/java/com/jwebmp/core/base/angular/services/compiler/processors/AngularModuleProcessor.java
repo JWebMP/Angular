@@ -1,5 +1,7 @@
 package com.jwebmp.core.base.angular.services.compiler.processors;
 
+import com.guicedee.client.utils.ClassLoading;
+
 import com.guicedee.client.scopes.CallScoper;
 import com.guicedee.client.IGuiceContext;
 import com.jwebmp.core.base.angular.client.AppUtils;
@@ -91,7 +93,7 @@ public class AngularModuleProcessor {
         if (app instanceof NGApplication<?> application) {
             var standaloneComponents = scan.getClassesWithAnnotation(NgComponent.class).stream()
                                            .filter(a -> !a.isAbstract() && !a.isInterface())
-                                           .filter(a -> a.loadClass().getAnnotation(NgComponent.class).standalone());
+                                           .filter(a -> ClassLoading.loadClass(a).getAnnotation(NgComponent.class).standalone());
 
             standaloneComponents.distinct().forEach(aClass -> {
                 LogManager.getLogger("TypescriptCompiler")
@@ -131,14 +133,14 @@ public class AngularModuleProcessor {
             }
             Set<Class<?>> classes = new HashSet<>();
             if (a.isInterface() || a.isAbstract()) {
-                for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(
-                        a.loadClass())) {
+                for (ClassInfo subclass : !a.isInterface() ? scan.getAllSubclasses(ClassLoading.loadClass(a)) : scan.getAllClassesImplementing(
+                        ClassLoading.loadClass(a))) {
                     if (!subclass.isAbstract() && !subclass.isInterface()) {
-                        classes.add(subclass.loadClass());
+                        classes.add(ClassLoading.loadClass(subclass));
                     }
                 }
             } else {
-                Class<?> aClass = a.loadClass();
+                Class<?> aClass = ClassLoading.loadClass(a);
                 classes.add(aClass);
             }
 
@@ -191,7 +193,7 @@ public class AngularModuleProcessor {
             File appPath = AppUtils.getAppPath((Class<? extends INgApp<?>>) application.getClass());
             IComponent.getCurrentAppFile().set(appPath);
 
-            Class<?> clazz = aClass.loadClass();
+            Class<?> clazz = ClassLoading.loadClass(aClass);
             if (clazz.isAnnotationPresent(NgComponent.class) && INgComponent.class.isAssignableFrom(clazz)) {
                 // Get the component instance
                 Object componentObj = IGuiceContext.get(clazz);
@@ -265,13 +267,13 @@ public class AngularModuleProcessor {
                                               File srcDirectory) {
         try {
             Set<Class<?>> classes = new HashSet<>();
-            Class<?> aClass = a.loadClass();
+            Class<?> aClass = ClassLoading.loadClass(a);
 
             if (a.isInterface() || a.isAbstract()) {
-                for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(aClass) : scan.getClassesImplementing(
+                for (ClassInfo subclass : !a.isInterface() ? scan.getAllSubclasses(aClass) : scan.getAllClassesImplementing(
                         aClass)) {
                     if (!subclass.isAbstract() && !subclass.isInterface()) {
-                        classes.add(subclass.loadClass());
+                        classes.add(ClassLoading.loadClass(subclass));
                     }
                 }
             } else {
@@ -309,13 +311,13 @@ public class AngularModuleProcessor {
                                        File srcDirectory) {
         try {
             Set<Class<?>> classes = new HashSet<>();
-            Class<?> aClass = a.loadClass();
+            Class<?> aClass = ClassLoading.loadClass(a);
 
             if (a.isInterface() || a.isAbstract()) {
-                for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(aClass) : scan.getClassesImplementing(
+                for (ClassInfo subclass : !a.isInterface() ? scan.getAllSubclasses(aClass) : scan.getAllClassesImplementing(
                         aClass)) {
                     if (!subclass.isAbstract() && !subclass.isInterface()) {
-                        classes.add(subclass.loadClass());
+                        classes.add(ClassLoading.loadClass(subclass));
                     }
                 }
             } else {
@@ -355,13 +357,13 @@ public class AngularModuleProcessor {
                                        File srcDirectory) {
         try {
             Set<Class<?>> classes = new HashSet<>();
-            Class<?> aClass = a.loadClass();
+            Class<?> aClass = ClassLoading.loadClass(a);
 
             if (a.isInterface() || a.isAbstract()) {
-                for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(aClass) : scan.getClassesImplementing(
+                for (ClassInfo subclass : !a.isInterface() ? scan.getAllSubclasses(aClass) : scan.getAllClassesImplementing(
                         aClass)) {
                     if (!subclass.isAbstract() && !subclass.isInterface()) {
-                        classes.add(subclass.loadClass());
+                        classes.add(ClassLoading.loadClass(subclass));
                     }
                 }
             } else {
@@ -403,13 +405,13 @@ public class AngularModuleProcessor {
                                           File srcDirectory) {
         try {
             Set<Class<?>> classes = new HashSet<>();
-            Class<?> aClass = a.loadClass();
+            Class<?> aClass = ClassLoading.loadClass(a);
 
             if (a.isInterface() || a.isAbstract()) {
-                for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(aClass) : scan.getClassesImplementing(
+                for (ClassInfo subclass : !a.isInterface() ? scan.getAllSubclasses(aClass) : scan.getAllClassesImplementing(
                         aClass)) {
                     if (!subclass.isAbstract() && !subclass.isInterface()) {
-                        classes.add(subclass.loadClass());
+                        classes.add(ClassLoading.loadClass(subclass));
                     }
                 }
             } else {
@@ -448,14 +450,14 @@ public class AngularModuleProcessor {
         try {
             Set<Class<?>> classes = new HashSet<>();
             if (a.isInterface() || a.isAbstract()) {
-                for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(a.loadClass()) : scan.getClassesImplementing(
-                        a.loadClass())) {
+                for (ClassInfo subclass : !a.isInterface() ? scan.getAllSubclasses(ClassLoading.loadClass(a)) : scan.getAllClassesImplementing(
+                        ClassLoading.loadClass(a))) {
                     if (!subclass.isAbstract() && !subclass.isInterface()) {
-                        classes.add(subclass.loadClass());
+                        classes.add(ClassLoading.loadClass(subclass));
                     }
                 }
             } else {
-                Class<?> aClass = a.loadClass();
+                Class<?> aClass = ClassLoading.loadClass(a);
                 classes.add(aClass);
             }
 
@@ -579,13 +581,13 @@ public class AngularModuleProcessor {
                                          File srcDirectory) {
         try {
             Set<Class<?>> classes = new HashSet<>();
-            Class<?> aClass = a.loadClass();
+            Class<?> aClass = ClassLoading.loadClass(a);
 
             if (a.isInterface() || a.isAbstract()) {
-                for (ClassInfo subclass : !a.isInterface() ? scan.getSubclasses(aClass) : scan.getClassesImplementing(
+                for (ClassInfo subclass : !a.isInterface() ? scan.getAllSubclasses(aClass) : scan.getAllClassesImplementing(
                         aClass)) {
                     if (!subclass.isAbstract() && !subclass.isInterface()) {
-                        classes.add(subclass.loadClass());
+                        classes.add(ClassLoading.loadClass(subclass));
                     }
                 }
             } else {
