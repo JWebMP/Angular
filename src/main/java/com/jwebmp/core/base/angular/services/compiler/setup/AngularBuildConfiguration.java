@@ -28,7 +28,7 @@ public final class AngularBuildConfiguration
     {
         NgApp app = appClass.getAnnotation(NgApp.class);
         if (app == null) return template;
-        JsonNode root = JSON.readTree(template);
+        JsonNode root = JSON.readTree(AngularApplicationToolchain.workspace(template, appClass));
         JsonNode configurations = root.at("/projects/JWebMP/architect/build/configurations");
         apply(object(configurations.get("production"), "production"), app.production(), appClass, "production");
         apply(object(configurations.get("development"), "development"), app.development(), appClass, "development");

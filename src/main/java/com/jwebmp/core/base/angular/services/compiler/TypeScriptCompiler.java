@@ -131,6 +131,7 @@ public class TypeScriptCompiler {
         StringBuilder sb = new StringBuilder();
         Class<? extends INgApp<?>> appClass = (Class<? extends INgApp<?>>) app.getClass();
         File appFile = AppUtils.getAppPath(appClass);
+        com.jwebmp.core.base.angular.services.compiler.setup.AngularApplicationToolchain.preflight(appClass, appFile.toPath());
         currentAppFile.set(appFile);
         IComponent.app.set(app);
         ScanResult scan = IGuiceContext.instance().getScanResult();
@@ -154,6 +155,7 @@ public class TypeScriptCompiler {
             // Render Angular application files
             renderAngularApplicationFiles(appClass);
 
+            com.jwebmp.core.base.angular.services.compiler.setup.AngularApplicationToolchain.record(appClass, appFile.toPath());
             log.debug("Angular App Ready");
         } catch (IOException e) {
             log.error("Error compiling Angular application", e);

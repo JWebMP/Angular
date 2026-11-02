@@ -188,6 +188,8 @@ public class AngularAppSetup
         processTsDependencies(dependencies, overrideDependencies);
         processTsDevDependencies(devDependencies);
 
+        AngularApplicationToolchain.dependencies(appClass, dependencies, devDependencies);
+
         var translations = AngularTranslationConfiguration.configuration(appClass);
         if (translations != null)
         {
@@ -336,7 +338,8 @@ public class AngularAppSetup
                                                        .getAnnotation(TsDevDependency.class);
                          if (annotation != null)
                          {
-                             devDependencies.put(annotation.value(), annotation.version());
+                             if (!AngularApplicationToolchain.omitScaffold(app.getClass(), a.getName(), annotation.value()))
+                                 devDependencies.put(annotation.value(), annotation.version());
                          }
                      });
 
@@ -351,6 +354,7 @@ public class AngularAppSetup
                          {
                              for (TsDevDependency annotation : annotations.value())
                              {
+                                 if (!AngularApplicationToolchain.omitScaffold(app.getClass(), a.getName(), annotation.value()))
                                  devDependencies.put(annotation.value(), annotation.version());
                              }
                          }
@@ -445,6 +449,7 @@ public class AngularAppSetup
             packageTemplate = packageTemplate.replace("/*overrideDependencies*/", overridesJson.toString());
 
             // Write the modified template to the file
+            packageTemplate = AngularApplicationToolchain.manifest(packageTemplate, appClass);
             FileUtils.writeStringToFile(packageJsonFile, packageTemplate, UTF_8);
             return true;
         }
@@ -482,7 +487,7 @@ public class AngularAppSetup
         // Delete package-lock.json if it exists
         File packageLockFile = new File(AppUtils.getAppPath(appClass)
                                                 .getCanonicalPath() + "/package-lock.json");
-        if (packageLockFile.exists() && packageLockFile.isFile())
+        if (!AngularApplicationToolchain.enabled(appClass) && packageLockFile.exists() && packageLockFile.isFile())
         {
             packageLockFile.delete();
         }
@@ -570,7 +575,9 @@ public class AngularAppSetup
 
         List<String> args = new ArrayList<>();
         args.add("install");
-        if (force)
+        if (isApplicationOnlyWorkspace(appBaseDirectory)) {
+            args.add("--strict-peer-deps");
+        } else if (force)
         {
             args.add("--force");
         }
@@ -715,6 +722,11 @@ public class AngularAppSetup
         }
         npmExecutableOverride = npmExecutable;
 
+        if (readPackageJsonDependency(appBaseDirectory, "devDependencies", "@angular-devkit/architect") != null
+                && readPackageJsonDependency(appBaseDirectory, "devDependencies", "@angular/cli") == null) {
+            runNpmCommand(appBaseDirectory, npmExecutable, Arrays.asList("install", "--strict-peer-deps"));
+            return;
+        }
         String desiredCliVersion = resolveAngularCliVersion(appBaseDirectory, angularCliVersion);
         if (desiredCliVersion == null || desiredCliVersion.isBlank())
         {
@@ -748,7 +760,7 @@ public class AngularAppSetup
         {
             return fromPackageJson.trim();
         }
-        return "20";
+        return AngularApplicationToolchain.ANGULAR;
     }
 
     private static boolean needsAngularCliInstall(File appBaseDirectory, String desiredVersion)
@@ -901,6 +913,10 @@ public class AngularAppSetup
         return exitCode == 0;
     }
 
+    private static boolean isApplicationOnlyWorkspace(File directory) {
+        return readPackageJsonDependency(directory, "devDependencies", "@angular-devkit/architect") != null;
+    }
+
     private static void runNpmCommand(File appBaseDirectory, String npmExecutable, List<String> args)
     {
         List<String> command = buildNpmCommand(npmExecutable, args);
@@ -909,6 +925,8 @@ public class AngularAppSetup
         if (exitCode != 0)
         {
             log.error("npm command failed with exit code {}: {}", exitCode, command);
+            if (isApplicationOnlyWorkspace(appBaseDirectory))
+                throw new IllegalStateException("Application toolchain command failed with exit code " + exitCode);
         }
     }
 
