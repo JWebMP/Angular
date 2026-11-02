@@ -168,11 +168,15 @@ changes, or user switches; persistence remains the consumer application's concer
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue)](https://www.apache.org/licenses/LICENSE-2.0)
 
 ![Java 25+](https://img.shields.io/badge/Java-25%2B-green)
-![Angular 21](https://img.shields.io/badge/Angular-20-green)
+![Angular 22](https://img.shields.io/badge/Angular-22-green)
 ![Vert.X 5](https://img.shields.io/badge/Vert.x-5%2B-green)
 ![Maven 4](https://img.shields.io/badge/Maven-4%2B-green)
 
-Generates **Angular 21** TypeScript projects from JWebMP annotation metadata and serves the built SPA via **Vert.x 5** with STOMP/WebSocket bridging. Annotate your Java classes with `@NgApp`, `@NgComponent`, `@NgRoutable`, `@NgDataService`, etc. — the compiler produces `.ts` files, `angular.json`, `package.json`, `tsconfig.json`, routing modules, and environment config. At runtime, the plugin hosts the compiled dist directory with SPA-fallback routing, static-asset serving, and a full STOMP event-bus bridge.
+Generates **Angular 22** TypeScript projects from JWebMP annotation metadata and serves the built SPA via **Vert.x 5** with STOMP/WebSocket bridging. Annotate your Java classes with `@NgApp`, `@NgComponent`, `@NgRoutable`, `@NgDataService`, etc. — the compiler produces `.ts` files, `angular.json`, `package.json`, `tsconfig.json`, routing modules, and environment config. At runtime, the plugin hosts the compiled dist directory with SPA-fallback routing, static-asset serving, and a full STOMP event-bus bridge.
+
+Angular 22 requires Node.js ^22.22.3, ^24.15.0 or ^26.0.0 and TypeScript 6.0. Generated components default to eager change detection to preserve existing application behavior. Set `@NgComponent(value = "my-component", changeDetection = NgComponent.ChangeDetection.ON_PUSH)` to opt into Angular's OnPush strategy, or override `changeDetectionOverride()` on the component to select a strategy programmatically; a non-null method result takes precedence over the annotation. Use OnPush when the component and its hosted children notify Angular of changes through signals, inputs, events, or explicit change detection. The generated Karma configuration includes the instrumentation dependency required by Angular 22.
+
+When upgrading an existing application, review the [Angular 21 to 22 update guide](https://angular.dev/update-guide) and run Angular's `ng update @angular/cli@^22 @angular/core@^22` on a separate, clean copy of the existing Angular 21 project before regenerating it. Review and carry any applicable migration changes back to the Java source, templates, or custom assets: generated files are overwritten and a package version change cannot migrate application-specific code. In particular, Angular 22 changes template optional chaining from returning `null` to returning `undefined`; check expressions that depend on the distinction. Third-party plugins and application-defined npm dependencies also need compatible versions.
 
 ## ✨ Features
 

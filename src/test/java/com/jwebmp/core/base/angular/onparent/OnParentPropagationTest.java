@@ -67,6 +67,34 @@ public class OnParentPropagationTest
     // ─── Import propagation ────────────────────────────────────────────────────
 
     @Test
+    public void generatedComponentRetainsEagerChangeDetection()
+    {
+        assertNotNull(testApp, "A test Angular application is required");
+        String rendered = renderComponent(TestConfigConsumerComponent.class);
+        assertTrue(rendered.contains("changeDetection:ChangeDetectionStrategy.Eager"), rendered);
+        assertTrue(rendered.contains("ChangeDetectionStrategy"), rendered);
+        assertTrue(rendered.matches("(?s).*import\\s*\\{[^}]*ChangeDetectionStrategy[^}]*}\\s*from\\s*['\"]@angular/core['\"].*"), rendered);
+    }
+
+    @Test
+    public void componentAnnotationSelectsOnPush()
+    {
+        assertNotNull(testApp, "A test Angular application is required");
+        String rendered = renderComponent(OnPushConsumerComponent.class);
+        assertTrue(rendered.contains("changeDetection:ChangeDetectionStrategy.OnPush"), rendered);
+        assertTrue(rendered.matches("(?s).*import\\s*\\{[^}]*ChangeDetectionStrategy[^}]*}\\s*from\\s*['\"]@angular/core['\"].*"), rendered);
+    }
+
+    @Test
+    public void componentMethodOverridesAnnotationForNonStandaloneComponent()
+    {
+        assertNotNull(testApp, "A test Angular application is required");
+        String rendered = renderComponent(OverrideChangeDetectionComponent.class);
+        assertTrue(rendered.contains("changeDetection:ChangeDetectionStrategy.OnPush"), rendered);
+        assertFalse(rendered.contains("changeDetection:ChangeDetectionStrategy.Eager"), rendered);
+    }
+
+    @Test
     public void testOnParentImportPropagatesFromDataTypeToComponent()
     {
         if (testApp == null) return;

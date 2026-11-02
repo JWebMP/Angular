@@ -13,7 +13,7 @@
     <packaging>jar</packaging>
     <version>2.0.3-SNAPSHOT</version>
     <name>Angular TS</name>
-    <description>Generates Angular 21 TypeScript/config from JWebMP annotations and serves the built SPA via Vert.x 5/STOMP</description>
+    <description>Generates Angular 22 TypeScript/config from JWebMP annotations and serves the built SPA via Vert.x 5/STOMP</description>
     <url>https://github.com/JWebMP/Angular</url>
 
     <properties>
