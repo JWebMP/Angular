@@ -1,3 +1,11 @@
+## Current tooling selection — 3 November 2026
+
+Owner requested build 22.2.4 and matching Architect 0.2202.4 to avoid the
+22.2.5 WASM peer conflict. Default full-tooling build/CLI declarations are also
+pinned to 22.2.4. Angular framework remains on 22 and TypeScript on 6.
+The prior 22.2.4 audit found Vite advisories including high severity; these
+remain disclosed, not suppressed. Historical investigation follows below.
+
 # Application-only toolchain: implementation status
 
 Draft API: `@NgApp(applicationOnly = true)`.

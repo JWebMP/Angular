@@ -164,6 +164,7 @@ public class AngularAppSetup
             lines.forEach(a -> npmrcString.append(a.trim())
                                           .append('\n'));
         }
+        if (AngularApplicationToolchain.enabled(appClass)) npmrcString.append("package-lock=false\n");
         FileUtils.writeStringToFile(npmrcFile, npmrcString.toString(), UTF_8);
     }
 
@@ -487,7 +488,7 @@ public class AngularAppSetup
         // Delete package-lock.json if it exists
         File packageLockFile = new File(AppUtils.getAppPath(appClass)
                                                 .getCanonicalPath() + "/package-lock.json");
-        if (!AngularApplicationToolchain.enabled(appClass) && packageLockFile.exists() && packageLockFile.isFile())
+        if (packageLockFile.exists() && packageLockFile.isFile())
         {
             packageLockFile.delete();
         }
@@ -577,6 +578,7 @@ public class AngularAppSetup
         args.add("install");
         if (isApplicationOnlyWorkspace(appBaseDirectory)) {
             args.add("--strict-peer-deps");
+            args.add("--package-lock=false");
         } else if (force)
         {
             args.add("--force");
@@ -724,7 +726,7 @@ public class AngularAppSetup
 
         if (readPackageJsonDependency(appBaseDirectory, "devDependencies", "@angular-devkit/architect") != null
                 && readPackageJsonDependency(appBaseDirectory, "devDependencies", "@angular/cli") == null) {
-            runNpmCommand(appBaseDirectory, npmExecutable, Arrays.asList("install", "--strict-peer-deps"));
+            runNpmCommand(appBaseDirectory, npmExecutable, Arrays.asList("install", "--strict-peer-deps", "--package-lock=false"));
             return;
         }
         String desiredCliVersion = resolveAngularCliVersion(appBaseDirectory, angularCliVersion);
