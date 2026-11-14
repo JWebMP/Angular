@@ -21,7 +21,7 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.Set;
 
-import static com.guicedee.client.implementations.ObjectBinderKeys.DefaultObjectMapper;
+import static com.guicedee.modules.services.jsonrepresentation.ObjectBinderKeys.DefaultObjectMapper;
 
 /**
  * Tests for the AssetManager class

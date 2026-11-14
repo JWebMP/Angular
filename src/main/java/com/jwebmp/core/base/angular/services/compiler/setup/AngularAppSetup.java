@@ -17,6 +17,7 @@ import com.jwebmp.core.base.angular.client.annotations.typescript.TsDependency;
 import com.jwebmp.core.base.angular.client.annotations.typescript.TsDevDependencies;
 import com.jwebmp.core.base.angular.client.annotations.typescript.TsDevDependency;
 import com.jwebmp.core.base.angular.client.services.AnnotationHelper;
+import com.jwebmp.core.base.angular.client.services.PageConfiguratorAnnotations;
 import com.jwebmp.core.base.angular.client.services.TypescriptIndexPageConfigurator;
 import com.jwebmp.core.base.angular.client.services.interfaces.INgApp;
 import com.jwebmp.core.base.angular.modules.services.base.EnvironmentModule;
@@ -48,7 +49,7 @@ import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import static com.guicedee.client.implementations.ObjectBinderKeys.DefaultObjectMapper;
+import static com.guicedee.modules.services.jsonrepresentation.ObjectBinderKeys.DefaultObjectMapper;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
@@ -242,11 +243,13 @@ public class AngularAppSetup
      */
     private void processTsDependencies(Map<String, String> dependencies, Map<String, String> overrideDependencies)
     {
+        Set<String> scannedClasses = new HashSet<>();
         IGuiceContext.instance()
                      .getScanResult()
                      .getClassesWithAnnotation(TsDependency.class)
                      .stream()
                      .forEach(a -> {
+                         scannedClasses.add(a.getName());
                          TsDependency annotation = ClassLoading.loadClass(a)
                                                     .getAnnotation(TsDependency.class);
                          if (annotation != null)
@@ -265,6 +268,7 @@ public class AngularAppSetup
                      .getClassesWithAnnotation(TsDependencies.class)
                      .stream()
                      .forEach(a -> {
+                         scannedClasses.add(a.getName());
                          TsDependencies annotations = ClassLoading.loadClass(a)
                                                        .getAnnotation(TsDependencies.class);
                          if (annotations != null)
@@ -280,6 +284,13 @@ public class AngularAppSetup
                              }
                          }
                      });
+
+        for (TsDependency annotation : PageConfiguratorAnnotations.unscanned(TsDependency.class, scannedClasses))
+        {
+            var resolved = getNamedTSDependency(annotation);
+            dependencies.putIfAbsent(resolved.value(), resolved.version());
+            if (resolved.overrides()) overrideDependencies.put(resolved.value(), resolved.version());
+        }
 
         // Collect dynamic TsDependency configurations from the app page and body
         if (app instanceof com.jwebmp.core.base.interfaces.IComponentHierarchyBase<?, ?> appComponent)

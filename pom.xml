@@ -26,6 +26,12 @@
 
         <dependency>
             <groupId>com.jwebmp.plugins</groupId>
+            <artifactId>weather-icons</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.jwebmp.plugins</groupId>
             <artifactId>typescript-client</artifactId>
         </dependency>
 

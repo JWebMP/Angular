@@ -231,7 +231,7 @@ public class MigratedClassesTest
         System.out.println("Testing renderAngularApplicationFiles...");
         File appPath = IComponent.getCurrentAppFile().get();
         assetManager.renderAngularApplicationFiles(appPath, (Class<? extends INgApp<?>>) app.getClass(), 
-                namedAssets, app, IGuiceContext.get(com.guicedee.client.implementations.ObjectBinderKeys.DefaultObjectMapper));
+                namedAssets, app, IGuiceContext.get(com.guicedee.modules.services.jsonrepresentation.ObjectBinderKeys.DefaultObjectMapper));
     }
 
     *//**

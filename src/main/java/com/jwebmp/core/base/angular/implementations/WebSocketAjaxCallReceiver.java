@@ -17,7 +17,7 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import static com.guicedee.client.IGuiceContext.get;
-import static com.guicedee.client.implementations.ObjectBinderKeys.DefaultObjectMapper;
+import static com.guicedee.modules.services.jsonrepresentation.ObjectBinderKeys.DefaultObjectMapper;
 import static com.guicedee.modules.services.jsonrepresentation.json.StaticStrings.CHAR_DOT;
 import static com.guicedee.modules.services.jsonrepresentation.json.StaticStrings.CHAR_UNDERSCORE;
 import static com.jwebmp.interception.services.JWebMPInterceptionBinder.AjaxCallInterceptorKey;
