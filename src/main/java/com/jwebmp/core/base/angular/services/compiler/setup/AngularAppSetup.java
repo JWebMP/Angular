@@ -938,8 +938,7 @@ public class AngularAppSetup
         if (exitCode != 0)
         {
             log.error("npm command failed with exit code {}: {}", exitCode, command);
-            if (isApplicationOnlyWorkspace(appBaseDirectory))
-                throw new IllegalStateException("Application toolchain command failed with exit code " + exitCode);
+            throw new IllegalStateException("npm command failed with exit code " + exitCode + ": " + command);
         }
     }
 
