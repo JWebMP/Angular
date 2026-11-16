@@ -395,6 +395,10 @@ public class AngularAppSetup
             String appName = AppUtils.getAppName(appClass);
             packageTemplate = packageTemplate.replace("/*appName*/", appName);
 
+            // An explicit override must also replace the first-discovered direct
+            // dependency. npm rejects differing direct/override specs (EOVERRIDE).
+            dependencies.putAll(overrideDependencies);
+
             // Build dependencies JSON string
             StringBuilder dependenciesJson = new StringBuilder("{\n");
             int depCount = 0;
