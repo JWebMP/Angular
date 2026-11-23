@@ -18,6 +18,7 @@ import com.jwebmp.core.services.IPageConfigurator;
 
 
 module com.jwebmp.core.angular {
+    uses com.jwebmp.core.base.angular.services.AngularHttpHostingPolicy;
     uses com.jwebmp.core.base.angular.services.AngularScanPackages;
     uses com.jwebmp.core.base.angular.services.StompServerHandlerConfigurator;
 

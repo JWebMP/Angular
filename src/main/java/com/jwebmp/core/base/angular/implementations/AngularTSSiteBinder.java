@@ -16,8 +16,6 @@
  */
 package com.jwebmp.core.base.angular.implementations;
 
-import com.guicedee.client.utils.ClassLoading;
-
 import tools.jackson.core.JacksonException;
 import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
@@ -39,9 +37,9 @@ import com.jwebmp.core.base.angular.client.annotations.angular.NgApp;
 import com.jwebmp.core.base.angular.client.services.interfaces.INgApp;
 import com.jwebmp.core.base.angular.modules.services.angular.AngularRoutingModule;
 import com.jwebmp.core.base.angular.modules.services.base.EnvironmentModule;
+import com.jwebmp.core.base.angular.services.AngularHttpHostingPolicy;
 import com.jwebmp.core.base.angular.services.DefinedRoute;
 import com.jwebmp.core.base.angular.services.compiler.TypeScriptCompiler;
-import io.github.classgraph.ClassInfo;
 import io.smallrye.mutiny.Uni;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -63,6 +61,8 @@ import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
+import java.util.ServiceLoader;
 
 /**
  * @author GedMarc
@@ -152,21 +152,17 @@ public class AngularTSSiteBinder
         bind(EnvironmentModule.class)
                 .toInstance(new EnvironmentModule());
 
-        for (ClassInfo classInfo : IGuiceContext
-                .instance()
-                .getScanResult()
-                .getClassesWithAnnotation(NgApp.class)) {
-            if (classInfo.isAbstract() || classInfo.isInterface()) {
+        var apps = TypeScriptCompiler.getAllAppsClasses();
+        if (apps.isEmpty()) {
+            return;
+        }
+        var policies = hostingPolicies();
+        for (var appClass : apps) {
+            if (!permitsHttpHosting(policies, appClass)) {
                 continue;
             }
-
-            Class<?> loadClass = ClassLoading.loadClass(classInfo);
-            NgApp app = loadClass.getAnnotation(NgApp.class);
-            /*PageConfiguration pc = loadClass.getAnnotation(PageConfiguration.class);
-            String userDir = GlobalProperties.getSystemPropertyOrEnvironment("jwebmp", new File(System.getProperty("user.dir"))
-                    .getPath());*/
-            // todo find the @NgApp and add as a subdirectory
-            siteHostingLocation = AppUtils.getAppPath((Class<? extends INgApp<?>>) loadClass);
+            NgApp app = appClass.getAnnotation(NgApp.class);
+            siteHostingLocation = AppUtils.getAppPath(appClass);
             try {
                 FileUtils.forceMkdirParent(siteHostingLocation);
                 FileUtils.forceMkdir(siteHostingLocation);
@@ -223,19 +219,20 @@ public class AngularTSSiteBinder
     @Override
     public Router builder(Router router) {
         System.setProperty("vertx.disableFileCPResolving", "true");
-        boolean stompConfigured = false;
-        for (var app : TypeScriptCompiler.getAllAppsClasses()) {
+        var apps = TypeScriptCompiler.getAllAppsClasses();
+        if (apps.isEmpty()) {
+            return router;
+        }
+        var policies = hostingPolicies();
+        configureStomp(router, ServiceLoader.load(
+                com.jwebmp.core.base.angular.services.StompServerHandlerConfigurator.class)
+                .stream().map(ServiceLoader.Provider::get).toList());
+        for (var app : apps) {
+            if (!permitsHttpHosting(policies, app)) {
+                continue;
+            }
             try {
-                String staticFileLocationPath = AppUtils
-                        .getDistPath(app)
-                        .getCanonicalPath();
-
-                if (!stompConfigured) {
-                configureStomp(router, java.util.ServiceLoader.load(
-                        com.jwebmp.core.base.angular.services.StompServerHandlerConfigurator.class)
-                        .stream().map(java.util.ServiceLoader.Provider::get).toList());
-                stompConfigured = true;
-                }
+                String staticFileLocationPath = AppUtils.getDistPath(app).getCanonicalPath();
                 String path = "";
                 for (DefinedRoute<?> route : AngularRoutingModule.getRoutes(app)) {
                     bindRouteToPath(router, path, staticFileLocationPath, siteHostingLocation, route);
@@ -295,6 +292,14 @@ public class AngularTSSiteBinder
             }
         }
         return router;
+    }
+
+    private static List<AngularHttpHostingPolicy> hostingPolicies() {
+        return ServiceLoader.load(AngularHttpHostingPolicy.class).stream().map(ServiceLoader.Provider::get).toList();
+    }
+
+    private static boolean permitsHttpHosting(List<AngularHttpHostingPolicy> policies, Class<INgApp<?>> app) {
+        return policies.stream().allMatch(policy -> policy.permitsHttpHosting(app));
     }
 
     /** Shared production assembly, also usable by isolated transport acceptance fixtures. */
