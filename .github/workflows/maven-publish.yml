@@ -2,23 +2,57 @@ name: JWebMP Angular
 on:
   workflow_dispatch:
   push:
+
 permissions:
-  contents: write
+  contents: read
   packages: write
-  checks: write
-  pull-requests: write
 
 jobs:
   Angular:
-    uses: GuicedEE/Workflows/.github/workflows/projects.yml@master
-    with:
-      baseDir: ''
-      name: 'Angular Render'
-      publishToCentral: ${{inputs.centralRelease}}
-    secrets:
-      USERNAME: ${{secrets.USERNAME}}
-      USER_TOKEN: ${{secrets.USER_TOKEN}}
-      SONA_USERNAME: ${{secrets.SONA_USERNAME}}
-      SONA_PASSWORD: ${{secrets.SONA_PASSWORD}}
-      GPG_PASSPHRASE: ${{secrets.GPG_PASSPHRASE}}
-      GPG_PRIVATE_KEY: ${{secrets.GPG_PRIVATE_KEY}}
+    name: Angular Render Builder
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4.2.1
+        with:
+          distribution: oracle
+          java-version: '25'
+      - name: Setup Maven
+        uses: actionctl/setup-maven-cli@91780e83e5ea177cd5f05e192d38008a0bd3d4c6 # v1
+        with:
+          maven_version: '4.0.0-rc-7'
+          download_url_pattern: 'https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/4.0.0-rc-7/apache-maven-4.0.0-rc-7-bin.tar.gz'
+      - name: Configure Maven repositories
+        uses: s4u/maven-settings-action@45b6ca948aeeb205adebe97c67b26e2b50896844 # v4.0.0
+        with:
+          sonatypeSnapshots: true
+          servers: >-
+            [
+              {"id":"github","username":"${{ secrets.USERNAME }}","password":"${{ secrets.USER_TOKEN }}"},
+              {"id":"packages","username":"${{ secrets.USERNAME }}","password":"${{ secrets.USER_TOKEN }}"},
+              {"id":"packages_jwebmp","username":"${{ secrets.USERNAME }}","password":"${{ secrets.USER_TOKEN }}"}
+            ]
+          repositories: >-
+            [
+              {"id":"packages","name":"packages","url":"https://maven.pkg.github.com/GuicedEE/Packages",
+               "releases":{"enabled":"true"},"snapshots":{"enabled":"true"}},
+              {"id":"packages_jwebmp","name":"packages_jwebmp","url":"https://maven.pkg.github.com/JWebMP/Packages",
+               "releases":{"enabled":"true"},"snapshots":{"enabled":"true"}},
+              {"id":"shibboleth","name":"shibboleth","url":"https://build.shibboleth.net/nexus/content/repositories/releases",
+               "releases":{"enabled":"true"},"snapshots":{"enabled":"false"}}
+            ]
+      - name: Verify
+        run: mvn -B -U verify -Pcoverage
+      - name: Publish Angular development snapshot
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        shell: bash
+        run: |
+          version=$(mvn -B -q -Dstyle.color=never -DforceStdout -Dexpression=project.version help:evaluate)
+          if [[ "$version" != *-SNAPSHOT ]]; then
+            echo 'Only development snapshots can be published by this workflow.' >&2
+            exit 1
+          fi
+          mvn -B -U source:jar javadoc:jar deploy -DskipTests=true -Dcentral.publishing.skip=true \
+            -DaltSnapshotDeploymentRepository=github::https://maven.pkg.github.com/JWebMP/Packages
