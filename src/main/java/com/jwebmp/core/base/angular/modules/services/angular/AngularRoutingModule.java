@@ -1,6 +1,7 @@
 package com.jwebmp.core.base.angular.modules.services.angular;
 
 import com.guicedee.client.utils.ClassLoading;
+import com.guicedee.client.utils.Discovery;
 
 import tools.jackson.core.JsonGenerator;
 import tools.jackson.core.JacksonException;
@@ -21,8 +22,6 @@ import com.jwebmp.core.base.angular.client.services.interfaces.*;
 import com.jwebmp.core.base.angular.services.DefinedRoute;
 import com.jwebmp.core.base.interfaces.IComponentHTMLAttributeBase;
 import com.jwebmp.core.base.interfaces.IComponentHierarchyBase;
-import io.github.classgraph.ClassInfo;
-import io.github.classgraph.ScanResult;
 import lombok.extern.log4j.Log4j2;
 
 import java.util.*;
@@ -143,8 +142,7 @@ public class AngularRoutingModule implements INgModule<AngularRoutingModule> {
         if (this.app == null) {
             throw new UnsupportedOperationException("No app has been set in the AngularRoutingModule");
         }
-        ScanResult scan = IGuiceContext.instance()
-                .getScanResult();
+        List<Class<?>> routableClasses = routableClasses();
 
         // Resolve the boot component class so we can detect it in the route table
         Class<?> bootComponentClass = null;
@@ -156,14 +154,10 @@ public class AngularRoutingModule implements INgModule<AngularRoutingModule> {
         Map<Class<? extends IComponent<?>>, String> baseRoutes = new LinkedHashMap<>();
         definedRoutesList = new ArrayList<>();
         final Class<?> finalBootComponentClass = bootComponentClass;
-        scan
-                .getClassesWithAnnotation(NgRoutable.class)
-                .stream()
-                .sorted(Comparator.comparingInt(o -> ClassLoading.loadClass(o)
-                        .getAnnotation(NgRoutable.class)
-                        .sortOrder()))
+        routableClasses.stream()
+                .sorted(Comparator.comparingInt(type -> type.getAnnotation(NgRoutable.class).sortOrder()))
                 .forEach(a -> {
-                            Class<? extends INgComponent<?>> aClass = (Class<? extends INgComponent<?>>) ClassLoading.loadClass(a);
+                            Class<? extends INgComponent<?>> aClass = (Class<? extends INgComponent<?>>) a;
                             var component = IGuiceContext.get(aClass);
                             var nApp = IGuiceContext.get(this.app);
                             nApp.getRoutes()
@@ -225,7 +219,7 @@ public class AngularRoutingModule implements INgModule<AngularRoutingModule> {
                 }
             }
             DefinedRoute<?> dr = getDefinedRoute(aClass);
-            buildRoutePathway(dr, aClass, true);
+            buildRoutePathway(dr, aClass, true, routableClasses);
             definedRoutesList.add(dr);
             routes.add(dr);
         });
@@ -294,7 +288,8 @@ public class AngularRoutingModule implements INgModule<AngularRoutingModule> {
     }
 
     private void buildRoutePathway(DefinedRoute parentRoute,
-                                   Class<? extends IComponent<?>> aClass, boolean first) {
+                                   Class<? extends IComponent<?>> aClass, boolean first,
+                                   List<Class<?>> routableClasses) {
         DefinedRoute<?> innerDr = getDefinedRoute(aClass);
         if (!first) {
             parentRoute.addChild(innerDr);
@@ -303,25 +298,34 @@ public class AngularRoutingModule implements INgModule<AngularRoutingModule> {
         }
 
         first = false;
-        for (Class<? extends IComponent<?>> componentsWithParentClass : componentsWithParenClassAs(aClass)) {
-            buildRoutePathway(innerDr, componentsWithParentClass, first);
+        for (Class<? extends IComponent<?>> componentsWithParentClass : componentsWithParentClass(aClass, routableClasses)) {
+            buildRoutePathway(innerDr, componentsWithParentClass, first, routableClasses);
         }
     }
 
-    List<Class<? extends IComponent<?>>> componentsWithParenClassAs(Class<? extends IComponent<?>> clazz) {
+    private static List<Class<?>> routableClasses() {
+        // In scan mode, keep the configured ClassGraph scope and its class ordering.
+        var scan = Discovery.scanResult();
+        if (scan != null) {
+            return ClassLoading.loadClasses(scan.getClassesWithAnnotation(NgRoutable.class));
+        }
+        return Discovery.annotatedClasses(NgRoutable.class).stream()
+                .sorted(Comparator.comparing(Class::getName))
+                .toList();
+    }
+
+    private List<Class<? extends IComponent<?>>> componentsWithParentClass(
+            Class<? extends IComponent<?>> clazz, List<Class<?>> routableClasses) {
         List<Class<? extends IComponent<?>>> out = new ArrayList<>();
 
-        for (ClassInfo classInfo : IGuiceContext.instance()
-                .getScanResult()
-                .getClassesWithAnnotation(NgRoutable.class)) {
-            if (classInfo.isAbstract() || classInfo.isInterface()) {
+        for (Class<?> type : routableClasses) {
+            if (!Discovery.isConcrete(type)) {
                 continue;
             }
-            NgRoutable routable = ClassLoading.loadClass(classInfo)
-                    .getAnnotation(NgRoutable.class);
+            NgRoutable routable = type.getAnnotation(NgRoutable.class);
             for (Class<? extends IComponent<?>> aClass : routable.parent()) {
                 if (aClass.equals(clazz)) {
-                    out.add((Class<? extends IComponent<?>>) ClassLoading.loadClass(classInfo));
+                    out.add((Class<? extends IComponent<?>>) type);
                 }
             }
         }

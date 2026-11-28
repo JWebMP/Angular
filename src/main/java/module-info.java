@@ -1,3 +1,4 @@
+import com.guicedee.client.services.IGuiceDiscovery;
 import com.guicedee.client.services.lifecycle.IGuicePostStartup;
 import com.guicedee.client.services.config.IGuiceScanModuleInclusions;
 import com.jwebmp.core.base.angular.client.services.TypescriptIndexPageConfigurator;
@@ -39,6 +40,7 @@ module com.jwebmp.core.angular {
     requires transitive io.vertx.stomp;
 
     provides IGuiceScanModuleInclusions with AngularScanModuleInclusion;
+    provides IGuiceDiscovery with AngularDiscovery;
     provides IGuiceConfigurator with SearchPathConfigurator;
 
     provides IGuicePreStartup with AngularPreStartup;

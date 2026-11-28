@@ -1,10 +1,12 @@
 package com.jwebmp.core.base.angular.services.compiler;
 
 import com.guicedee.client.utils.ClassLoading;
+import com.guicedee.client.utils.Discovery;
 
 import tools.jackson.databind.ObjectMapper;
 import com.guicedee.client.IGuiceContext;
 import com.jwebmp.core.base.angular.client.AppUtils;
+import com.jwebmp.core.base.angular.client.annotations.angular.NgApp;
 import com.jwebmp.core.base.angular.client.services.interfaces.IComponent;
 import com.jwebmp.core.base.angular.client.services.interfaces.INgApp;
 import com.jwebmp.core.base.angular.services.compiler.assets.AssetManager;
@@ -21,6 +23,7 @@ import lombok.extern.log4j.Log4j2;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -80,12 +83,9 @@ public class TypeScriptCompiler {
      */
     public static Set<INgApp<?>> getAllApps() {
         if (allApps.isEmpty()) {
-            for (var classInfo : IGuiceContext.instance().getScanResult().getClassesWithAnnotation(com.jwebmp.core.base.angular.client.annotations.angular.NgApp.class)) {
-                if (classInfo.isAbstract() || classInfo.isInterfaceOrAnnotation()) {
-                    continue;
-                }
+            for (var appClass : getAllAppsClasses()) {
                 try {
-                    INgApp<?> clazz = (INgApp<?>) IGuiceContext.get(ClassLoading.loadClass(classInfo));
+                    INgApp<?> clazz = IGuiceContext.get(appClass);
                     IComponent.app.set(clazz);
                     File appPath = AppUtils.getAppPath((Class<? extends INgApp<?>>) clazz.getClass());
                     currentAppFile.set(appPath);
@@ -94,7 +94,7 @@ public class TypeScriptCompiler {
                             appPath.getPath());
                     allApps.add(clazz);
                 } catch (ClassCastException e) {
-                    log.error("Cannot render app - {} / Annotated @NgApp does not implement INgApp", classInfo.getSimpleName(), e);
+                    log.error("Cannot render app - {} / Annotated @NgApp does not implement INgApp", appClass.getSimpleName(), e);
                 }
             }
         }
@@ -108,15 +108,19 @@ public class TypeScriptCompiler {
      */
     public static List<Class<INgApp<?>>> getAllAppsClasses() {
         List<Class<INgApp<?>>> appClasses = new ArrayList<>();
-        for (var classInfo : IGuiceContext.instance().getScanResult().getClassesWithAnnotation(com.jwebmp.core.base.angular.client.annotations.angular.NgApp.class)) {
-            if (classInfo.isAbstract() || classInfo.isInterfaceOrAnnotation()) {
-                continue;
+        // In scan mode, keep the configured ClassGraph scope and its class ordering.
+        var scan = Discovery.scanResult();
+        if (scan != null) {
+            for (var info : scan.getClassesWithAnnotation(NgApp.class)) {
+                if (!info.isAbstract() && !info.isInterfaceOrAnnotation()) {
+                    appClasses.add((Class<INgApp<?>>) ClassLoading.loadClass(info));
+                }
             }
-            try {
-                appClasses.add((Class<INgApp<?>>) ClassLoading.loadClass(classInfo));
-            } catch (ClassCastException e) {
-                log.error("Cannot render app - {} / Annotated @NgApp does not implement INgApp", classInfo.getSimpleName(), e);
-            }
+        } else {
+            Discovery.annotatedClasses(NgApp.class).stream()
+                    .filter(Discovery::isConcrete)
+                    .sorted(Comparator.comparing(Class::getName))
+                    .forEach(type -> appClasses.add((Class<INgApp<?>>) type));
         }
         return appClasses;
     }
