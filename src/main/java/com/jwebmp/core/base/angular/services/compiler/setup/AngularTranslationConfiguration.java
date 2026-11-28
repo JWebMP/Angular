@@ -182,9 +182,11 @@ public final class AngularTranslationConfiguration
         Files.createDirectories(directory);
         for (var bundle : generated.bundles().entrySet())
             Files.writeString(directory.resolve(bundle.getKey() + ".json"), JSON.writeValueAsString(bundle.getValue()));
-        Files.writeString(directory.resolve("manifest.json"), JSON.writeValueAsString(Map.of(
-                "defaultLanguage", generated.config().get("defaultLanguage"), "languages", generated.config().get("languages"),
-                "namespaces", generated.config().get("namespaces"))));
+        Map<String, Object> manifest = new TreeMap<>();
+        manifest.put("defaultLanguage", generated.config().get("defaultLanguage"));
+        manifest.put("languages", generated.config().get("languages"));
+        manifest.put("namespaces", generated.config().get("namespaces"));
+        Files.writeString(directory.resolve("manifest.json"), JSON.writeValueAsString(manifest));
     }
 
     static void append(Generated generated, Class<? extends INgApp<?>> appClass, StringBuilder imports, StringBuilder providers)

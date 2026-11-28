@@ -120,7 +120,8 @@ class AngularTranslationConfigurationTest
             assertTrue(generated.bundles().get("fr").isEmpty());
             assertEquals(java.util.Set.of("orders"), generated.config().get("namespaces"));
             AngularTranslationConfiguration.write(generated, directory.resolve("public"));
-            assertTrue(Files.readString(directory.resolve("public/i18n/jwebmp/manifest.json")).contains("orders"));
+            assertEquals("{\"defaultLanguage\":\"en\",\"languages\":[\"de\",\"en\",\"fr\"],\"namespaces\":[\"orders\"]}",
+                    Files.readString(directory.resolve("public/i18n/jwebmp/manifest.json")));
             assertFalse(Files.readString(directory.resolve("public/i18n/jwebmp/en.json")).contains("private"));
         }
     }
